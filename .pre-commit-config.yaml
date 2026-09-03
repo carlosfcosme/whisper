@@ -34,3 +34,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: ignored-artifacts
+        name: verify cache/weight artifacts are gitignored
+        entry: python3 scripts/check_ignored_artifacts.py
+        language: system
+        pass_filenames: false
+        always_run: true
