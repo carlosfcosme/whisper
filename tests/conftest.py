@@ -1,3 +1,4 @@
+import ipaddress
 import os
 import random as rand
 import urllib.parse
@@ -10,15 +11,9 @@ import pytest
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+os.environ.setdefault("WHISPER_OFFLINE", "1")
 
-_BLOCKED_HOSTS = (
-    "huggingface.co",
-    "hf.co",
-    "cdn-lfs.huggingface.co",
-    "cdn-lfs-us-1.hf.co",
-    "openaipublic.azureedge.net",
-    "openaipublic.blob.core.windows.net",
-)
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
 
 def _host_of(url) -> str:
@@ -29,10 +24,13 @@ def _host_of(url) -> str:
     return (urllib.parse.urlparse(str(url)).hostname or "").lower()
 
 
-def _is_blocked_host(host: str) -> bool:
-    return any(
-        host == blocked or host.endswith("." + blocked) for blocked in _BLOCKED_HOSTS
-    )
+def _is_loopback_host(host: str) -> bool:
+    if not host or host in _LOOPBACK_HOSTS:
+        return True
+    try:
+        return ipaddress.ip_address(host.split("%", 1)[0]).is_loopback
+    except ValueError:
+        return False
 
 
 _ORIG_URLOPEN = urllib.request.urlopen
@@ -40,10 +38,10 @@ _ORIG_URLOPEN = urllib.request.urlopen
 
 def _guarded_urlopen(url, *args, **kwargs):
     host = _host_of(url)
-    if _is_blocked_host(host):
+    if host and not _is_loopback_host(host):
         raise RuntimeError(
             "tests must not download Hub or model weights ({}); "
-            "use a local cache".format(host)
+            "network download prohibited".format(host)
         )
     return _ORIG_URLOPEN(url, *args, **kwargs)
 

@@ -17,6 +17,12 @@ from .version import __version__
 # Cloud Agent / CI default: stay on CPU unless the caller passes a device.
 DEFAULT_DEVICE = "cpu"
 
+
+def is_offline() -> bool:
+    """True when named-model network downloads are prohibited."""
+    return os.environ.get("WHISPER_OFFLINE", "").strip().lower() in {"1", "true", "yes"}
+
+
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -72,6 +78,12 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if is_offline():
+        raise RuntimeError(
+            "WHISPER_OFFLINE=1: refusing to download {}; "
+            "model/network download prohibited".format(url)
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(

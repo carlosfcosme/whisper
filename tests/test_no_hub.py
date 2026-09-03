@@ -25,3 +25,4 @@ def test_offline_hub_env_is_set():
 
     assert os.environ.get("HF_HUB_OFFLINE") == "1"
     assert os.environ.get("TRANSFORMERS_OFFLINE") == "1"
+    assert os.environ.get("WHISPER_OFFLINE") == "1"

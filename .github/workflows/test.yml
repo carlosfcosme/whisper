@@ -62,9 +62,10 @@ jobs:
           HF_HUB_OFFLINE: "1"
           TRANSFORMERS_OFFLINE: "1"
           HF_DATASETS_OFFLINE: "1"
+          WHISPER_OFFLINE: "1"
         run: |
-          python3 -c "import torch, whisper; assert whisper.DEFAULT_DEVICE == 'cpu'; assert not torch.cuda.is_available()"
-          pytest tests/test_serve_localhost.py tests/test_no_hub.py tests/test_cpu_default.py tests/test_weight_guard.py -vv
+          python3 -c "import torch, whisper; assert whisper.DEFAULT_DEVICE == 'cpu'; assert whisper.is_offline(); assert not torch.cuda.is_available()"
+          pytest tests/test_serve_localhost.py tests/test_no_hub.py tests/test_cpu_default.py tests/test_weight_guard.py tests/test_offline_runtime.py -vv
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
@@ -110,4 +111,5 @@ jobs:
           HF_HUB_OFFLINE: "1"
           TRANSFORMERS_OFFLINE: "1"
           HF_DATASETS_OFFLINE: "1"
+          WHISPER_OFFLINE: "1"
         run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'

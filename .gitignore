@@ -20,3 +20,18 @@ thumbs.db
 cache/
 weights/
 
+# Runtime / test artifacts
+artifacts/
+test-results/
+outputs/
+htmlcov/
+.coverage
+coverage.xml
+dist/
+build/
+*.log
+tests/*.txt
+tests/*.vtt
+tests/*.srt
+tests/*.tsv
+
