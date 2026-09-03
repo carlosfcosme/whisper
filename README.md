@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Python is formatted with **Black**. Ruff is not configured. See
+[CODE_STYLE.md](CODE_STYLE.md).
+
 
 ## Available models and languages
 
