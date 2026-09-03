@@ -1,3 +1,4 @@
+import os
 import urllib.request
 
 import pytest
@@ -20,6 +21,15 @@ def _forbid_network(monkeypatch):
         raise AssertionError("unit tests must not open a network connection")
 
     monkeypatch.setattr(urllib.request, "urlopen", boom)
+
+
+def test_tests_are_cpu_only(monkeypatch):
+    assert default_device() == "cpu"
+    assert whisper.default_device() == "cpu"
+    assert torch.device(default_device()).type == "cpu"
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    assert os.environ.get("HF_HUB_OFFLINE") == "1"
+    assert os.environ.get("WHISPER_NO_WEIGHT_DOWNLOAD") == "1"
 
 
 def test_default_device_is_cpu_not_cuda(monkeypatch):
