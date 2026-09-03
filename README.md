@@ -17,7 +17,7 @@ A Transformer sequence-to-sequence model is trained on various speech processing
 
 ## Setup
 
-We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models, but the codebase is expected to be compatible with Python 3.8-3.11 and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [OpenAI's tiktoken](https://github.com/openai/tiktoken) for their fast tokenizer implementation. You can download and install (or update to) the latest release of Whisper with the following command:
+We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models, but the codebase is expected to be compatible with Python 3.8-3.13 and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [OpenAI's tiktoken](https://github.com/openai/tiktoken) for their fast tokenizer implementation. You can download and install (or update to) the latest release of Whisper with the following command:
 
     pip install -U openai-whisper
 
@@ -147,4 +147,6 @@ Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussion
 
 ## License
 
-Whisper's code and model weights are released under the MIT License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.
+Whisper's code and model weights are released under the MIT License. See [LICENSE](LICENSE) for further details.
+
+The LICENSE copyright year is **2022** (original publication). It is not an expiration date and is not refreshed with the calendar or this environment (2026). Bind notebooks, demos, or helper servers to `127.0.0.1` (**localhost-only**). Do not commit model weights or secrets.
