@@ -58,23 +58,19 @@ There is no tox env list and no `make test` target.
 `~/.cache/whisper`. Skip that module unless you intend to fetch weights.
 Do not commit `.pt` files.
 
-Weight-free suite (audio, tokenizer, CPU timing, normalizer):
+Weight-free suite (audio, tokenizer, CPU timing, normalizer, offline guards).
+CI sets `WHISPER_OFFLINE=1` and `HF_HUB_OFFLINE=1` and never runs
+`test_transcribe` (marked `requires_weights`):
 
 ```bash
-pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+pytest --durations=0 -vv -k 'not test_transcribe' \
+  -m 'not requires_cuda and not requires_weights'
 ```
 
-CI additionally runs `test_transcribe[tiny]` and `test_transcribe[tiny.en]`,
-which **do** download those two checkpoints:
-
-```bash
-pytest --durations=0 -vv \
-  -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' \
-  -m 'not requires_cuda'
-```
-
-CUDA tests (`@pytest.mark.requires_cuda` in [`tests/test_timing.py`](tests/test_timing.py))
-are skipped on CPU.
+`whisper._download` refuses WAN fetches while those flags are set.
+Pytest also blocks `urllib` to Hugging Face Hub and
+`openaipublic.azureedge.net`. CUDA tests (`requires_cuda` in
+[`tests/test_timing.py`](tests/test_timing.py)) are skipped on CPU.
 
 ## Lint
 
