@@ -36,6 +36,71 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  # Default path is offline: no Whisper checkpoint download, no API keys.
+  # Fails if CI or install.sh would fetch weights (test_transcribe[tiny], load_model).
+  # Also requires local fixtures and a 127.0.0.1 bind (tests/test_offline_default.py).
+  offline-default:
+    name: default path is offline
+    runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Fail network/model fetch; require local fixtures and loopback bind
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python scripts/check_default_offline.py
+          bash scripts/grep_loopback_bind.sh
+          python scripts/check_no_wildcard_bind.py
+          pytest -vv -m offline_default \
+            tests/test_offline_default.py \
+            tests/test_default_path_offline.py \
+            tests/test_no_wildcard_bind.py
+
+  no-wildcard-bind:
+    name: fail on all-interfaces bind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Grep guard for non-loopback bind hosts
+        run: bash scripts/grep_loopback_bind.sh
+      - name: Fail if start/serve binds all interfaces
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python scripts/check_no_wildcard_bind.py
+          pytest tests/test_no_wildcard_bind.py -vv
+
+  no-committed-weights:
+    name: fail on committed weights
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Fail if checkpoints are tracked
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python scripts/check_no_weights.py
+          pytest tests/test_no_committed_weights.py -vv
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
@@ -76,4 +141,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # Offline default: do not select a named transcribe model (that path fetches weights).
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda and not requires_weights'
+        env:
+          WHISPER_OFFLINE: "1"
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
