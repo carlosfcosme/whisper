@@ -2,6 +2,9 @@
 # Idempotent Cloud Agent setup for openai-whisper.
 # Installs the ffmpeg system dependency and the package (with dev extras)
 # using a CPU build of PyTorch so tests and the `whisper` CLI run without a GPU.
+#
+# Offline default: do not download model checkpoints. Do not call load_model.
+# No API keys. This script does not bind a network listener.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

@@ -51,6 +51,14 @@ _ALIGNMENT_HEADS = {
 }
 
 
+_OFFLINE_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _offline_enabled() -> bool:
+    """True when WHISPER_OFFLINE refuses a network fetch of weights."""
+    return os.getenv("WHISPER_OFFLINE", "").strip().lower() in _OFFLINE_TRUTHY
+
+
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
@@ -69,6 +77,14 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    # Default install/CI is offline. A cache miss must not WAN-pull weights.
+    if _offline_enabled():
+        raise RuntimeError(
+            "WHISPER_OFFLINE is set; refusing to fetch model weights from "
+            f"{url}. Place a checkpoint at {download_target} or unset "
+            "WHISPER_OFFLINE."
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -117,7 +133,8 @@ def load_model(
     device : Union[str, torch.device]
         the PyTorch device to put the model into
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to download the model files; by default, it uses "~/.cache/whisper".
+        When WHISPER_OFFLINE is set, a missing file raises instead of downloading.
     in_memory: bool
         whether to preload the model weights into host memory
 
