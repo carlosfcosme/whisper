@@ -20,6 +20,7 @@ pip install --break-system-packages \
   --index-url https://download.pytorch.org/whl/cpu \
   --extra-index-url https://pypi.org/simple
 
+# Code style: Black + isort + flake8 via .[dev]. Ruff is not installed. See CODE_STYLE.md.
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
 pip install --break-system-packages -e ".[dev]"
 
