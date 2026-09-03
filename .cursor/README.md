@@ -27,8 +27,15 @@ That is refused.
 bash .cursor/verify.sh
 ```
 
+CI runs that same script. The `localhost-only-verify` job in
+`.github/workflows/test.yml` installs the package (PyTorch only) and
+invokes `.cursor/verify.sh`. It does **not** run `test_transcribe` and
+must not download Whisper checkpoints. Tests are selected with
+`-m localhost_only`. A disposable `XDG_CACHE_HOME` is asserted empty of
+`.pt` / `.pth` / `.bin` files when verify exits.
+
 Override: unset `WHISPER_LOCALHOST_ONLY` (or set it to `0`) only when you
-intentionally want a WAN fetch. Do not do that in verify.
+intentionally want a WAN fetch. Do not do that in verify or CI.
 
 ## Serve / bind: 127.0.0.1 only
 

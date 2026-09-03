@@ -14,6 +14,8 @@ from whisper.localhost import (
     urlopen_maybe_localhost_only,
 )
 
+pytestmark = pytest.mark.localhost_only
+
 WAN_URLS = (
     "https://openaipublic.azureedge.net/main/whisper/models/abc/tiny.pt",
     "https://example.com/tiny.pt",

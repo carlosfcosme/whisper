@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Localhost-only self-check for the whisper precache/verify path.
+# CI entry point: localhost-only verify.
 #
-# This script must not be pointed at a remote or WAN host. It exports
-# WHISPER_LOCALHOST_ONLY=1 so model-weight pulls to anything other than
-# loopback (localhost / 127.0.0.0/8 / ::1) are refused — including the
-# official CDN. A cache hit is not a pull.
+# No model-weight download. No WAN pulls. Does not run test_transcribe.
+# GitHub Actions job localhost-only-verify invokes this script.
 #
 # See .cursor/README.md.
 set -euo pipefail
@@ -13,15 +11,21 @@ cd "$(dirname "$0")/.."
 
 export WHISPER_LOCALHOST_ONLY=1
 
-echo "== Localhost-only policy =="
+VERIFY_CACHE="$(mktemp -d)"
+cleanup() { rm -rf "$VERIFY_CACHE"; }
+trap cleanup EXIT
+export XDG_CACHE_HOME="$VERIFY_CACHE"
+
+echo "== Localhost-only CI verify =="
 echo "  WHISPER_LOCALHOST_ONLY=${WHISPER_LOCALHOST_ONLY}"
+echo "  XDG_CACHE_HOME=${XDG_CACHE_HOME} (disposable; must stay empty of weights)"
 echo "  allowed hosts: localhost, 127.0.0.0/8, ::1"
 echo "  refused: remote/WAN pulls (CDN, public DNS, LAN, public IPs)"
-
 echo "  serve/bind: 127.0.0.1 only"
+echo "  pytest: -m localhost_only (no test_transcribe, no weight download)"
 
 echo "== Guard tests (no network, no weights) =="
-python3 -m pytest -q tests/test_localhost_only.py tests/test_bind_localhost.py
+python3 -m pytest -q -m 'localhost_only and not requires_cuda'
 
 echo "== Cache-miss against the official CDN must be refused =="
 python3 - <<'PY'
@@ -40,4 +44,13 @@ with tempfile.TemporaryDirectory() as tmp:
         raise SystemExit("FAIL: WAN pull to the official CDN was not refused")
 PY
 
-echo "== VERIFY OK: localhost-only pulls; serve/bind is 127.0.0.1 =="
+echo "== No weight files written =="
+written="$(find "$VERIFY_CACHE" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.bin' \) -print)"
+if [ -n "$written" ]; then
+  echo "FAIL: model weight file written during verify:"
+  echo "$written"
+  exit 1
+fi
+echo "  ok: no .pt/.pth/.bin under XDG_CACHE_HOME"
+
+echo "== VERIFY OK: CI localhost-only verify (no weight download) =="

@@ -8,6 +8,8 @@ import pytest
 from whisper.bind import BIND_HOST, BindError, require_bind_127_0_0_1
 from whisper.serve import make_server
 
+pytestmark = pytest.mark.localhost_only
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WILDCARD = "0.0.0.0"
 
