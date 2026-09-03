@@ -1,7 +1,8 @@
 import hashlib
 import io
 import os
-import urllib
+import urllib.parse
+import urllib.request
 import warnings
 from typing import List, Optional, Union
 
@@ -10,6 +11,7 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .device import DEFAULT_DEVICE
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -52,11 +54,29 @@ _ALIGNMENT_HEADS = {
 
 
 _OFFLINE_TRUTHY = {"1", "true", "yes", "on"}
+_HUB_SUFFIXES = (".huggingface.co", ".hf.co")
+_HUB_HOSTS = {"huggingface.co", "hf.co", "huggingface.com"}
 
 
 def _offline_enabled() -> bool:
     """True when WHISPER_OFFLINE refuses a network fetch of weights."""
     return os.getenv("WHISPER_OFFLINE", "").strip().lower() in _OFFLINE_TRUTHY
+
+
+def _hub_host(url: str) -> Optional[str]:
+    host = (urllib.parse.urlparse(url).hostname or "").lower().rstrip(".")
+    if host in _HUB_HOSTS or host.endswith(_HUB_SUFFIXES):
+        return host
+    return None
+
+
+def _refuse_hub(url: str) -> None:
+    host = _hub_host(url)
+    if host is None:
+        return
+    raise RuntimeError(
+        f"Hub downloads are disabled (refusing {host}). " "Use a local checkpoint path."
+    )
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
@@ -85,6 +105,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             f"{url}. Place a checkpoint at {download_target} or unset "
             "WHISPER_OFFLINE."
         )
+
+    _refuse_hub(url)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -131,7 +153,8 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU
+        (``whisper.DEFAULT_DEVICE``). Pass ``cuda`` to use a GPU.
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper".
         When WHISPER_OFFLINE is set, a missing file raises instead of downloading.
@@ -145,7 +168,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

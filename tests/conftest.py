@@ -34,6 +34,21 @@ def _request_url(url) -> str:
 
 
 @pytest.fixture(autouse=True)
+def _block_hf_hub(monkeypatch):
+    """No Hub: refuse huggingface_hub downloads if that package is present."""
+    try:
+        import huggingface_hub
+    except ImportError:
+        return
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("tests must not use the Hub")
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", boom, raising=False)
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", boom, raising=False)
+
+
+@pytest.fixture(autouse=True)
 def _localhost_only_urlopen(monkeypatch):
     """Refuse WAN weight fetches. Localhost and file: URLs are allowed."""
     real_urlopen = urllib.request.urlopen

@@ -11,6 +11,10 @@ cache/
 weights/
 *.pt
 *.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
 
 # Secrets (no keys in the tree)
 .env

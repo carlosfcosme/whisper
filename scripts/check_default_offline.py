@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "test.yml"
 INSTALL = REPO_ROOT / ".cursor" / "install.sh"
 ENVIRONMENT = REPO_ROOT / ".cursor" / "environment.json"
+START = REPO_ROOT / ".cursor" / "start.sh"
 
 FETCH_RE = re.compile(
     r"load_model|_download|openaipublic|azureedge\.net|huggingface\.co|"
@@ -76,6 +77,7 @@ def reasons_default_path_fetches_weights(
         install_text = INSTALL.read_text()
     if environment_text is None:
         environment_text = ENVIRONMENT.read_text() if ENVIRONMENT.is_file() else "{}"
+    start_text = START.read_text() if START.is_file() else ""
 
     try:
         block = job_block(workflow_text, "whisper-test")
@@ -107,6 +109,17 @@ def reasons_default_path_fetches_weights(
     if WILDCARD_BIND in install_code:
         reasons.append("install.sh mentions 0.0.0.0 (must be localhost only)")
     reasons.extend(_secret_reasons("install.sh", install_code))
+
+    start_code = strip_hash_comments(start_text)
+    if start_code.strip():
+        if FETCH_RE.search(start_code):
+            reasons.append(
+                "start.sh would fetch or precache model weights "
+                "(load_model / CDN / Hub is not allowed on the default path)"
+            )
+        if WILDCARD_BIND in start_code:
+            reasons.append("start.sh mentions 0.0.0.0 (must be localhost only)")
+        reasons.extend(_secret_reasons("start.sh", start_code))
 
     env_code = strip_hash_comments(environment_text)
     if WILDCARD_BIND in env_code:
