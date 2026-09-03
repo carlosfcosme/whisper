@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import traceback
 import warnings
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
@@ -515,6 +516,11 @@ def transcribe(
 
 
 def cli():
+    if len(sys.argv) >= 2 and sys.argv[1] == "serve":
+        from .serve import main as serve_main
+
+        raise SystemExit(serve_main(sys.argv[2:]))
+
     from . import available_models
 
     def valid_model_name(name):
@@ -564,11 +570,14 @@ def cli():
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
     parser.add_argument("--clip_timestamps", type=str, default="0", help="comma-separated list start,end,start,end,... timestamps (in seconds) of clips to process, where the last end timestamp defaults to the end of the file")
     parser.add_argument("--hallucination_silence_threshold", type=optional_float, help="(requires --word_timestamps True) skip silent periods longer than this threshold (in seconds) when a possible hallucination is detected")
+    parser.add_argument("--allow_downloads", type=str2bool, default=False, help="opt in to fetching missing weights (disabled by default; no Hub/Azure fetch)")
     # fmt: on
 
     args = parser.parse_args().__dict__
     model_name: str = args.pop("model")
     model_dir: str = args.pop("model_dir")
+    if args.pop("allow_downloads"):
+        os.environ["WHISPER_ALLOW_DOWNLOADS"] = "1"
     output_dir: str = args.pop("output_dir")
     output_format: str = args.pop("output_format")
     device: str = args.pop("device")
