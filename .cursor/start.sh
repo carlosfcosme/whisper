@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Bind whisper serve to IPv4 loopback only. Do not bind all interfaces. No Hub.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+host="${WHISPER_SERVE_HOST:-127.0.0.1}"
+port="${WHISPER_SERVE_PORT:-8765}"
+
+exec python3 -m whisper.serve --host "${host}" --port "${port}"
