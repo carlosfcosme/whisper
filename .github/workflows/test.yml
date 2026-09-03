@@ -36,6 +36,44 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  # Localhost-only verify: no transcription tests, no model-weight download, no WAN.
+  localhost-only-verify:
+    name: localhost-only verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Install package (PyTorch only; no Whisper checkpoints)
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev] numpy torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+      - name: Localhost-only verify
+        run: bash .cursor/verify.sh
+        env:
+          WHISPER_LOCALHOST_ONLY: "1"
+          WHISPER_DEVICE: "cpu"
+          CUDA_VISIBLE_DEVICES: ""
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+
+  # Fail the PR if tests mention the Hub or model weights are committed.
+  offline-guard:
+    name: no hub / no committed weights
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fail on Hub access in tests or committed weights
+        run: python3 scripts/ci_fail_hub_or_weights.py
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
@@ -77,3 +115,7 @@ jobs:
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+        env:
+          WHISPER_DEVICE: "cpu"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
