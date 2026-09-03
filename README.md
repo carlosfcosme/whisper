@@ -55,6 +55,34 @@ pip install setuptools-rust
 ```
 
 
+## Model cache directories
+
+Named checkpoints are **not** stored in this repository. On first use,
+`whisper.load_model()` and the `whisper` CLI download `.pt` files into a cache
+directory. The directory **name** is always `whisper`. The parent comes from
+the implicit `XDG_CACHE_HOME` environment variable (XDG Base Directory):
+
+| Condition | Cache directory |
+|-----------|-----------------|
+| `XDG_CACHE_HOME` unset (default) | `~/.cache/whisper` |
+| `XDG_CACHE_HOME` is set | `$XDG_CACHE_HOME/whisper` |
+
+Overrides:
+
+- CLI: `whisper audio.wav --model_dir /path/to/cache`
+- Python: `whisper.load_model("turbo", download_root="/path/to/cache")`
+
+Whisper does not create a separate logging directory. Progress and debug
+messages print to the terminal when `--verbose` is enabled (the CLI default).
+
+If you point `XDG_CACHE_HOME`, `--model_dir`, or `download_root` at a directory
+inside this checkout (for example `.cache/` or `cache/`), `.gitignore` excludes
+those cache dirs, a local `weights/` directory, downloaded weights (`*.pt`,
+`*.pth`), and local secret files (`.env`, `.env.*`). Do not commit checkpoints
+or credentials. CI runs `scripts/check_no_tracked_weights.sh` and fails if
+those cache or weight paths are tracked.
+
+
 ## Available models and languages
 
 There are six model sizes, four with English-only versions, offering speed and accuracy tradeoffs.
