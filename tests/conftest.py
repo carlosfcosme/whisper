@@ -4,9 +4,12 @@ import random as rand
 import numpy
 import pytest
 
-# Bundled sample audio. Tests resolve this from the checkout — there is no
-# env var and no download URL. See tests/README.md.
-SAMPLE_AUDIO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jfk.flac")
+from whisper.offline import require_local_path
+
+# Bundled sample audio. Local checkout file — no Hub, no download URL.
+SAMPLE_AUDIO_PATH = require_local_path(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "jfk.flac")
+)
 
 
 def pytest_configure(config):
@@ -15,7 +18,7 @@ def pytest_configure(config):
 
 @pytest.fixture
 def sample_audio_path():
-    """Absolute path to tests/jfk.flac (in-repo). Never a network URL."""
+    """Absolute path to tests/jfk.flac (in-repo). Never a Hub or http(s) URL."""
     return SAMPLE_AUDIO_PATH
 
 

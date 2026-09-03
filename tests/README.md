@@ -4,8 +4,10 @@ Sample audio and other fixtures live in this checkout. Tests resolve them
 from the source tree. **Do not download sample audio or model weights** to
 run the default suite.
 
-There is **no** environment variable for the sample-audio path. No secrets
-are required.
+The sample-audio path is not an env var. Enforcement lives in
+`whisper/offline.py` (local fixtures, Hub refused, bind `127.0.0.1`, CPU
+default). `python3 whisper/offline.py --check` fails CI if weights are
+committed. No secrets are required.
 
 ## Sample audio
 

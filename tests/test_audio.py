@@ -6,9 +6,13 @@ from whisper.audio import SAMPLE_RATE, load_audio, log_mel_spectrogram
 
 
 def test_sample_audio_fixture_is_local(sample_audio_path):
+    from whisper.offline import is_hub_url, require_local_path
+
     assert os.path.isfile(sample_audio_path)
     assert os.path.basename(sample_audio_path) == "jfk.flac"
-    assert not sample_audio_path.startswith(("http://", "https://"))
+    assert not sample_audio_path.startswith(("http://", "https://", "hf://"))
+    assert not is_hub_url(sample_audio_path)
+    assert require_local_path(sample_audio_path) == os.path.abspath(sample_audio_path)
 
 
 def test_audio(sample_audio_path):
