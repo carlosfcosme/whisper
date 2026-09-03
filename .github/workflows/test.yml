@@ -8,6 +8,52 @@ on:
       - main
 
 jobs:
+  untracked-cache-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if weights, caches, or secrets are committed
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files -- \
+            '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' \
+            '.huggingface' '.huggingface/**' 'hub' 'hub/**' \
+            '*.pt' '*.pth' '*.safetensors' '*.bin' \
+            '.env' '.env.*')"
+          if [ -n "$tracked" ]; then
+            echo "These cache/weight/secret paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+          for path in \
+            .cache/whisper/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            .huggingface/hub/models--openai--whisper/tiny.pt \
+            hub/tiny.safetensors \
+            tiny.pt \
+            model.pth \
+            model.safetensors \
+            model.bin \
+            .env \
+            .env.local
+          do
+            git check-ignore -q -- "$path"
+          done
+      - name: Fail if package code fetches from Hugging Face Hub
+        run: |
+          set -euo pipefail
+          if git grep -nE 'hf_hub_download|snapshot_download|from huggingface_hub|import huggingface_hub' -- whisper; then
+            echo "Package code must not call Hugging Face Hub" >&2
+            exit 1
+          fi
+      - name: Fail if package binds all interfaces
+        run: |
+          set -euo pipefail
+          if git grep -nF '0.0.0.0' -- whisper; then
+            echo "Package code must bind 127.0.0.1 only" >&2
+            exit 1
+          fi
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +83,10 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, untracked-cache-weights]
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +124,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Weight-free pytest (no WAN model pull)
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+        run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda and not requires_weights'

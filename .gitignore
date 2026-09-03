@@ -9,3 +9,16 @@ thumbs.db
 .DS_Store
 .idea
 
+.cache/
+cache/
+weights/
+.huggingface/
+hub/
+*.pt
+*.pth
+*.safetensors
+*.bin
+
+.env
+.env.*
+
