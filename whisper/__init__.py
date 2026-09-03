@@ -4,12 +4,15 @@ import os
 import urllib
 import warnings
 from typing import List, Optional, Union
+from urllib.parse import urlparse
 
 import torch
 from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .device import default_device
+from .loopback import LOOPBACK_HOST, is_loopback_url
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -51,6 +54,23 @@ _ALIGNMENT_HEADS = {
 }
 
 
+class RemoteDownloadError(RuntimeError):
+    """Raised when a Hub/CDN (non-loopback) model fetch is refused."""
+
+
+def _url_host(url: str) -> str:
+    return (urlparse(url).hostname or "").lower()
+
+
+def _is_hub_host(host: str) -> bool:
+    return (
+        host == "hf.co"
+        or host.endswith(".hf.co")
+        or host == "huggingface.co"
+        or (host.endswith(".huggingface.co"))
+    )
+
+
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
@@ -65,10 +85,27 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; "
+            "remote re-download is disabled"
+        )
+        raise RemoteDownloadError(
+            f"{download_target} checksum mismatch and remote fetch is disabled"
+        )
+
+    host = _url_host(url)
+    if _is_hub_host(host):
+        raise RemoteDownloadError(
+            "Hugging Face Hub downloads are disabled. Place the checkpoint at "
+            "{0} or serve it on {1}.".format(download_target, LOOPBACK_HOST)
+        )
+    if not is_loopback_url(url):
+        raise RemoteDownloadError(
+            "Refusing remote model download from {0!r}. "
+            "Place the checkpoint at {1} or serve it on {2}.".format(
+                host or url, download_target, LOOPBACK_HOST
             )
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -128,7 +165,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = default_device()
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
