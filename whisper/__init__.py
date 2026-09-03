@@ -9,10 +9,11 @@ import torch
 from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
-from .bind import LOCALHOST, bind_host
+from .bind import LOCALHOST, bind_host, listen
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .device import DEFAULT_DEVICE, default_device
 from .model import ModelDimensions, Whisper
+from .offline import weights_offline
 from .transcribe import transcribe
 from .version import __version__
 
@@ -71,6 +72,9 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if weights_offline():
+        raise RuntimeError("offline: refusing to download weights from {0}".format(url))
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(

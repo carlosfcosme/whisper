@@ -5,21 +5,24 @@ import socket
 import numpy
 import pytest
 
-# Hugging Face Hub is disabled for the entire test process.
+# No Hub fetch and no checkpoint download for the entire test process.
+os.environ["WHISPER_OFFLINE"] = "1"
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
 
-_HUB_HOSTS = (
+_BLOCKED_HOSTS = (
     "huggingface.co",
     "hf.co",
     "cdn-lfs.huggingface.co",
     "cas-bridge.xethub.hf.co",
+    "openaipublic.azureedge.net",
 )
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_cuda")
+    os.environ["WHISPER_OFFLINE"] = "1"
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     os.environ["HF_DATASETS_OFFLINE"] = "1"
@@ -29,7 +32,7 @@ def _hub_blocked(host):
     if not isinstance(host, str):
         return False
     lowered = host.lower().rstrip(".")
-    return lowered in _HUB_HOSTS or lowered.endswith(".huggingface.co")
+    return lowered in _BLOCKED_HOSTS or lowered.endswith(".huggingface.co")
 
 
 @pytest.fixture(autouse=True)
@@ -41,14 +44,14 @@ def _block_huggingface_hub(monkeypatch):
         host = address[0] if isinstance(address, tuple) else address
         if _hub_blocked(host):
             raise RuntimeError(
-                "Hugging Face Hub is disabled in tests: {0}".format(host)
+                "Hub/weight download is disabled in tests: {0}".format(host)
             )
         return real_create_connection(address, *args, **kwargs)
 
     def guarded_getaddrinfo(host, *args, **kwargs):
         if _hub_blocked(host):
             raise socket.gaierror(
-                socket.EAI_NONAME, "Hugging Face Hub is disabled in tests"
+                socket.EAI_NONAME, "Hub/weight download is disabled in tests"
             )
         return real_getaddrinfo(host, *args, **kwargs)
 

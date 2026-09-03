@@ -59,3 +59,9 @@ def test_weight_paths_are_gitignored():
         if _git("check-ignore", "-q", "--", path).returncode != 0
     ]
     assert failed == [], failed
+
+
+def test_cache_and_weights_dirs_are_ignored():
+    for directory in ("cache/", "weights/", "cache/whisper/tiny.pt", "weights/tiny.pt"):
+        result = _git("check-ignore", "-q", "--", directory)
+        assert result.returncode == 0, directory

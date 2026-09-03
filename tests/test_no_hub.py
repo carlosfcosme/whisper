@@ -4,6 +4,10 @@ import ast
 import os
 from pathlib import Path
 
+import pytest
+
+import whisper
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TESTS_DIR = REPO_ROOT / "tests"
 
@@ -25,9 +29,30 @@ def _python_test_files():
 
 
 def test_hub_offline_env_is_set():
+    assert os.environ.get("WHISPER_OFFLINE") == "1"
     assert os.environ.get("HF_HUB_OFFLINE") == "1"
     assert os.environ.get("TRANSFORMERS_OFFLINE") == "1"
     assert os.environ.get("HF_DATASETS_OFFLINE") == "1"
+
+
+def test_load_model_does_not_fetch_when_offline(tmp_path, monkeypatch):
+    monkeypatch.setenv("WHISPER_OFFLINE", "1")
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    with pytest.raises(RuntimeError, match="offline"):
+        whisper.load_model("tiny", device="cpu")
+    assert list(tmp_path.rglob("*.pt")) == []
+    assert list(tmp_path.rglob("*.pth")) == []
+
+
+def test_ci_does_not_download_weights():
+    workflow = (REPO_ROOT / ".github" / "workflows" / "test.yml").read_text()
+    assert "WHISPER_OFFLINE" in workflow
+    assert "HF_HUB_OFFLINE" in workflow
+    assert "test_transcribe[tiny]" not in workflow
+    assert (
+        "-k 'not test_transcribe'" in workflow or '-k "not test_transcribe"' in workflow
+    )
+    assert "Fail if CI downloaded weights" in workflow
 
 
 def test_test_sources_do_not_reference_the_hub():

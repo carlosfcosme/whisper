@@ -8,6 +8,8 @@ from whisper.tokenizer import get_tokenizer
 
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
+    if os.environ.get("WHISPER_OFFLINE") == "1":
+        pytest.skip("offline: no weight download")
     model = whisper.load_model(model_name, device="cpu")
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 

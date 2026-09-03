@@ -16,6 +16,8 @@ def test_default_device_is_cpu():
     assert DEFAULT_DEVICE == "cpu"
     assert default_device() == "cpu"
     assert whisper.default_device() == "cpu"
+    assert default_device() != "cuda"
+    assert "cuda" not in default_device()
 
 
 def test_load_model_uses_cpu_when_device_is_omitted():
