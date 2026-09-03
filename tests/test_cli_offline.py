@@ -33,21 +33,21 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _cli_env(tmp_path):
-    home = tmp_path / "home"
+    """Isolate caches only. Keep HOME so user-site torch stays importable."""
     xdg = tmp_path / "xdg"
-    home.mkdir()
-    xdg.mkdir()
+    hf = tmp_path / "hf"
+    xdg.mkdir(exist_ok=True)
+    hf.mkdir(exist_ok=True)
     env = os.environ.copy()
-    env["HOME"] = str(home)
     env["XDG_CACHE_HOME"] = str(xdg)
+    env["HF_HOME"] = str(hf)
+    env["HF_HUB_CACHE"] = str(hf / "hub")
     env["WHISPER_OFFLINE"] = "1"
     env["HF_HUB_OFFLINE"] = "1"
     env["TRANSFORMERS_OFFLINE"] = "1"
     env["HF_DATASETS_OFFLINE"] = "1"
     env["HF_HUB_DISABLE_TELEMETRY"] = "1"
     env.pop("WHISPER_ALLOW_DOWNLOADS", None)
-    env.pop("HF_HOME", None)
-    env.pop("HF_HUB_CACHE", None)
     return env, xdg
 
 
@@ -121,7 +121,10 @@ def test_cli_local_fixture_does_not_download(tmp_path, monkeypatch):
         assert Path(audio_path) == JFK_FLAC
         return {"text": "local fixture", "segments": [], "language": "en"}
 
-    monkeypatch.setattr("whisper.transcribe.transcribe", _fake_transcribe)
+    # whisper.transcribe is the function re-exported from the package.
+    monkeypatch.setattr(
+        sys.modules["whisper.transcribe"], "transcribe", _fake_transcribe
+    )
     monkeypatch.setattr(
         sys,
         "argv",
