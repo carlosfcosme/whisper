@@ -29,6 +29,8 @@ To update the package to the latest version of this repository, please run:
 
     pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
 
+The Setup, Cloud Agent, and CI installers are **pip**. This repository does not use **uv** (no `uv.lock`, no `[tool.uv]`). See [INSTALLER.md](INSTALLER.md).
+
 It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
 
 ```bash
