@@ -9,3 +9,16 @@ thumbs.db
 .DS_Store
 .idea
 
+# Tool and model caches (never commit downloaded weights)
+.cache/
+cache/
+.mypy_cache/
+.ruff_cache/
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+
