@@ -108,31 +108,20 @@ def discover_start_scripts(root: Path) -> List[Path]:
     return sorted(set(found))
 
 
-@pytest.mark.parametrize("host", [LOOPBACK, "localhost", "LOCALHOST"])
-def test_require_loopback_bind_allows_loopback(host):
-    bound = require_loopback_bind(host)
+def test_require_loopback_bind_allows_loopback(loopback_host):
+    bound = require_loopback_bind(loopback_host)
     assert bound == LOOPBACK
     assert is_loopback_host(bound)
 
 
-@pytest.mark.parametrize(
-    "host",
-    [
-        ALL_INTERFACES,
-        "::",
-        "*",
-        "",
-        "192.168.1.10",
-        "example.com",
-        "10.0.0.1",
-        "8.8.8.8",
-        "172.16.0.1",
-        "[::]",
-    ],
-)
-def test_require_loopback_bind_refuses_non_loopback(host):
+def test_require_loopback_bind_refuses_negative_wildcard(negative_wildcard_host):
     with pytest.raises(BindError):
-        require_loopback_bind(host)
+        require_loopback_bind(negative_wildcard_host)
+
+
+def test_create_server_refuses_negative_wildcard(negative_wildcard_host):
+    with pytest.raises(BindError):
+        create_server(host=negative_wildcard_host, port=0)
 
 
 def test_require_loopback_bind_rejects_all_interfaces():
@@ -193,9 +182,8 @@ def test_cli_refuses_all_interfaces(capsys):
     assert "127.0.0.1" in err
 
 
-@pytest.mark.parametrize("host", [ALL_INTERFACES, "192.168.1.10", "8.8.8.8", "::"])
-def test_cli_refuses_non_loopback(host, capsys):
-    code = main(["--host", host, "--port", "0"])
+def test_cli_refuses_negative_wildcard(negative_wildcard_host, capsys):
+    code = main(["--host", negative_wildcard_host, "--port", "0"])
     assert code == 2
     assert "127.0.0.1" in capsys.readouterr().err
 
@@ -221,11 +209,9 @@ def test_application_sources_do_not_contain_all_interfaces():
     assert_application_sources_localhost_only()
 
 
-def test_scan_fails_when_all_interfaces_in_start_script(tmp_path):
-    script = tmp_path / "start.sh"
-    script.write_text(f"python3 -m http.server --bind {ALL_INTERFACES}\n")
+def test_scan_fails_when_wildcard_bind_in_start_script(wildcard_bind_script):
     with pytest.raises(AssertionError, match="not allowed in serve/listen paths"):
-        assert_application_sources_localhost_only([tmp_path])
+        assert_application_sources_localhost_only([wildcard_bind_script.parent])
 
 
 def test_weight_paths_are_gitignored():

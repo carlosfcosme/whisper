@@ -26,7 +26,7 @@ jobs:
       - name: Install pytest only (no torch, no model weights)
         run: python -m pip install pytest
       - name: Fail if serve/listen binds all interfaces
-        run: pytest tests/test_bind.py tests/test_ci_guards.py -vv
+        run: pytest tests/test_bind.py tests/test_ci_guards.py tests/test_no_weight_network.py -vv
       - name: Fail on non-loopback listen
         run: python3 scripts/check_loopback_listen.py
       - name: Application sources must not contain 0.0.0.0
