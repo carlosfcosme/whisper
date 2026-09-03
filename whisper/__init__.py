@@ -14,6 +14,29 @@ from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
 
+# Model cache directory names. ``XDG_CACHE_HOME`` is the implicit env override.
+# Default: ~/.cache/whisper  |  If set: $XDG_CACHE_HOME/whisper
+_CACHE_HOME_ENV = "XDG_CACHE_HOME"
+_CACHE_DIR_NAME = "whisper"
+_DEFAULT_CACHE_HOME_NAME = ".cache"
+
+
+def default_download_root() -> str:
+    """Return the default directory for downloaded model checkpoints.
+
+    The cache directory name is always ``whisper``. The parent is taken from
+    the implicit ``XDG_CACHE_HOME`` environment variable when set, otherwise
+    ``~/.cache``.
+
+    Returns
+    -------
+    str
+        ``$XDG_CACHE_HOME/whisper`` or ``~/.cache/whisper``
+    """
+    default_home = os.path.join(os.path.expanduser("~"), _DEFAULT_CACHE_HOME_NAME)
+    return os.path.join(os.getenv(_CACHE_HOME_ENV, default_home), _CACHE_DIR_NAME)
+
+
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -117,7 +140,9 @@ def load_model(
     device : Union[str, torch.device]
         the PyTorch device to put the model into
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to download the model files; by default
+        ``$XDG_CACHE_HOME/whisper`` if ``XDG_CACHE_HOME`` is set, otherwise
+        ``~/.cache/whisper``
     in_memory: bool
         whether to preload the model weights into host memory
 
@@ -130,8 +155,7 @@ def load_model(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     if download_root is None:
-        default = os.path.join(os.path.expanduser("~"), ".cache")
-        download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+        download_root = default_download_root()
 
     if name in _MODELS:
         checkpoint_file = _download(_MODELS[name], download_root, in_memory)
