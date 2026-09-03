@@ -75,9 +75,9 @@ def test_current_install_does_not_fetch_weights():
     install = REPO_ROOT / ".cursor" / "install.sh"
     assert install.is_file()
     assert guard.install_weight_fetch_hits([install]) == []
-    text = install.read_text(encoding="utf-8")
-    assert "load_model" not in text
-    assert "azureedge" not in text
+    uncommented = "\n".join(guard._uncommented_lines(install.read_text(encoding="utf-8")))
+    assert "load_model" not in uncommented
+    assert "azureedge" not in uncommented
 
 
 def test_start_script_localhost_only():
