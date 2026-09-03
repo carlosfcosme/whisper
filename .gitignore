@@ -9,3 +9,12 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model checkpoints (CI fails if these are tracked)
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+*.gguf
+.cache/whisper/
+
