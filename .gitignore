@@ -9,3 +9,12 @@ thumbs.db
 .DS_Store
 .idea
 
+# Checkpoints and local caches stay untracked. load_model() writes
+# named files under ~/.cache/whisper or $XDG_CACHE_HOME/whisper;
+# --model_dir / download_root can also point inside this checkout.
+.cache/
+cache/
+weights/
+*.pt
+*.pth
+
