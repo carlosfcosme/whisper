@@ -13,7 +13,15 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 UNTRACKED_DIR_PREFIXES = (".cache/", "cache/", "weights/")
 UNTRACKED_SUFFIXES = (".pt", ".pth")
-GITIGNORE_PATTERNS = (".cache/", "cache/", "weights/", "*.pt", "*.pth")
+GITIGNORE_PATTERNS = (
+    ".cache/",
+    "cache/",
+    "weights/",
+    "*.pt",
+    "*.pth",
+    ".env",
+    ".env.*",
+)
 LS_FILES_PATHSPECS = (
     ".cache",
     ".cache/**",
@@ -23,6 +31,8 @@ LS_FILES_PATHSPECS = (
     "weights/**",
     "*.pt",
     "*.pth",
+    ".env",
+    ".env.*",
 )
 IGNORE_EXAMPLES = (
     ".cache/whisper/tiny.pt",
@@ -30,6 +40,8 @@ IGNORE_EXAMPLES = (
     "weights/tiny.pt",
     "tiny.pt",
     "model.pth",
+    ".env",
+    ".env.local",
 )
 TRACKED_ASSETS = (
     "whisper/assets/gpt2.tiktoken",
