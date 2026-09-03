@@ -87,6 +87,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      # CPU-only, no GPU, no Hub: skip test_transcribe (load_model would pull weights).
-      # addopts already excludes requires_cuda (see pyproject.toml).
+      - name: Assert CPU default and 127.0.0.1 bind (no CUDA)
+        run: |
+          python3 -c "import whisper; assert whisper.default_device()=='cpu'; assert whisper.default_bind_host()=='127.0.0.1'"
+      # No CUDA required: addopts excludes requires_cuda. Skip test_transcribe (would pull weights).
       - run: pytest --durations=0 -vv -k 'not test_transcribe'
