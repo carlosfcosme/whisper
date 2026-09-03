@@ -10,6 +10,7 @@ from whisper.env_policy import (
     BIND_HOST,
     BindError,
     WeightFetchError,
+    loopback_only_opener,
     refuse_default_weight_fetch,
     require_bind_127_0_0_1,
     url_is_loopback,
@@ -96,6 +97,43 @@ def test_refuse_default_fetch_blocks_cdn(monkeypatch):
     monkeypatch.setenv(ALLOW_WEIGHT_FETCH_ENV, "0")
     with pytest.raises(WeightFetchError, match="openaipublic.azureedge.net"):
         refuse_default_weight_fetch(CDN_URL)
+
+
+def test_loopback_opener_disables_env_proxy():
+    opener = loopback_only_opener()
+    # ProxyHandler({}) suppresses urllib's default env-based proxy.
+    # OpenerDirector then drops the empty handler (no *_open methods),
+    # so http/https must not be proxied.
+    for handler in opener.handlers:
+        if isinstance(handler, urllib.request.ProxyHandler):
+            assert handler.proxies == {}
+    for protocol in ("http", "https"):
+        handlers = opener.handle_open.get(protocol, [])
+        assert not any(
+            isinstance(handler, urllib.request.ProxyHandler) for handler in handlers
+        )
+
+
+def test_loopback_fetch_ignores_http_proxy(monkeypatch):
+    monkeypatch.setenv(ALLOW_WEIGHT_FETCH_ENV, "0")
+    for key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY"):
+        monkeypatch.setenv(key, "http://8.8.8.8:1")
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    monkeypatch.delenv("no_proxy", raising=False)
+
+    server = make_server(BIND_HOST, 0)
+    try:
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        with urlopen_for_weights(f"http://127.0.0.1:{port}/health") as response:
+            body = json.loads(response.read())
+        assert body["ok"] is True
+        assert body["bind"] == BIND_HOST
+        assert body["weights"] is False
+    finally:
+        server.shutdown()
+        server.server_close()
 
 
 def test_urlopen_does_not_touch_network_when_denied(monkeypatch):

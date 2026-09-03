@@ -98,13 +98,27 @@ def refuse_default_weight_fetch(url: str) -> None:
     )
 
 
+def loopback_only_opener() -> urllib.request.OpenerDirector:
+    """Opener that never consults HTTP(S)_PROXY.
+
+    ``build_opener()`` would otherwise install the environment
+    ``ProxyHandler``, sending an allowed ``http://127.0.0.1/...`` request
+    to a remote proxy. Passing an empty ``ProxyHandler`` suppresses that
+    default (urllib then drops the empty handler). Loopback pulls stay
+    on-box; the redirect handler still refuses WAN targets.
+    """
+    return urllib.request.build_opener(
+        urllib.request.ProxyHandler({}),
+        _LoopbackOnlyRedirectHandler(),
+    )
+
+
 def urlopen_for_weights(url: str):
     """``urlopen`` that refuses a default remote weight fetch."""
     refuse_default_weight_fetch(url)
     if not weight_fetch_allowed():
-        opener = urllib.request.build_opener(_LoopbackOnlyRedirectHandler())
         try:
-            return opener.open(url)
+            return loopback_only_opener().open(url)
         except WeightFetchError:
             raise
         except urllib.error.URLError as exc:
