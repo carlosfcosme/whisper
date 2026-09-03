@@ -54,6 +54,10 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Local Python, pytest, and notebook caches listed in [`.gitignore`](.gitignore)
+are documented in [GITIGNORE.md](GITIGNORE.md). Do not commit model weights
+(`.pt`) or secrets.
+
 
 ## Available models and languages
 

@@ -1,11 +1,16 @@
+# Python bytecode caches (created when modules are imported or run)
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Packaging metadata from editable installs (pip install -e .)
 *.egg-info
+
+# Test and notebook caches
 .pytest_cache
 .ipynb_checkpoints
 
+# OS thumbnail / folder metadata and JetBrains project files
 thumbs.db
 .DS_Store
 .idea
-
