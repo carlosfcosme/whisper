@@ -9,16 +9,15 @@ thumbs.db
 .DS_Store
 .idea
 
-# Whisper model cache directories.
-# Directory name is always "whisper" under the cache home.
-# Default: ~/.cache/whisper
-# If XDG_CACHE_HOME is set: $XDG_CACHE_HOME/whisper
-# Project-local names when XDG_CACHE_HOME is .cache or cache:
+# Local cache / weight dumps (CI fails if these are tracked)
 .cache/
 .cache/whisper/
 cache/
 cache/whisper/
-
-# Downloaded model checkpoints — do not commit weights
+weights/
 *.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
 

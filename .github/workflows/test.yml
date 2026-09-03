@@ -8,6 +8,19 @@ on:
       - main
 
 jobs:
+  repo-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fail if committed weights or caches
+        run: python3 scripts/check_no_committed_weights.py
+      - name: Fail unless bind is 127.0.0.1
+        run: python3 scripts/check_bind_localhost.py
+      - name: Fail if Hugging Face Hub is used
+        run: python3 scripts/check_no_hub.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +50,13 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, repo-guards]
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     strategy:
       fail-fast: false
       matrix:

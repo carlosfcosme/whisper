@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .hub import assert_not_hub_url
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -75,6 +76,7 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
+    assert_not_hub_url(url)
     os.makedirs(root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
