@@ -1,16 +1,21 @@
 import hashlib
 import io
 import os
-import urllib
 import warnings
 from typing import List, Optional, Union
 
 import torch
-from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
+from .bind import (
+    LOOPBACK_HOST,
+    BindError,
+    bind_tcp,
+    require_loopback_host,
+)
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .offline import WeightDownloadError, is_hub_url, refuse_weight_fetch
 from .transcribe import transcribe
 from .version import __version__
 
@@ -52,6 +57,9 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
+    if is_hub_url(url):
+        raise WeightDownloadError("weight pull is disabled (%s)" % url)
+
     os.makedirs(root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
@@ -65,34 +73,16 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
-            )
-
-    with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
-        with tqdm(
-            total=int(source.info().get("Content-Length")),
-            ncols=80,
-            unit="iB",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as loop:
-            while True:
-                buffer = source.read(8192)
-                if not buffer:
-                    break
-
-                output.write(buffer)
-                loop.update(len(buffer))
-
-    model_bytes = open(download_target, "rb").read()
-    if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
-        raise RuntimeError(
-            "Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model."
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; "
+            "weight pull is disabled"
         )
 
-    return model_bytes if in_memory else download_target
+    raise WeightDownloadError(
+        "checkpoint {} is not on disk; weight pull is disabled".format(
+            os.path.basename(url)
+        )
+    )
 
 
 def available_models() -> List[str]:
@@ -133,6 +123,9 @@ def load_model(
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
 
+    if is_hub_url(name):
+        refuse_weight_fetch(name)
+
     if name in _MODELS:
         checkpoint_file = _download(_MODELS[name], download_root, in_memory)
         alignment_heads = _ALIGNMENT_HEADS[name]
@@ -140,6 +133,7 @@ def load_model(
         checkpoint_file = open(name, "rb").read() if in_memory else name
         alignment_heads = None
     else:
+        refuse_weight_fetch(name)
         raise RuntimeError(
             f"Model {name} not found; available models = {available_models()}"
         )
