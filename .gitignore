@@ -31,7 +31,9 @@ thumbs.db
 # Local caches and virtualenvs
 .cache/
 .huggingface/
+huggingface/
 hf_cache/
+.hub/
 .torch/
 .venv/
 venv/

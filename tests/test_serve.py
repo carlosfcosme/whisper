@@ -14,9 +14,9 @@ from whisper.serve import (
     serve,
     serve_bind_host,
 )
+from whisper.sovereign import ALL_INTERFACES
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ALL_INTERFACES = "0.0.0.0"
 
 
 def test_serve_bind_host_defaults_to_loopback():

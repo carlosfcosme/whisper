@@ -124,7 +124,9 @@ def test_ci_workflow_runs_the_weight_guard():
     )
     assert "no-committed-weights" in workflow
     assert "scripts/check_no_weights.py" in workflow
+    assert "scripts/check_loopback_bind.py" in workflow
     assert "HF_HUB_OFFLINE" in workflow
+    assert "not test_transcribe" in workflow
 
 
 def test_gitignore_covers_weights_and_caches():
@@ -133,6 +135,8 @@ def test_gitignore_covers_weights_and_caches():
     assert "*.safetensors" in gitignore
     assert ".cache/" in gitignore
     assert ".huggingface/" in gitignore
+    assert "huggingface/" in gitignore
+    assert ".hub/" in gitignore
 
 
 def test_script_is_executable():

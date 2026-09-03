@@ -34,3 +34,9 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-loopback-bind
+        name: fail if start scripts bind 0.0.0.0
+        language: system
+        entry: python3 scripts/check_loopback_bind.py
+        pass_filenames: false
+        always_run: true

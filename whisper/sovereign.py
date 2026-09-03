@@ -5,6 +5,7 @@ import os
 DEFAULT_DEVICE = "cpu"
 BIND_HOST = "127.0.0.1"
 BIND_PORT = 8765
+ALL_INTERFACES = "0.0.0.0"
 
 HUB_MARKERS = (
     "huggingface.co",
