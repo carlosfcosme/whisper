@@ -147,4 +147,6 @@ Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussion
 
 ## License
 
-Whisper's code and model weights are released under the MIT License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.
+Copyright (c) 2022 OpenAI
+
+Whisper's code and model weights are released under the MIT License. The copyright year is **2022**, matching [LICENSE](LICENSE) (first publication). Do not bump it to the current calendar year. See [LICENSE](LICENSE) for further details.
