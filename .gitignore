@@ -14,6 +14,7 @@ thumbs.db
 # can also point at a directory inside this checkout. Keep those files out of git.
 .cache/
 cache/
+weights/
 *.pt
 *.pth
 

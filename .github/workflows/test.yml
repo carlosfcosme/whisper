@@ -8,6 +8,30 @@ on:
       - main
 
 jobs:
+  untracked-cache-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache and weight paths stay untracked
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files -- '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' '*.pt' '*.pth' '.env' '.env.*')"
+          if [ -n "$tracked" ]; then
+            echo "These cache/weight/secret paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+          for path in \
+            .cache/whisper/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            tiny.pt \
+            model.pth \
+            .env \
+            .env.local
+          do
+            git check-ignore -q -- "$path"
+          done
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -76,4 +100,25 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Run tests with in-repo Whisper cache
+        env:
+          XDG_CACHE_HOME: ${{ github.workspace }}/.cache
+        run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Cache and weight paths stay untracked
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files -- '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' '*.pt' '*.pth' '.env' '.env.*')"
+          if [ -n "$tracked" ]; then
+            echo "These cache/weight/secret paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+          if [ -e .cache/whisper ]; then
+            git check-ignore -q -- .cache/whisper
+          fi
+          offenders="$(git status --porcelain | grep -E '\.pt$|\.pth$|^\?\? \.cache|^\?\? cache|^\?\? weights|^\?\? \.env' || true)"
+          if [ -n "$offenders" ]; then
+            echo "git status listed cache/weight/secret paths that should be ignored:" >&2
+            printf '%s\n' "$offenders" >&2
+            exit 1
+          fi
