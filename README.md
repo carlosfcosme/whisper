@@ -55,6 +55,15 @@ pip install setuptools-rust
 ```
 
 
+## Localhost-only
+
+Whisper in this repository is a **localhost-only** CLI and Python library: it transcribes local audio files and does not start a network server.
+
+The Cloud Agent environment (`.cursor/environment.json`) runs `bash .cursor/install.sh` only. It does not declare `ports` or a `start` command, so setup does not publish a service.
+
+If you run a helper (Jupyter from `notebooks/`, a third-party web demo, or any debug HTTP server), bind it to `127.0.0.1` / `localhost`, not `0.0.0.0`. Do not expose transcription endpoints on the LAN or WAN.
+
+
 ## Available models and languages
 
 There are six model sizes, four with English-only versions, offering speed and accuracy tradeoffs.
