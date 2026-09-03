@@ -2,8 +2,9 @@
 """Fail if the default install or CI path would fetch model weights.
 
 Default install (``.cursor/install.sh``) and default CI (``whisper-test``)
-must stay offline: no ``load_model``, no ``test_transcribe[tiny]`` selector,
-no API keys, localhost only (no ``0.0.0.0``).
+must stay offline: no ``load_model`` / ``_download`` / CDN in install or CI
+commands, no ``test_transcribe[tiny]`` selector, no API keys, localhost only
+(no ``0.0.0.0``).
 
 This script is the check that fails when fetch-of-weights is the default path.
 """
@@ -130,6 +131,11 @@ def reasons_default_path_fetches_weights(
     reasons.extend(_secret_reasons("test.yml", workflow_code))
     if WILDCARD_BIND in workflow_code:
         reasons.append("CI workflow mentions 0.0.0.0 (must be localhost only)")
+    if FETCH_RE.search(workflow_code):
+        reasons.append(
+            "CI workflow would fetch or precache model weights "
+            "(load_model / _download / CDN is not allowed in default CI commands)"
+        )
 
     return reasons
 

@@ -83,6 +83,51 @@ jobs:
     assert any("install.sh would fetch" in r for r in reasons)
 
 
+def test_check_fails_when_ci_calls_load_model():
+    reasons = offline_check.reasons_default_path_fetches_weights(
+        workflow_text="""
+jobs:
+  whisper-test:
+    steps:
+      - run: pytest -k 'not test_transcribe'
+      - run: python -c 'import whisper; whisper.load_model("tiny")'
+""",
+        install_text="pip install -e '.[dev]'\n",
+        environment_text="{}",
+    )
+    assert any("CI workflow would fetch" in r for r in reasons)
+
+
+def test_check_fails_when_ci_hits_cdn():
+    reasons = offline_check.reasons_default_path_fetches_weights(
+        workflow_text="""
+jobs:
+  whisper-test:
+    steps:
+      - run: pytest -k 'not test_transcribe'
+      - run: curl -O https://openaipublic.azureedge.net/main/whisper/models/x/tiny.pt
+""",
+        install_text="pip install -e '.[dev]'\n",
+        environment_text="{}",
+    )
+    assert any("CI workflow would fetch" in r for r in reasons)
+
+
+def test_workflow_comment_may_mention_load_model():
+    reasons = offline_check.reasons_default_path_fetches_weights(
+        workflow_text="""
+jobs:
+  whisper-test:
+    steps:
+      # do not call load_model or hit azureedge.net
+      - run: pytest -k 'not test_transcribe'
+""",
+        install_text="pip install -e '.[dev]'\n",
+        environment_text="{}",
+    )
+    assert reasons == [], reasons
+
+
 def test_check_fails_when_install_hits_cdn():
     reasons = offline_check.reasons_default_path_fetches_weights(
         workflow_text="""
