@@ -9,3 +9,49 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and checkpoints — load from a local cache; never commit.
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+*.h5
+*.hdf5
+*.gguf
+*.ggml
+*.tflite
+*.pb
+*.mar
+*.joblib
+*.params
+*.weights
+*.mlmodel
+
+# Local caches and virtualenvs
+.venv/
+venv/
+.cache/
+.cache/whisper/
+.cache/huggingface/
+.cache/torch/
+cache/
+cache/whisper/
+.huggingface/
+huggingface/
+weights/
+models/
+checkpoints/
+
+# Secrets and keys — never commit.
+.env
+.env.*
+*.pem
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+credentials.json
+secrets.json
+
+

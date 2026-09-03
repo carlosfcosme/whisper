@@ -33,6 +33,7 @@ dependencies = [
 optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]
 urls = { Homepage = "https://github.com/openai/whisper" }
 scripts.whisper = "whisper.transcribe:cli"
+scripts.whisper-serve = "whisper.serve:main"
 
 [tool.setuptools]
 py-modules = [ "whisper" ]
@@ -44,6 +45,13 @@ version = { attr = "whisper.version.__version__" }
 [tool.setuptools.packages.find]
 exclude = [ "tests*" ]
 namespaces = false
+
+[tool.pytest.ini_options]
+markers = [
+  "requires_cuda: needs a CUDA GPU",
+  "requires_weights: needs a local Whisper checkpoint",
+  "offline_runtime: no-hub runtime (127.0.0.1, no model fetch)",
+]
 
 [tool.black]
 
