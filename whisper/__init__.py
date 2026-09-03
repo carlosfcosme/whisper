@@ -18,6 +18,14 @@ from .version import __version__
 # Sovereign default: CPU unless the caller passes device= explicitly.
 DEFAULT_DEVICE = "cpu"
 
+
+def resolve_device(device: Optional[Union[str, torch.device]] = None):
+    """Return ``device``, or CPU when omitted. Does not consult CUDA."""
+    if device is None:
+        return DEFAULT_DEVICE
+    return device
+
+
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -132,8 +140,7 @@ def load_model(
         The Whisper ASR model instance
     """
 
-    if device is None:
-        device = DEFAULT_DEVICE
+    device = resolve_device(device)
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

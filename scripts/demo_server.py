@@ -16,7 +16,11 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     parser.add_argument("--host", default=BIND_HOST)
     parser.add_argument("--port", type=int, default=0)
     args = parser.parse_args(list(argv) if argv is not None else None)
-    serve_bind_host(args.host)
+    try:
+        serve_bind_host(args.host)
+    except ValueError as exc:
+        sys.stderr.write("error: %s\n" % exc)
+        return 2
     server = serve(host=args.host, port=args.port)
     host, port = server.server_address[:2]
     sys.stdout.write("Serving on http://%s:%s\n" % (host, port))

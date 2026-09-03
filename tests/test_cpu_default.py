@@ -38,8 +38,17 @@ def test_default_device_constant_is_cpu():
 
 def test_load_model_uses_default_device_constant():
     source = inspect.getsource(whisper.load_model)
-    assert "device = DEFAULT_DEVICE" in source
+    assert "resolve_device(device)" in source
     assert "cuda if torch.cuda.is_available()" not in source
+    resolve_source = inspect.getsource(whisper.resolve_device)
+    assert "DEFAULT_DEVICE" in resolve_source
+    assert "cuda" not in resolve_source
+
+
+def test_resolve_device_ignores_cuda_availability(monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    assert whisper.resolve_device(None) == "cpu"
+    assert whisper.resolve_device("cuda") == "cuda"
 
 
 def test_cli_device_default_is_cpu():
@@ -65,10 +74,28 @@ def test_cli_help_default_is_cpu(tmp_path):
         assert list(cache.rglob("*.pt")) == []
 
 
-def test_load_model_omitted_device_is_cpu(tmp_path):
+def test_load_model_omitted_device_is_cpu(tmp_path, monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     ckpt = _toy_checkpoint(tmp_path / "toy.pt")
     loaded = whisper.load_model(str(ckpt))
     assert loaded.device.type == "cpu"
+    assert whisper.resolve_device(None) == "cpu"
+
+
+def test_load_model_named_does_not_download(tmp_path, monkeypatch):
+    calls = []
+
+    def _blocked(url, *args, **kwargs):
+        calls.append(url)
+        raise RuntimeError("forbidden download")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _blocked)
+    download_root = tmp_path / "whisper-cache"
+    download_root.mkdir()
+    with pytest.raises(RuntimeError, match="forbidden"):
+        whisper.load_model("tiny", download_root=str(download_root))
+    assert calls
+    assert list(download_root.rglob("*.pt")) == []
 
 
 def test_hub_offline_env_is_set():

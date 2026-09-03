@@ -41,3 +41,18 @@ def test_wildcard_checker_passes_on_this_repo():
     )
     assert result.returncode == 0, result.stderr
     assert "OK:" in result.stdout
+
+
+def test_wildcard_checker_probe_negative_exits_zero():
+    check = _load_checker()
+    assert check.probe_negative(REPO_ROOT) == 0
+    script = REPO_ROOT / "scripts" / "check_no_wildcard_bind.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--probe-negative"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "negative probes" in result.stdout

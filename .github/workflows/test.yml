@@ -14,12 +14,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fail if model weights or large binaries are committed
         run: python3 scripts/check_no_weights.py
+      - name: Negative — planted checkpoint must be flagged
+        run: python3 scripts/check_no_weights.py --probe-negative
   no-wildcard-bind:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Fail if production code binds to a wildcard host
         run: python3 scripts/check_no_wildcard_bind.py
+      - name: Negative — planted wildcard bind and non-loopback hosts must be refused
+        run: python3 scripts/check_no_wildcard_bind.py --probe-negative
   pre-commit:
     runs-on: ubuntu-latest
     steps:

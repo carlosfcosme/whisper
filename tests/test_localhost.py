@@ -1,12 +1,16 @@
+import importlib.util
 import ipaddress
 import threading
 from http.client import HTTPConnection
+from pathlib import Path
 
 import pytest
 
 import whisper
 from whisper.localhost import BIND_HOST, serve_bind_host
 from whisper.serve import serve
+
+REPO = Path(__file__).resolve().parents[1]
 
 
 def _is_loopback(host: str) -> bool:
@@ -26,7 +30,7 @@ def test_serve_bind_host_defaults_to_loopback():
 
 
 def test_serve_bind_host_rejects_non_loopback_and_empty():
-    for host in ("0.0.0.0", "::", "", "   ", "192.168.1.1", "example.com"):
+    for host in ("0.0.0.0", "::", "", "   ", "192.168.1.1", "example.com", "*"):
         with pytest.raises(ValueError, match="127.0.0.1"):
             serve_bind_host(host)
 
@@ -76,3 +80,18 @@ def test_serve_rejects_wildcard_and_empty_host():
         serve(host="::", port=0)
     with pytest.raises(ValueError, match="127.0.0.1"):
         serve(host="", port=0)
+
+
+def _load_demo_server():
+    path = REPO / "scripts" / "demo_server.py"
+    spec = importlib.util.spec_from_file_location("whisper_demo_server", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_demo_server_rejects_non_loopback_host():
+    demo = _load_demo_server()
+    for host in ("0.0.0.0", "::", "", "192.168.1.1"):
+        assert demo.main(["--host", host, "--port", "0"]) == 2

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Fail CI if model weights or large binaries are committed."""
+"""Fail CI if model weights or large binaries are committed.
+
+``--probe-negative`` plants a checkpoint in a temp tree and fails if the
+classifier would miss it. No Hub fetch and no weight download.
+"""
 
 from __future__ import annotations
 
+import argparse
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Tuple
 
@@ -95,7 +101,34 @@ def find_violations(
     return violations
 
 
-def main() -> int:
+def probe_negative() -> int:
+    """Return 0 if a planted checkpoint is classified as a violation."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        relpath = "models/tiny.pt"
+        path = root / relpath
+        path.parent.mkdir()
+        path.write_bytes(b"not-a-real-checkpoint")
+        hits = find_violations(root, relative_paths=[relpath])
+        if not hits:
+            sys.stderr.write("ERROR: weight checker missed planted checkpoint\n")
+            return 1
+    sys.stdout.write("OK: negative probe flagged planted checkpoint\n")
+    return 0
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Fail if model weights or large binaries are committed"
+    )
+    parser.add_argument(
+        "--probe-negative",
+        action="store_true",
+        help="plant a checkpoint and assert the checker flags it",
+    )
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    if args.probe_negative:
+        return probe_negative()
     root = repo_root()
     violations = find_violations(root)
     if violations:
