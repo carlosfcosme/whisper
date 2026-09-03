@@ -1,4 +1,7 @@
+import importlib.util
 import json
+import subprocess
+import sys
 import threading
 import urllib.request
 from pathlib import Path
@@ -131,3 +134,36 @@ def test_scan_fails_when_all_interfaces_in_start_script(tmp_path):
     script.write_text("python3 -m http.server --bind {}\n".format(ALL_INTERFACES))
     with pytest.raises(AssertionError, match="not allowed in start scripts"):
         assert_start_scripts_localhost_only([script])
+
+
+def _load_loopback_checker():
+    path = REPO_ROOT / "scripts" / "check_loopback_bind.py"
+    spec = importlib.util.spec_from_file_location("check_loopback_bind", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_loopback_ci_guard_passes_on_this_repo():
+    script = REPO_ROOT / "scripts" / "check_loopback_bind.py"
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "127.0.0.1" in result.stdout
+
+
+def test_loopback_ci_guard_fails_on_all_interface_bind(tmp_path, monkeypatch):
+    check = _load_loopback_checker()
+    planted = tmp_path / "start.sh"
+    planted.write_text("python3 -m http.server --bind {}\n".format(ALL_INTERFACES))
+    monkeypatch.setattr(check, "tracked_files", lambda root: ["start.sh"])
+    hits = check.find_hits(tmp_path)
+    assert hits
+    assert hits[0][0] == "start.sh"
+    assert ALL_INTERFACES in hits[0][2]

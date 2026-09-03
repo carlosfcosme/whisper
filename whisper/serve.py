@@ -23,7 +23,7 @@ def normalize_bind_host(host: str) -> str:
 
     ``localhost`` is rewritten to ``127.0.0.1`` (no DNS). IPv6 loopback
     ``::1`` is refused because ``ThreadingHTTPServer`` is AF_INET-only.
-    Unspecified addresses such as ``0.0.0.0`` and ``::`` are refused, as
+    Unspecified all-interface addresses and ``::`` are refused, as
     are LAN and public hosts.
     """
     raw = (host or "").strip()
@@ -111,7 +111,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         prog="whisper serve",
         description=(
             "Start a weights-free health server bound to 127.0.0.1 only. "
-            "Binding 0.0.0.0 or ::1 is refused. No Hub."
+            "All-interface and ::1 binds are refused. No Hub."
         ),
     )
     parser.add_argument(

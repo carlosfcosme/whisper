@@ -14,6 +14,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fail if model weights or large binaries are committed
         run: python3 scripts/check_no_weights.py
+  loopback-bind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if all-interface bind appears outside tests
+        run: python3 scripts/check_loopback_bind.py
+      - name: Grep all-interface bind outside tests
+        run: |
+          set -euo pipefail
+          needle=$(python3 -c 'print(".".join(("0","0","0","0")))')
+          if git grep -n -F "$needle" -- ':!tests' ':!scripts/check_loopback_bind.py'; then
+            echo "ERROR: ${needle} is not allowed outside tests; bind 127.0.0.1 only"
+            exit 1
+          fi
+          echo "OK: grep found no ${needle} outside tests"
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +58,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: [pre-commit, no-weights]
+    needs: [pre-commit, no-weights, loopback-bind]
     runs-on: ubuntu-latest
     env:
       CUDA_VISIBLE_DEVICES: ""
