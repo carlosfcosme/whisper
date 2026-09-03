@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # CI entry point: localhost-only verify.
 #
-# No model-weight download. No WAN pulls. Does not run test_transcribe.
+# No model-weight download. No WAN pulls. Does not run transcription tests.
 # GitHub Actions job localhost-only-verify invokes this script.
 #
 # See .cursor/README.md.
@@ -22,7 +22,7 @@ echo "  XDG_CACHE_HOME=${XDG_CACHE_HOME} (disposable; must stay empty of weights
 echo "  allowed hosts: localhost, 127.0.0.0/8, ::1"
 echo "  refused: remote/WAN pulls (CDN, public DNS, LAN, public IPs)"
 echo "  serve/bind: 127.0.0.1 only"
-echo "  pytest: -m localhost_only (no test_transcribe, no weight download)"
+echo "  pytest: -m localhost_only (no transcription tests, no weight download)"
 
 echo "== Guard tests (no network, no weights) =="
 python3 -m pytest -q -m 'localhost_only and not requires_cuda'

@@ -25,7 +25,7 @@ def test_verify_script_is_ci_safe():
     text = VERIFY.read_text()
     assert VERIFY.is_file()
     assert "WHISPER_LOCALHOST_ONLY=1" in text
-    assert "localhost_only" in text
+    assert "-m 'localhost_only and not requires_cuda'" in text
     assert "load_model" not in text
     assert "test_transcribe" not in text
 

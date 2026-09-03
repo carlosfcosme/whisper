@@ -37,7 +37,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
 
-  # Localhost-only verify: no test_transcribe, no model-weight download, no WAN.
+  # Localhost-only verify: no transcription tests, no model-weight download, no WAN.
   localhost-only-verify:
     name: localhost-only verify
     runs-on: ubuntu-latest
