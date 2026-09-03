@@ -36,9 +36,31 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  bind-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if 0.0.0.0 appears under whisper/ or .cursor/
+        run: bash scripts/check_no_all_interfaces.sh
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights are tracked
+        run: python3 scripts/check_no_weights.py
+  no-hub-in-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if tests reference the Hugging Face Hub
+        run: python3 scripts/check_no_hub.py
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
