@@ -109,6 +109,12 @@ def main() -> int:
         errors.append("whisper-test must run assert_no_hub_fetch.py")
     if "assert_no_weight_cache.py" not in text:
         errors.append("whisper-test must run assert_no_weight_cache.py")
+    if "check_gitignore_caches.py" not in text:
+        errors.append("CI must run check_gitignore_caches.py")
+    if "check_loopback_bind.py" not in text:
+        errors.append("CI must run check_loopback_bind.py")
+    if "check_network_intercept.py" not in text:
+        errors.append("CI must run check_network_intercept.py")
     for cache_path in _cache_paths_from_text(text):
         if _is_forbidden_cache_path(cache_path):
             errors.append("actions/cache must not include {}".format(cache_path))

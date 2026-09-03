@@ -97,6 +97,8 @@ def test_check_gitignore_script_agrees():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.missing_patterns(REPO_ROOT) == []
+    assert module.unignored_examples(REPO_ROOT) == []
+    assert module.wrongly_ignored_assets(REPO_ROOT) == []
 
 
 def test_cache_and_weight_paths_are_untracked():

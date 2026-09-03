@@ -12,8 +12,11 @@ from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
 from .offline import (
+    BIND_HOST,
+    bind_loopback,
     is_hub_url,
     refuse_network_weight_fetch,
+    require_loopback_bind,
     weights_download_forbidden,
 )
 from .transcribe import transcribe

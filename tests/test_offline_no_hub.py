@@ -168,6 +168,8 @@ def test_check_scripts_pass_on_this_tree():
         ("check_gitignore_caches.py", ()),
         ("check_no_weights.py", ()),
         ("check_ci_offline.py", ()),
+        ("check_loopback_bind.py", ()),
+        ("check_network_intercept.py", ()),
         ("assert_no_weight_cache.py", ()),
         ("assert_no_hub_fetch.py", ("--require-offline-env",)),
     ):

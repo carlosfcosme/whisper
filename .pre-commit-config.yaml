@@ -46,3 +46,15 @@ repos:
         entry: python3 scripts/check_ci_offline.py
         pass_filenames: false
         always_run: true
+      - id: check-loopback-bind
+        name: fail if package binds off 127.0.0.1
+        language: system
+        entry: python3 scripts/check_loopback_bind.py
+        pass_filenames: false
+        always_run: true
+      - id: check-network-intercept
+        name: fail if tests do not intercept sockets
+        language: system
+        entry: python3 scripts/check_network_intercept.py
+        pass_filenames: false
+        always_run: true

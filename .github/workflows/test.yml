@@ -22,6 +22,10 @@ jobs:
         run: python3 scripts/check_gitignore_caches.py
       - name: Fail if model weights are committed
         run: python3 scripts/check_no_weights.py
+      - name: Loopback-only bind (127.0.0.1)
+        run: python3 scripts/check_loopback_bind.py
+      - name: Tests intercept sockets (no BPF)
+        run: python3 scripts/check_network_intercept.py
       - name: CI workflow stays offline (no Hub)
         run: python3 scripts/check_ci_offline.py
       - name: Fail if Hub tokens are set or Hub cache is populated

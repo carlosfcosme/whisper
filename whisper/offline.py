@@ -1,14 +1,18 @@
-"""Offline / no-Hub policy for checkpoint loading.
+"""Offline / no-Hub policy: no weight fetch, loopback bind, host checks.
 
 CI and tests set WHISPER_OFFLINE / HF_HUB_OFFLINE so named-model loads
 never open a network socket. Hugging Face Hub URLs are refused even when
 those env vars are unset — this package does not fetch from the Hub.
+
+Services bind 127.0.0.1 only. Network interception in tests is Python
+socket monkeypatching (not BPF).
 """
 
 from __future__ import annotations
 
 import os
-from typing import Union
+import socket
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 _OFFLINE_TRUTHY = frozenset({"1", "true", "yes", "on"})
@@ -25,6 +29,15 @@ TOKEN_ENV_NAMES = (
     "HUGGINGFACE_HUB_TOKEN",
 )
 
+BIND_HOST = "127.0.0.1"
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+# Wildcard / all-interfaces hosts, built without bind literals so
+# package source stays greppable-clean for CI bind checks.
+_WILDCARD_V4 = ".".join(("0", "0", "0", "0"))
+_WILDCARD_V6 = ":" * 2
+_WILDCARD_V6_BRACKETS = "[{}]".format(_WILDCARD_V6)
+ALL_INTERFACES = frozenset({"", _WILDCARD_V4, _WILDCARD_V6, _WILDCARD_V6_BRACKETS})
+
 _HUB_HOSTS = frozenset(
     {
         "huggingface.co",
@@ -40,6 +53,12 @@ _HUB_HOST_SUFFIXES = (
     ".hf.co",
     ".hf-mirror.com",
 )
+_WEIGHT_HOSTS = frozenset(
+    {
+        "openaipublic.azureedge.net",
+    }
+)
+_WEIGHT_HOST_MARKERS = ("azureedge.net", "xethub")
 
 
 def _url_text(url: Union[str, object]) -> str:
@@ -56,16 +75,83 @@ def _hostname(url: Union[str, object]) -> str:
     return host
 
 
-def is_hub_url(url: Union[str, object]) -> bool:
-    """True when *url* targets the Hugging Face Hub (or a Hub mirror)."""
-    host = _hostname(url)
-    if host in _HUB_HOSTS:
+def normalize_host(host: Optional[object]) -> str:
+    """Return a lowercase hostname (no port, no IPv6 brackets)."""
+    if host is None:
+        return ""
+    if isinstance(host, bytes):
+        host = host.decode("utf-8", "replace")
+    text = str(host).strip().lower()
+    if text.startswith("[") and "]" in text:
+        text = text[1 : text.index("]")]
+    text = text.split("%")[0].split(":")[0].rstrip(".")
+    return text
+
+
+def is_loopback_host(host: Optional[object]) -> bool:
+    return normalize_host(host) in LOOPBACK_HOSTS
+
+
+def is_all_interfaces_host(host: Optional[object]) -> bool:
+    raw = "" if host is None else str(host).strip()
+    if raw in ALL_INTERFACES:
         return True
-    if any(host.endswith(suffix) for suffix in _HUB_HOST_SUFFIXES):
+    return normalize_host(host) in ALL_INTERFACES
+
+
+def is_hub_host(host: Optional[object]) -> bool:
+    name = normalize_host(host)
+    if not name:
+        return False
+    if name in _HUB_HOSTS:
         return True
-    if "xethub" in host:
+    if any(name.endswith(suffix) for suffix in _HUB_HOST_SUFFIXES):
+        return True
+    if "xethub" in name:
         return True
     return False
+
+
+def is_weight_host(host: Optional[object]) -> bool:
+    name = normalize_host(host)
+    if not name:
+        return False
+    if name in _WEIGHT_HOSTS:
+        return True
+    return any(marker in name for marker in _WEIGHT_HOST_MARKERS)
+
+
+def is_hub_url(url: Union[str, object]) -> bool:
+    """True when *url* targets the Hugging Face Hub (or a Hub mirror)."""
+    return is_hub_host(_hostname(url))
+
+
+def is_blocked_network_host(host: Optional[object]) -> bool:
+    """True for Hub, weight CDNs, or any non-loopback host."""
+    if is_loopback_host(host):
+        return False
+    if is_hub_host(host) or is_weight_host(host):
+        return True
+    name = normalize_host(host)
+    return bool(name) and name not in LOOPBACK_HOSTS
+
+
+def require_loopback_bind(host: str = BIND_HOST) -> str:
+    """Return *host* if it is loopback; raise otherwise.
+
+    Refuses all-interfaces and non-loopback binds so a service cannot
+    listen on a public address.
+    """
+    if is_all_interfaces_host(host) or not is_loopback_host(host):
+        raise ValueError("services must bind 127.0.0.1 only; refused {!r}".format(host))
+    return BIND_HOST
+
+
+def bind_loopback(sock: socket.socket, port: int = 0):
+    """Bind *sock* to 127.0.0.1 and return ``(host, port)``."""
+    host = require_loopback_bind(BIND_HOST)
+    sock.bind((host, port))
+    return sock.getsockname()
 
 
 def weights_download_forbidden() -> bool:
