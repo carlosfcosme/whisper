@@ -8,6 +8,17 @@ on:
       - main
 
 jobs:
+  bind-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bind guard fails on 0.0.0.0
+        run: |
+          python -m pip install pytest
+          pytest tests/test_bind_guard.py -vv
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +48,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, bind-guard]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -54,9 +54,6 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
-The test runner is **pytest**. Weight-free commands (no checkpoints, no
-secrets) are in [TEST_RUNNER.md](TEST_RUNNER.md).
-
 
 ## Available models and languages
 
