@@ -76,4 +76,15 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Offline CPU tests
+        env:
+          WHISPER_ALLOW_DOWNLOAD: "0"
+          WHISPER_DEVICE: "cpu"
+          HF_HUB_OFFLINE: "1"
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_DATASETS_OFFLINE: "1"
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-offline-cache
+          HF_HOME: ${{ runner.temp }}/whisper-offline-cache/huggingface
+          TORCH_HOME: ${{ runner.temp }}/whisper-offline-cache/torch
+        run: pytest --durations=0 -vv -m 'not requires_cuda and not requires_weights'
