@@ -42,6 +42,12 @@ def is_weight_download_url(path: PathLike) -> bool:
     return any(marker in text for marker in WEIGHT_DOWNLOAD_MARKERS)
 
 
+def offline_requested() -> bool:
+    """True when WHISPER_OFFLINE asks CI/tests not to pull weights."""
+    flag = os.getenv("WHISPER_OFFLINE", "").strip().lower()
+    return flag in {"1", "true", "yes", "on"}
+
+
 def assert_local_fixture(path: PathLike, must_exist: bool = True) -> str:
     """Return an absolute local path, or raise ``RemoteFixtureError``.
 

@@ -28,6 +28,7 @@ SCAN_SKIP = frozenset(
     {
         "test_no_hub.py",
         "test_local_fixtures.py",
+        "test_download_offline.py",
     }
 )
 

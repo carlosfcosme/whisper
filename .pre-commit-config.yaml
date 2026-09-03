@@ -33,6 +33,11 @@ repos:
         entry: python3 scripts/check_bind_localhost.py
         language: system
         pass_filenames: false
+      - id: check-cpu-default
+        name: CPU default inference path
+        entry: python3 scripts/check_cpu_default.py
+        language: system
+        pass_filenames: false
       - id: check-no-weights
         name: no committed weights or caches
         entry: python3 scripts/check_no_weights.py
