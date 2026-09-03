@@ -44,6 +44,8 @@ def test_load_model_defaults_to_cpu(tmp_path):
 
 
 def test_cli_device_default_is_cpu():
-    source = Path(whisper.transcribe.__file__).read_text(encoding="utf-8")
+    source = (
+        Path(__file__).resolve().parents[1] / "whisper" / "transcribe.py"
+    ).read_text(encoding="utf-8")
     assert "default=DEFAULT_DEVICE" in source
     assert whisper.DEFAULT_DEVICE == "cpu"
