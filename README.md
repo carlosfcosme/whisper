@@ -99,10 +99,6 @@ Run the following to view all available options:
 
 See [tokenizer.py](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py) for the list of all available languages.
 
-Sovereign / offline defaults: inference device is **CPU**, tests do **not** pull from the Hugging Face Hub, and `whisper serve` binds to **127.0.0.1** only.
-
-    whisper serve
-
 
 ## Python usage
 
