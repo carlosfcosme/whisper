@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 import whisper
@@ -13,9 +11,9 @@ from whisper.tokenizer import get_tokenizer
     reason="weight auto-download is disabled; tests must not pull from the Hub",
 )
 @pytest.mark.parametrize("model_name", whisper.available_models())
-def test_transcribe(model_name: str):
+def test_transcribe(model_name: str, sample_audio_path):
     model = whisper.load_model(model_name, device=whisper.default_device())
-    audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
+    audio_path = str(sample_audio_path)
 
     language = "en" if model_name.endswith(".en") else None
     result = model.transcribe(

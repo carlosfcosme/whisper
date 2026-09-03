@@ -43,3 +43,8 @@ repos:
         entry: python3 scripts/check_no_weights.py
         language: system
         pass_filenames: false
+      - id: check-no-wan-fixtures
+        name: tests must not use remote fixture URLs
+        entry: python3 scripts/check_no_wan_fixtures.py
+        language: system
+        pass_filenames: false
