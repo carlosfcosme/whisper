@@ -34,3 +34,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: gitignore-weights
+        name: fail if cache/weight paths are missing from gitignore or tracked
+        entry: python3 scripts/check_gitignore_weights.py
+        language: system
+        pass_filenames: false
+        always_run: true
