@@ -1,16 +1,28 @@
 import os
+from pathlib import Path
 
 import pytest
-import torch
 
 import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+def _checkpoint_on_disk(model_name: str) -> bool:
+    """True when a named checkpoint is already cached. Never downloads."""
+    default = os.path.join(os.path.expanduser("~"), ".cache")
+    root = Path(os.getenv("XDG_CACHE_HOME", default)) / "whisper"
+    url = whisper._MODELS.get(model_name)
+    if url is None:
+        return os.path.isfile(model_name)
+    return (root / os.path.basename(url)).is_file()
+
+
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
+    if not _checkpoint_on_disk(model_name):
+        pytest.skip("no local checkpoint; tests must not download Hub or model weights")
+
+    model = whisper.load_model(model_name, device=whisper.DEFAULT_DEVICE)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None
