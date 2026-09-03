@@ -11,6 +11,7 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .runtime import is_offline, refuse_forbidden_fetch
 from .transcribe import transcribe
 from .version import __version__
 
@@ -69,6 +70,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    refuse_forbidden_fetch(url, offline=is_offline())
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
