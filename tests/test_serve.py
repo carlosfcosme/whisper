@@ -13,6 +13,24 @@ def test_create_server_rejects_all_interfaces():
         create_server("0.0.0.0", 0)
 
 
+def test_server_never_binds_0_0_0_0():
+    """The serve socket must never listen on 0.0.0.0."""
+    with pytest.raises(BindError, match="127.0.0.1"):
+        create_server("0.0.0.0", 0)
+    assert main(("--host", "0.0.0.0", "--port", "0")) == 2
+
+    server = create_server("127.0.0.1", 0)
+    try:
+        host, _port = server.server_address[:2]
+        sock_host = server.socket.getsockname()[0]
+        assert host == "127.0.0.1"
+        assert sock_host == "127.0.0.1"
+        assert host != "0.0.0.0"
+        assert sock_host != "0.0.0.0"
+    finally:
+        server.server_close()
+
+
 def test_create_server_binds_loopback_and_health():
     server = create_server("127.0.0.1", 0)
     host, port = server.server_address[:2]
