@@ -2,11 +2,19 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUIRED_PATTERNS = (".cache/", "cache/", "weights/", "*.pt", "*.pth")
+REQUIRED_PATTERNS = (
+    ".cache/",
+    "cache/",
+    "weights/",
+    "checkpoints/",
+    "*.pt",
+    "*.pth",
+)
 IGNORE_EXAMPLES = (
     ".cache/whisper/tiny.pt",
     "cache/whisper/tiny.pt",
     "weights/tiny.pt",
+    "checkpoints/tiny.pt",
     "tiny.pt",
     "model.pth",
 )
@@ -40,6 +48,8 @@ def test_git_does_not_track_cache_or_weights():
             "cache/**",
             "weights",
             "weights/**",
+            "checkpoints",
+            "checkpoints/**",
             "*.pt",
             "*.pth",
         ],

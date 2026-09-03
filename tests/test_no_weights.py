@@ -37,4 +37,4 @@ def test_check_script_exits_zero_on_clean_tree():
         text=True,
     )
     assert proc.returncode == 0
-    assert "no model weights committed" in proc.stdout
+    assert "no model weights" in proc.stdout

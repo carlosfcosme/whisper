@@ -12,26 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fail if model weights are committed
+      - name: Fail if cache/weight dirs or blobs are tracked
         run: python3 scripts/check_no_weights.py
-      - name: gitignore covers cache and weight paths
-        run: |
-          set -euo pipefail
-          tracked="$(git ls-files -- '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' '*.pt' '*.pth')"
-          if [ -n "$tracked" ]; then
-            echo "These cache/weight paths must stay untracked:" >&2
-            printf '%s\n' "$tracked" >&2
-            exit 1
-          fi
-          for path in \
-            .cache/whisper/tiny.pt \
-            cache/whisper/tiny.pt \
-            weights/tiny.pt \
-            tiny.pt \
-            model.pth
-          do
-            git check-ignore -q -- "$path"
-          done
   pre-commit:
     runs-on: ubuntu-latest
     steps:
