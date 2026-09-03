@@ -36,11 +36,23 @@ Python 3.7 is not supported. Changelog: “drop python 3.7 support” and
 
 ## How to read it
 
+`tomllib` is stdlib only on Python 3.11+. The commands below use the 3.8+
+stdlib so they work on every version this field allows. They do not need
+`tomli`.
+
+From the checkout (`pyproject.toml`):
+
 ```bash
-python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['requires-python'])"
+python3 -c "import re; print(re.search(r'(?m)^requires-python = \"([^\"]+)\"', open('pyproject.toml', encoding='utf-8').read()).group(1))"
 ```
 
-That must print `>=3.8`. Do not treat the README “3.8-3.11” range, the
+From an installed `openai-whisper` (`importlib.metadata` is stdlib on 3.8+):
+
+```bash
+python3 -c "from importlib.metadata import metadata; print(metadata('openai-whisper')['Requires-Python'])"
+```
+
+Both must print `>=3.8`. Do not treat the README “3.8-3.11” range, the
 classifiers, or a Cloud Agent interpreter as a replacement for this field.
 
 ## Tests (no weights)
