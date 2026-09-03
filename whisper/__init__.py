@@ -11,6 +11,7 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .offline import refuse_weight_auto_download
 from .transcribe import transcribe
 from .version import __version__
 
@@ -70,6 +71,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
+    refuse_weight_auto_download(url)
+
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
@@ -114,6 +117,9 @@ def load_model(
     name : str
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
+        Named models do not download by default (offline). Pass a local path,
+        use a cached file, or set WHISPER_ALLOW_WEIGHT_DOWNLOAD=1 for non-Hub URLs.
+        Hugging Face Hub URLs are always refused.
     device : Union[str, torch.device]
         the PyTorch device to put the model into
     download_root: str
