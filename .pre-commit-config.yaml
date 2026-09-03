@@ -26,3 +26,11 @@ repos:
       - id: flake8
         types: [python]
         args: ["--max-line-length", "88", "--ignore", "E203,E501,W503,W504"]
+  - repo: local
+    hooks:
+      - id: check-no-remote-fixtures
+        name: fail if tests reference remote URLs for assets
+        language: system
+        entry: python3 scripts/check_no_remote_fixtures.py
+        pass_filenames: false
+        always_run: true
