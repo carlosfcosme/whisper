@@ -54,6 +54,10 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+To run tests or lint from a checkout, the user-facing install above is not
+enough. See [CONTRIBUTING.md](CONTRIBUTING.md) for the clean-machine commands
+CI and `.cursor/install.sh` actually use.
+
 
 ## Available models and languages
 
