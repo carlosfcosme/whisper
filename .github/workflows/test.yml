@@ -39,6 +39,12 @@ jobs:
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     strategy:
       fail-fast: false
       matrix:
