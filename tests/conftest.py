@@ -33,6 +33,10 @@ install_offline_network_block()
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_cuda")
+    config.addinivalue_line(
+        "markers",
+        "environment: bind, no fetch, and gitignore contract",
+    )
 
 
 @pytest.fixture

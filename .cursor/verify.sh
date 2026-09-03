@@ -54,6 +54,9 @@ assert "## Install" in doc and "## No-weight-pull" in doc and "## Localhost-only
 print("  static checks ok")
 PY
 
+echo "== Executable environment tests (bind, no fetch, gitignore) =="
+python3 -m pytest -q -m environment
+
 echo "== Guard tests (no WAN, no checkpoints) =="
 python3 -m pytest -q tests/test_env_policy.py
 

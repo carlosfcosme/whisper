@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 
-from .env_policy import BIND_HOST, require_bind_127_0_0_1
+from .env_policy import BIND_HOST, BindError, require_bind_127_0_0_1
 
 DEFAULT_PORT = 8765
 
@@ -35,7 +36,7 @@ def make_server(host: str = BIND_HOST, port: int = DEFAULT_PORT) -> ThreadingHTT
     return ThreadingHTTPServer((BIND_HOST, port), _HealthHandler)
 
 
-def main(argv: Optional[list] = None) -> None:
+def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(
         description="Whisper localhost-only serve path (no weights, no WAN)."
     )
@@ -51,16 +52,21 @@ def main(argv: Optional[list] = None) -> None:
         help=f"bind port (default {DEFAULT_PORT})",
     )
     args = parser.parse_args(argv)
-    server = make_server(args.host, args.port)
+    try:
+        server = make_server(args.host, args.port)
+    except BindError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     bound_host, bound_port = server.server_address
     print(f"whisper serve bound to {bound_host}:{bound_port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        pass
+        return 0
     finally:
         server.server_close()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
