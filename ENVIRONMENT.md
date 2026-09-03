@@ -19,7 +19,9 @@ The install script is idempotent. It:
 2. Installs a CPU build of PyTorch (`torch==2.5.1+cpu`) so the CLI and tests run without a GPU.
 3. Installs this checkout in editable mode with the `dev` extras (`pytest`, `black`, `isort`, `flake8`, `scipy`).
 
-Entry points (`whisper`, `pytest`, linters) land on `~/.local/bin`.
+Entry points (`whisper`, `pytest`, linters) land on the active interpreter's
+scripts directory (`~/.local/bin` on this Cloud Agent image, or a virtualenv
+`bin` when one is active).
 
 To confirm the package imported without fetching checkpoints:
 
