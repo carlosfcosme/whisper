@@ -11,5 +11,12 @@ thumbs.db
 
 # Downloaded model checkpoints (never commit weights)
 *.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.ggml
+*.gguf
+*.weights
 .cache/
 
