@@ -1,0 +1,12 @@
+# Ruff lint config. Matches the existing Black / flake8 line length.
+# Does not replace Black as the formatter.
+line-length = 88
+target-version = "py38"
+exclude = ["notebooks", ".venv", "venv"]
+
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E203", "E501", "E741"]
+
+[lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
