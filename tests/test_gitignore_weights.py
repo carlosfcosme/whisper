@@ -88,5 +88,5 @@ def test_ls_files_guard_detects_forced_weight(tmp_path, guard):
     subprocess.check_call(["git", "config", "user.name", "ci"], cwd=tmp_path)
     leak = tmp_path / "leak.pt"
     leak.write_bytes(b"not-a-checkpoint")
-    subprocess.check_call(["git", "add", "-f", "-q", "leak.pt"], cwd=tmp_path)
+    subprocess.check_call(["git", "add", "-f", "--", "leak.pt"], cwd=tmp_path)
     assert "leak.pt" in guard.tracked_weight_paths(tmp_path)
