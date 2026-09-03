@@ -81,6 +81,11 @@ Whisper's performance varies widely depending on the language. The figure below 
 
 ## Command-line usage
 
+The samples below assume the `whisper` console script is on `PATH`. That
+script is registered in `pyproject.toml` as `whisper.transcribe:cli` and is
+not a file in this repository. The same function is `python3 -m whisper`.
+See [CLI.md](CLI.md).
+
 The following command will transcribe speech in audio files, using the `turbo` model:
 
     whisper audio.flac audio.mp3 audio.wav --model turbo
