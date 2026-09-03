@@ -5,9 +5,10 @@ This is the clone-to-test path for a **clean local machine**.
 - **No secrets.** No API keys, tokens, or credentials are required.
 - **No weights.** Default tests do not call `whisper.load_model` and do not
   download checkpoints.
-- **Localhost only.** Whisper is a local CLI and library. It does not start a
-  server. Bind any helper process you add (notebook, demo) to `127.0.0.1`, not
-  `0.0.0.0`.
+- **Localhost only.** Whisper is a local CLI and library. Helpers that listen
+  must use `whisper.bind.listen_loopback` / `bind_loopback` (`127.0.0.1` only).
+  `0.0.0.0` and any non-loopback host are refused. CI job `loopback-listen`
+  fails on a non-loopback LISTEN.
 
 The [README Setup](README.md#setup) `pip install openai-whisper` path is for
 inference only. It does not install the test extras.

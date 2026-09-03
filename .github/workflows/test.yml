@@ -36,6 +36,21 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  loopback-listen:
+    # Stdlib bind guards only: no torch, no model weights, no secrets.
+    # Fails if this job has a non-loopback LISTEN or whisper/ binds off 127.0.0.1.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: pip install pytest
+      - name: Bind-guard tests
+        run: pytest tests/test_bind.py --durations=0 -vv
+      - name: Refuse non-loopback listen
+        run: python .github/scripts/check_loopback_listen.py
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
