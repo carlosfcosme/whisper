@@ -17,8 +17,12 @@ thumbs.db
 .cache/
 cache/
 weights/
+.huggingface/
+hub/
 *.pt
 *.pth
+*.safetensors
+*.bin
 
 # Local secrets — never commit credentials or API keys
 .env

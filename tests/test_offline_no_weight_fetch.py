@@ -14,6 +14,7 @@ WEIGHT_URL = (
     "https://openaipublic.azureedge.net/main/whisper/models/"
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/tiny.pt"
 )
+HUB_URL = "https://huggingface.co/openai/whisper-tiny/resolve/main/tiny.pt"
 
 
 def test_offline_download_refuses_wan_fetch(tmp_path, monkeypatch):
@@ -42,8 +43,39 @@ def test_load_model_offline_does_not_fetch(tmp_path, monkeypatch):
 
 
 def test_urlopen_hook_blocks_weight_urls():
-    with pytest.raises(RuntimeError, match="WAN model weight download"):
+    with pytest.raises(RuntimeError, match="Hub/weight"):
         urllib.request.urlopen(WEIGHT_URL)
+
+
+def test_urlopen_hook_blocks_hub_urls():
+    with pytest.raises(RuntimeError, match="Hub/weight"):
+        urllib.request.urlopen(HUB_URL)
+
+
+def test_download_refuses_hub_fetch(tmp_path):
+    with pytest.raises(RuntimeError, match="Hub"):
+        whisper._download(HUB_URL, str(tmp_path), in_memory=False)
+    assert list(tmp_path.glob("*")) == []
+
+
+def test_huggingface_hub_import_is_blocked():
+    with pytest.raises(RuntimeError, match="Hub"):
+        __import__("huggingface_hub")
+
+
+def test_cpu_default_and_loopback_bind_host():
+    from whisper.runtime import BIND_HOST, default_device, service_bind_host
+
+    assert default_device() == "cpu"
+    assert BIND_HOST == "127.0.0.1"
+    assert service_bind_host() == "127.0.0.1"
+
+
+def test_load_model_and_cli_use_cpu_default():
+    import inspect
+
+    assert "default_device()" in inspect.getsource(whisper.load_model)
+    assert "default=default_device()" in inspect.getsource(whisper.transcribe.cli)
 
 
 def test_package_source_does_not_bind_all_interfaces():

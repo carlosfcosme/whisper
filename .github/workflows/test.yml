@@ -12,12 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Cache and weight paths stay untracked
+      - name: Fail if weights, caches, or secrets are committed
         run: |
           set -euo pipefail
-          tracked="$(git ls-files -- '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' '*.pt' '*.pth' '.env' '.env.*')"
+          tracked="$(git ls-files -- \
+            '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' \
+            '.huggingface' '.huggingface/**' 'hub' 'hub/**' \
+            '*.pt' '*.pth' '*.safetensors' '*.bin' \
+            '.env' '.env.*')"
           if [ -n "$tracked" ]; then
-            echo "These cache/weight paths must stay untracked:" >&2
+            echo "These cache/weight/secret paths must stay untracked:" >&2
             printf '%s\n' "$tracked" >&2
             exit 1
           fi
@@ -25,13 +29,31 @@ jobs:
             .cache/whisper/tiny.pt \
             cache/whisper/tiny.pt \
             weights/tiny.pt \
+            .huggingface/hub/models--openai--whisper/tiny.pt \
+            hub/tiny.safetensors \
             tiny.pt \
             model.pth \
+            model.safetensors \
+            model.bin \
             .env \
             .env.local
           do
             git check-ignore -q -- "$path"
           done
+      - name: Fail if package code fetches from Hugging Face Hub
+        run: |
+          set -euo pipefail
+          if git grep -nE 'hf_hub_download|snapshot_download|from huggingface_hub|import huggingface_hub' -- whisper; then
+            echo "Package code must not call Hugging Face Hub" >&2
+            exit 1
+          fi
+      - name: Fail if package binds all interfaces
+        run: |
+          set -euo pipefail
+          if git grep -nF '0.0.0.0' -- whisper; then
+            echo "Package code must bind 127.0.0.1 only" >&2
+            exit 1
+          fi
   pre-commit:
     runs-on: ubuntu-latest
     steps:

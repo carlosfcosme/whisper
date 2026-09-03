@@ -11,14 +11,18 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-UNTRACKED_DIR_PREFIXES = (".cache/", "cache/", "weights/")
-UNTRACKED_SUFFIXES = (".pt", ".pth")
+UNTRACKED_DIR_PREFIXES = (".cache/", "cache/", "weights/", ".huggingface/", "hub/")
+UNTRACKED_SUFFIXES = (".pt", ".pth", ".safetensors", ".bin")
 GITIGNORE_PATTERNS = (
     ".cache/",
     "cache/",
     "weights/",
+    ".huggingface/",
+    "hub/",
     "*.pt",
     "*.pth",
+    "*.safetensors",
+    "*.bin",
     ".env",
     ".env.*",
 )
@@ -29,8 +33,14 @@ LS_FILES_PATHSPECS = (
     "cache/**",
     "weights",
     "weights/**",
+    ".huggingface",
+    ".huggingface/**",
+    "hub",
+    "hub/**",
     "*.pt",
     "*.pth",
+    "*.safetensors",
+    "*.bin",
     ".env",
     ".env.*",
 )
@@ -38,8 +48,12 @@ IGNORE_EXAMPLES = (
     ".cache/whisper/tiny.pt",
     "cache/whisper/tiny.pt",
     "weights/tiny.pt",
+    ".huggingface/hub/tiny.pt",
+    "hub/tiny.safetensors",
     "tiny.pt",
     "model.pth",
+    "model.safetensors",
+    "model.bin",
     ".env",
     ".env.local",
 )

@@ -38,3 +38,8 @@ repos:
         language: pygrep
         entry: '0\.0\.0\.0'
         files: '^whisper/.*\.py$'
+      - id: no-hub-fetch
+        name: package code must not fetch from Hugging Face Hub
+        language: pygrep
+        entry: 'hf_hub_download|snapshot_download|from huggingface_hub|import huggingface_hub'
+        files: '^whisper/.*\.py$'

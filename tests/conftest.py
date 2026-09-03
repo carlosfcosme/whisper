@@ -1,5 +1,6 @@
 import random as rand
 import socket
+import sys
 import urllib.request
 
 import numpy
@@ -7,11 +8,18 @@ import pytest
 
 _ALL_INTERFACES = frozenset(("", "0.0.0.0", "::", "[::]"))
 _LOOPBACK = frozenset(("127.0.0.1", "::1", "localhost"))
+_HUB_MARKERS = (
+    "huggingface.co",
+    "hf.co/",
+    "hf-mirror.com",
+    "huggingface_hub",
+    "cas-bridge.xethub",
+)
 _WEIGHT_HOST_MARKERS = (
     "openaipublic.azureedge.net",
     "whisper/models",
 )
-_WEIGHT_SUFFIXES = (".pt", ".pth")
+_WEIGHT_SUFFIXES = (".pt", ".pth", ".safetensors")
 
 
 def _offline_requested():
@@ -31,11 +39,20 @@ def _url_text(url):
     return str(url)
 
 
+def _is_hub_fetch(url):
+    lowered = _url_text(url).lower()
+    return any(marker in lowered for marker in _HUB_MARKERS)
+
+
 def _is_weight_fetch(url):
     lowered = _url_text(url).lower()
     if any(lowered.endswith(suffix) for suffix in _WEIGHT_SUFFIXES):
         return True
     return any(marker in lowered for marker in _WEIGHT_HOST_MARKERS)
+
+
+def _is_forbidden_fetch(url):
+    return _is_hub_fetch(url) or _is_weight_fetch(url)
 
 
 def pytest_configure(config):
@@ -64,14 +81,32 @@ def refuse_weight_downloads(request, monkeypatch):
     original = urllib.request.urlopen
 
     def guarded_urlopen(url, *args, **kwargs):
-        if _is_weight_fetch(url):
+        if _is_forbidden_fetch(url):
             raise RuntimeError(
-                "WAN model weight download is blocked in tests/offline: %s"
+                "Hub/weight WAN download is blocked in tests/offline: %s"
                 % (_url_text(url),)
             )
         return original(url, *args, **kwargs)
 
     monkeypatch.setattr(urllib.request, "urlopen", guarded_urlopen)
+
+
+class _BlockHubImport:
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "huggingface_hub" or fullname.startswith("huggingface_hub."):
+            raise RuntimeError("Hugging Face Hub import/fetch is blocked in tests")
+        return None
+
+
+@pytest.fixture(autouse=True)
+def refuse_hub_imports():
+    finder = _BlockHubImport()
+    sys.meta_path.insert(0, finder)
+    yield
+    try:
+        sys.meta_path.remove(finder)
+    except ValueError:
+        pass
 
 
 @pytest.fixture(autouse=True)
