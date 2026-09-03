@@ -45,3 +45,9 @@ repos:
         entry: python3 scripts/check_no_hf_hub.py
         pass_filenames: false
         always_run: true
+      - id: check-loopback-listen
+        name: fail if serve/listen is not 127.0.0.1
+        language: system
+        entry: python3 scripts/check_loopback_listen.py
+        pass_filenames: false
+        always_run: true

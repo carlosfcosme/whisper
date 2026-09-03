@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import socket
-import struct
 import subprocess
 import sys
 import threading
@@ -110,29 +108,6 @@ def discover_start_scripts(root: Path) -> List[Path]:
     return sorted(set(found))
 
 
-def _proc_ipv4_listen_hosts(port: int) -> List[str]:
-    """Return IPv4 hosts listening on ``port`` according to /proc/net/tcp."""
-    proc = Path("/proc/net/tcp")
-    if not proc.is_file():
-        return []
-    hosts = []
-    hex_port = f"{port:04X}"
-    for line in proc.read_text().splitlines()[1:]:
-        parts = line.split()
-        if len(parts) < 4:
-            continue
-        local = parts[1]
-        state = parts[3]
-        if state != "0A":  # TCP_LISTEN
-            continue
-        ip_hex, port_hex = local.split(":")
-        if port_hex.upper() != hex_port:
-            continue
-        packed = struct.pack("<I", int(ip_hex, 16))
-        hosts.append(socket.inet_ntoa(packed))
-    return hosts
-
-
 @pytest.mark.parametrize("host", [LOOPBACK, "localhost", "LOCALHOST"])
 def test_require_loopback_bind_allows_loopback(host):
     bound = require_loopback_bind(host)
@@ -142,7 +117,18 @@ def test_require_loopback_bind_allows_loopback(host):
 
 @pytest.mark.parametrize(
     "host",
-    [ALL_INTERFACES, "::", "*", "", "192.168.1.10", "example.com", "10.0.0.1"],
+    [
+        ALL_INTERFACES,
+        "::",
+        "*",
+        "",
+        "192.168.1.10",
+        "example.com",
+        "10.0.0.1",
+        "8.8.8.8",
+        "172.16.0.1",
+        "[::]",
+    ],
 )
 def test_require_loopback_bind_refuses_non_loopback(host):
     with pytest.raises(BindError):
@@ -189,10 +175,13 @@ def test_live_listen_is_not_all_interfaces():
     try:
         port = httpd.server_address[1]
         assert httpd.socket.getsockname()[0] == LOOPBACK
-        hosts = _proc_ipv4_listen_hosts(port)
-        if hosts:
-            assert ALL_INTERFACES not in hosts
-            assert LOOPBACK in hosts
+        bind.assert_loopback_socket(httpd.socket, require_proc=True)
+        hosts = bind.observed_listen_hosts(port)
+        assert hosts, "CI must observe the listen in /proc"
+        assert ALL_INTERFACES not in hosts
+        assert "::" not in hosts
+        assert LOOPBACK in hosts
+        assert hosts == [LOOPBACK] or set(hosts) == {LOOPBACK}
     finally:
         httpd.server_close()
 
@@ -202,6 +191,13 @@ def test_cli_refuses_all_interfaces(capsys):
     assert code == 2
     err = capsys.readouterr().err
     assert "127.0.0.1" in err
+
+
+@pytest.mark.parametrize("host", [ALL_INTERFACES, "192.168.1.10", "8.8.8.8", "::"])
+def test_cli_refuses_non_loopback(host, capsys):
+    code = main(["--host", host, "--port", "0"])
+    assert code == 2
+    assert "127.0.0.1" in capsys.readouterr().err
 
 
 def test_start_script_exists_and_uses_loopback():
@@ -255,3 +251,13 @@ def test_no_weight_download_in_serve_path():
         assert "load_model" not in src
         assert "_download" not in src
         assert "azureedge.net" not in src
+
+
+def test_check_loopback_listen_script_passes():
+    spec = importlib.util.spec_from_file_location(
+        "check_loopback_listen",
+        REPO_ROOT / "scripts" / "check_loopback_listen.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.main() == 0
