@@ -56,7 +56,7 @@ def sample_audio_path():
     """Absolute path to tests/jfk.flac (in-repo). Never a network URL."""
     from whisper.fixtures import require_local_fixture
 
-    return require_local_fixture(Path(__file__).resolve().parent / "jfk.flac")
+    return str(require_local_fixture(Path(__file__).resolve().parent / "jfk.flac"))
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def tiny_audio_path():
     """Absolute path to the tiny committed/generated WAV. Local only."""
     from whisper.fixtures import require_local_fixture, tiny_fixture_path
 
-    return require_local_fixture(tiny_fixture_path(generate=False))
+    return str(require_local_fixture(tiny_fixture_path(generate=False)))
 
 
 @pytest.fixture
