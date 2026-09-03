@@ -8,6 +8,41 @@ on:
       - main
 
 jobs:
+  committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if weights are committed
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files -- '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' '*.pt' '*.pth')"
+          if [ -n "$tracked" ]; then
+            echo "These weight paths must not be committed:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+          for path in \
+            .cache/whisper/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            tiny.pt \
+            model.pth
+          do
+            git check-ignore -q -- "$path"
+          done
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require ruff.toml and run ruff
+        run: |
+          set -euo pipefail
+          test -f ruff.toml
+          pip install ruff
+          ruff check .
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +72,12 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, ruff, committed-weights]
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +115,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Tests without Hub or named-model downloads
+        run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'

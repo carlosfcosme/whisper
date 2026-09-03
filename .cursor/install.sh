@@ -20,7 +20,7 @@ pip install --break-system-packages \
   --index-url https://download.pytorch.org/whl/cpu \
   --extra-index-url https://pypi.org/simple
 
-# Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
+# Editable install of the package plus dev tooling (pytest, black, isort, flake8, ruff, scipy).
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
