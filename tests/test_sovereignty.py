@@ -223,6 +223,7 @@ def test_ci_does_not_download_hub_or_weights():
     assert "scripts/assert_no_weight_cache.py" in workflow
     assert "scripts/check_ci_skips_hub.py" in workflow
     assert "scripts/check_ci_cache_no_weights.py" in workflow
+    assert "scripts/verify_ignored_artifacts.py" in workflow
     assert "-k 'not test_transcribe'" in workflow
     assert "huggingface.co" not in workflow
     assert "hf_hub_download" not in workflow

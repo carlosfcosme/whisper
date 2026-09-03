@@ -5,6 +5,9 @@ import urllib.request
 import numpy
 import pytest
 
+from whisper.netguard import install as install_netguard
+from whisper.netguard import uninstall as uninstall_netguard
+
 # Deterministic, offline-friendly test defaults. conftest is imported before any
 # test module (and thus before torch), so setting these here applies to the whole
 # session. All use setdefault so a caller can override them.
@@ -23,6 +26,14 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "requires_local_weights: needs a cached Whisper checkpoint on disk",
+    )
+    config.addinivalue_line(
+        "markers",
+        "requires_network: allow WAN (disabled by default)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "integration: loopback/no-weights integration test",
     )
 
 
@@ -43,6 +54,19 @@ def _is_loopback_url(url):
     return target.startswith("http://127.0.0.1") or target.startswith(
         "http://localhost"
     )
+
+
+@pytest.fixture(autouse=True)
+def _disable_wan_network(request):
+    """Disable WAN/DNS. Loopback (127.0.0.1) stays available."""
+    if request.node.get_closest_marker("requires_network"):
+        yield
+        return
+    install_netguard()
+    try:
+        yield
+    finally:
+        uninstall_netguard()
 
 
 @pytest.fixture(autouse=True)

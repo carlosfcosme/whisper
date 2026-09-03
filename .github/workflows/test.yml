@@ -37,6 +37,10 @@ jobs:
         run: python3 scripts/check_ci_skips_hub.py
       - name: CI cache must not include weights
         run: python3 scripts/check_ci_cache_no_weights.py
+      - name: Verify ignored cache/weight artifacts
+        run: |
+          python3 scripts/verify_ignored_artifacts.py
+          python3 scripts/verify_ignored_artifacts.py --plant
   pre-commit:
     runs-on: ubuntu-latest
     steps:
