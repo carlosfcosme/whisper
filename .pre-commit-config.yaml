@@ -38,3 +38,8 @@ repos:
         entry: python3 scripts/check_no_weights.py
         language: system
         pass_filenames: false
+      - id: check-no-remote-fixtures
+        name: no http(s)/huggingface fixture URLs
+        entry: python3 scripts/check_no_remote_fixtures.py
+        language: system
+        pass_filenames: false

@@ -3,6 +3,12 @@ import numpy as np
 from whisper.audio import SAMPLE_RATE, load_audio, log_mel_spectrogram
 
 
+def test_tiny_audio_loads(tiny_audio_path):
+    audio = load_audio(tiny_audio_path)
+    assert audio.ndim == 1
+    assert audio.shape[0] > 0
+
+
 def test_audio(sample_audio_path):
     audio = load_audio(sample_audio_path)
     assert audio.ndim == 1
