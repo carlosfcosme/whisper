@@ -17,8 +17,6 @@ from whisper.offline import (
     offline_forced,
 )
 
-from .conftest import DownloadAttempted
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -80,12 +78,12 @@ def test_download_refuses_by_default_without_calling_urlopen(tmp_path, monkeypat
 
 
 def test_hub_urlopen_fails_the_test():
-    with pytest.raises(DownloadAttempted, match="forbidden"):
+    with pytest.raises(RuntimeError, match="forbidden"):
         urllib.request.urlopen("https://huggingface.co")
 
 
 def test_azure_weight_urlopen_fails_the_test():
-    with pytest.raises(DownloadAttempted, match="forbidden"):
+    with pytest.raises(RuntimeError, match="forbidden"):
         urllib.request.urlopen(
             "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt"
         )

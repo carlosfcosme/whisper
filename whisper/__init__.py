@@ -66,10 +66,11 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
-            )
+        if downloads_forbidden() or not downloads_allowed():
+            refuse_download(download_target)
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
+        )
 
     if downloads_forbidden() or not downloads_allowed():
         refuse_download(download_target)
