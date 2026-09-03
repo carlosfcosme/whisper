@@ -1,7 +1,6 @@
 import hashlib
 import io
 import os
-import urllib
 import warnings
 from typing import List, Optional, Union
 
@@ -10,6 +9,7 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .localhost import urlopen_maybe_localhost_only
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -70,7 +70,10 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
-    with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
+    # verify/precache: refuse remote/WAN pulls when WHISPER_LOCALHOST_ONLY is set
+    with urlopen_maybe_localhost_only(url) as source, open(
+        download_target, "wb"
+    ) as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
             ncols=80,
