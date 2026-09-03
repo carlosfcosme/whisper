@@ -114,6 +114,7 @@ def test_ci_workflow_is_cpu_offline_no_weights():
     assert "not test_transcribe" in text
     assert "+cpu" in text
     assert "requires_cuda" in text
+    assert "check_gitignore.py" in text
     assert "--live" not in text
     assert "0.0.0.0" not in text
     assert "Field-Brain" not in text
