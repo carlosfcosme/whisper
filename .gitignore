@@ -9,3 +9,14 @@ thumbs.db
 .DS_Store
 .idea
 
+# Checkpoints and Hub/cache dirs must stay untracked (CI fails if committed).
+.cache/
+cache/
+weights/
+.huggingface/
+hub/
+*.pt
+*.pth
+*.safetensors
+*.bin
+
