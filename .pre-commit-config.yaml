@@ -26,3 +26,30 @@ repos:
       - id: flake8
         types: [python]
         args: ["--max-line-length", "88", "--ignore", "E203,E501,W503,W504"]
+  - repo: local
+    hooks:
+      - id: check-default-offline
+        name: default path is offline (no weight download)
+        entry: python3 scripts/check_default_offline.py
+        language: system
+        pass_filenames: false
+      - id: check-gitignore-weights
+        name: gitignore weight/cache artifacts
+        entry: python3 scripts/check_gitignore_weights.py
+        language: system
+        pass_filenames: false
+      - id: check-no-weights
+        name: no committed model weights
+        entry: python3 scripts/check_no_weights.py
+        language: system
+        pass_filenames: false
+      - id: check-no-hub
+        name: no Hub client in package
+        entry: python3 scripts/check_no_hub.py
+        language: system
+        pass_filenames: false
+      - id: check-bind-localhost
+        name: bind 127.0.0.1 only
+        entry: python3 scripts/check_bind_localhost.py
+        language: system
+        pass_filenames: false

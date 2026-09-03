@@ -36,6 +36,58 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  # Default path is offline: no Whisper checkpoint download, no Hub, no keys.
+  offline-default:
+    name: default path is offline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Fail if default install/CI fetches weights or contacts hubs
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python scripts/check_default_offline.py
+          python scripts/check_no_hub.py
+          pytest tests/test_default_path_offline.py tests/test_no_hub.py tests/test_no_wan.py tests/test_no_fetch_enforcement.py -vv
+
+  gitignore-weights:
+    name: gitignore model artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Fail if weight/cache artifacts are tracked or not gitignored
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python scripts/check_gitignore_weights.py
+          python scripts/check_no_weights.py
+          pytest tests/test_gitignore_weights.py tests/test_no_committed_weights.py -vv
+
+  loopback-bind:
+    name: bind 127.0.0.1 only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Fail if bind is not loopback-only
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python scripts/check_bind_localhost.py
+          pytest tests/test_bind.py tests/test_serve.py tests/test_check_bind_localhost.py -vv
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
@@ -76,4 +128,21 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # Offline default: do not select a named transcribe model (that path fetches weights).
+      - name: Weight-free tests (no Hub, no WAN)
+        run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda and not requires_weights'
+        env:
+          WHISPER_OFFLINE: "1"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_DATASETS_OFFLINE: "1"
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+      - name: Isolated cache must stay empty
+        run: |
+          cache="${{ runner.temp }}/whisper-empty-cache"
+          if [ -d "$cache" ] && [ -n "$(find "$cache" -type f -print -quit)" ]; then
+            echo "FAIL: isolated cache is not empty (weights were written)"
+            find "$cache" -type f
+            exit 1
+          fi
+          echo "OK: isolated cache has no files"
