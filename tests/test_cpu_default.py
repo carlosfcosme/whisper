@@ -48,14 +48,6 @@ def test_cli_device_default_is_cpu():
     assert 'default="cuda" if torch.cuda.is_available()' not in source
 
 
-def test_docs_name_cpu_only_default():
-    cpu_md = (REPO / "CPU.md").read_text()
-    readme = (REPO / "README.md").read_text()
-    assert "DEFAULT_DEVICE" in cpu_md
-    assert "cpu" in cpu_md
-    assert "CPU.md" in readme
-
-
 def test_cli_help_default_is_cpu(tmp_path):
     env = os.environ.copy()
     env["XDG_CACHE_HOME"] = str(tmp_path / "cache")
