@@ -97,8 +97,9 @@ def is_cache_path(relpath: str) -> bool:
     parts = posix.split("/")
     if any(part in CACHE_PATH_PARTS for part in parts):
         return True
-    name = Path(posix).name
-    return any(name.startswith(marker) for marker in CACHE_NAME_MARKERS)
+    return any(
+        part.startswith(marker) for part in parts for marker in CACHE_NAME_MARKERS
+    )
 
 
 def classify(relpath: str, size: int) -> Optional[str]:

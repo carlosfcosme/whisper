@@ -51,6 +51,7 @@ def test_weight_suffixes_are_rejected(relpath):
         "__pycache__/whisper.cpython-312.pyc",
         ".pytest_cache/v/cache/nodeids",
         "models--openai--whisper-tiny/snapshot.bin",
+        "models--openai--whisper-tiny/blobs/abc",
     ],
 )
 def test_cache_paths_are_rejected(relpath):
