@@ -46,6 +46,13 @@ version = { attr = "whisper.version.__version__" }
 exclude = [ "tests*" ]
 namespaces = false
 
+[tool.pytest.ini_options]
+markers = [
+  "requires_cuda: needs a CUDA device",
+  "requires_local_weights: needs a cached Whisper checkpoint on disk",
+  "offline: network disabled; 127.0.0.1 bind; local fixtures only",
+]
+
 [tool.black]
 
 [tool.isort]

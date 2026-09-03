@@ -17,17 +17,17 @@ def test_create_server_refuses_empty_and_all_interfaces():
         create_server(host=".".join(("0", "0", "0", "0")))
 
 
-def test_health_endpoint_on_127_0_0_1():
-    httpd = create_server(host="127.0.0.1", port=0)
+def test_health_endpoint_on_127_0_0_1(loopback_bind):
+    httpd = create_server(host=loopback_bind, port=0)
     host, port = httpd.server_address[:2]
-    assert host == "127.0.0.1"
+    assert host == loopback_bind
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/health") as resp:
+        with urllib.request.urlopen(f"http://{loopback_bind}:{port}/health") as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         assert payload["status"] == "ok"
-        assert payload["bind"] == "127.0.0.1"
+        assert payload["bind"] == loopback_bind
         assert payload["weights"] is False
     finally:
         httpd.shutdown()

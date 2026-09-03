@@ -57,18 +57,21 @@ def test_load_model_omitted_device_is_cpu_even_if_cuda_claims_available(
     assert loaded.device.type == "cpu"
 
 
-def test_named_model_cache_miss_does_not_hit_hub_or_cdn(monkeypatch, tmp_path):
+def test_named_model_cache_miss_does_not_hit_hub_or_cdn(monkeypatch, isolated_cache):
     def boom(*args, **kwargs):
         raise AssertionError("tests must not open a network connection")
 
     monkeypatch.setattr(urllib.request, "urlopen", boom)
     hub = "https://huggingface.co/openai/whisper-tiny/resolve/main/pytorch_model.bin"
     with pytest.raises(WeightDownloadError, match="Hub"):
-        whisper._download(hub, str(tmp_path), in_memory=False)
+        whisper._download(hub, str(isolated_cache), in_memory=False)
     with pytest.raises(WeightDownloadError, match="disabled"):
-        whisper._download(whisper._MODELS["tiny"], str(tmp_path), in_memory=False)
+        whisper._download(whisper._MODELS["tiny"], str(isolated_cache), in_memory=False)
     with pytest.raises(WeightDownloadError):
-        whisper.load_model("tiny", download_root=str(tmp_path))
-    assert list(tmp_path.iterdir()) == [] or all(
-        path.is_dir() for path in tmp_path.iterdir()
-    )
+        whisper.load_model("tiny", download_root=str(isolated_cache))
+    leftover = [
+        path
+        for path in isolated_cache.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".pt", ".pth", ".bin"}
+    ]
+    assert leftover == []

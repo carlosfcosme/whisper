@@ -107,14 +107,14 @@ def test_start_sh_hardcodes_loopback():
     assert ALL_INTERFACES not in text
 
 
-def test_live_bind_is_127_0_0_1():
-    httpd = create_loopback_httpd(_OkHandler, host=LOOPBACK, port=0)
+def test_live_bind_is_127_0_0_1(loopback_bind):
+    httpd = create_loopback_httpd(_OkHandler, host=loopback_bind, port=0)
     host, port = httpd.server_address[:2]
-    assert host == LOOPBACK
+    assert host == loopback_bind
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     try:
-        with urllib.request.urlopen(f"http://{LOOPBACK}:{port}/") as resp:
+        with urllib.request.urlopen(f"http://{loopback_bind}:{port}/") as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         assert payload["status"] == "ok"
     finally:

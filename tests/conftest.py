@@ -2,6 +2,7 @@ import os
 import random as rand
 import socket
 import urllib.request
+from pathlib import Path
 
 try:
     import numpy
@@ -9,6 +10,8 @@ except ImportError:  # bind-and-weights CI installs pytest only
     numpy = None
 
 import pytest
+
+_TESTS_DIR = Path(__file__).resolve().parent
 
 # Tests must not hit Hugging Face Hub or download official weights.
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
@@ -28,6 +31,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "requires_local_weights: needs a cached Whisper checkpoint on disk",
+    )
+    config.addinivalue_line(
+        "markers",
+        "offline: network disabled; 127.0.0.1 bind; local fixtures only",
     )
 
 
@@ -71,6 +78,32 @@ def isolated_cache(tmp_path, monkeypatch):
 def loopback_bind():
     """Serve/listen tests must bind this host only."""
     return "127.0.0.1"
+
+
+@pytest.fixture
+def local_audio():
+    """In-repo audio fixture. Tests must not fetch samples from the network."""
+    path = _TESTS_DIR / "jfk.flac"
+    if not path.is_file():
+        raise AssertionError("missing local audio fixture tests/jfk.flac")
+    return path
+
+
+@pytest.fixture
+def fail_model_fetch(monkeypatch):
+    """Make model/network fetch raise. Loopback HTTP is not used here."""
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("model fetch is forbidden in tests")
+
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    monkeypatch.setattr(socket, "create_connection", boom)
+    try:
+        import whisper as whisper_mod
+    except ImportError:
+        return boom
+    monkeypatch.setattr(whisper_mod, "_download", boom)
+    return boom
 
 
 @pytest.fixture(autouse=True)
