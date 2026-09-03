@@ -77,8 +77,10 @@ def test_cpu_default_and_loopback_bind_host():
 
 
 def test_load_model_and_cli_use_cpu_default():
+    import whisper.transcribe as transcribe_mod
+
     assert "default_device()" in inspect.getsource(whisper.load_model)
-    assert "default=default_device()" in inspect.getsource(whisper.transcribe.cli)
+    assert "default=default_device()" in inspect.getsource(transcribe_mod.cli)
 
 
 def test_package_source_does_not_bind_all_interfaces():
