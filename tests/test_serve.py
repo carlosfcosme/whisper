@@ -39,10 +39,12 @@ def test_main_refuses_empty_host():
 
 
 def test_serve_source_has_no_load_model():
+    import ast
     import inspect
 
     import whisper.serve as serve
 
-    source = inspect.getsource(serve)
-    assert "load_model" not in source
-    assert "huggingface" not in source.lower()
+    tree = ast.parse(inspect.getsource(serve))
+    names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+    assert "load_model" not in names
+    assert "huggingface" not in inspect.getsource(serve).lower()

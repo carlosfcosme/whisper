@@ -1,6 +1,6 @@
 """Weights-free health server bound to 127.0.0.1 only.
 
-Does not call load_model, does not download checkpoints, and does not
+Does not load checkpoints or download weights, and does not
 read secrets. Binding an empty host or an all-interface address is refused.
 """
 
