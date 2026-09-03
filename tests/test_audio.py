@@ -1,12 +1,10 @@
-import os.path
-
 import numpy as np
 
 from whisper.audio import SAMPLE_RATE, load_audio, log_mel_spectrogram
 
 
-def test_audio():
-    audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
+def test_audio(local_audio):
+    audio_path = str(local_audio)
     audio = load_audio(audio_path)
     assert audio.ndim == 1
     assert SAMPLE_RATE * 10 < audio.shape[0] < SAMPLE_RATE * 12
