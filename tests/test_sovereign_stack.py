@@ -151,6 +151,9 @@ def test_no_compose_spark_field_brain_or_keys():
         name = Path(rel).name.lower()
         assert name not in FORBIDDEN_TREE_NAMES, rel
         assert "field-brain" not in name
+        # Test files may mention banned tokens in assertions.
+        if rel.startswith("tests/"):
+            continue
         if Path(rel).suffix.lower() in {".py", ".yml", ".yaml", ".sh", ".toml"}:
             data = (ROOT / rel).read_bytes().lower()
             for token in banned_tokens:
