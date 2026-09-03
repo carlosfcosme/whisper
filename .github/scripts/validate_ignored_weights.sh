@@ -25,7 +25,7 @@ if ! git check-ignore -q "cache/whisper/tiny.pt"; then
   exit 1
 fi
 
-git add -- "${tmp}"
+git add -- "${tmp}" 2>/dev/null || true
 if [[ -n "$(git ls-files -- "${tmp}")" ]]; then
   echo "error: ignored weight was tracked by git add" >&2
   exit 1

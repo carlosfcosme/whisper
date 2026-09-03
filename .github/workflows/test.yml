@@ -69,7 +69,7 @@ jobs:
       - name: Offline package install (no index, no deps, no models)
         run: |
           mkdir -p "$RUNNER_TEMP/offline-site"
-          pip install --no-index --no-deps --target "$RUNNER_TEMP/offline-site" .
+          pip install --no-index --no-deps --no-build-isolation --target "$RUNNER_TEMP/offline-site" .
           if find "$RUNNER_TEMP/offline-site" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.ckpt' -o -name '*.safetensors' \) | grep -q .; then
             echo "error: offline install contained model weights" >&2
             find "$RUNNER_TEMP/offline-site" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.ckpt' -o -name '*.safetensors' \) >&2

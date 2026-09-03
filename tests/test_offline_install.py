@@ -47,6 +47,7 @@ def test_offline_pip_install_has_no_weights(tmp_path):
             "install",
             "--no-index",
             "--no-deps",
+            "--no-build-isolation",
             "--target",
             str(dest),
             str(ROOT),
@@ -119,3 +120,4 @@ def test_ci_runs_offline_install_job():
     assert "validate_ignored_weights.sh" in yml
     assert "--no-index" in yml
     assert "--no-deps" in yml
+    assert "--no-build-isolation" in yml
