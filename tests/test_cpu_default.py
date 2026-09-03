@@ -30,9 +30,11 @@ def _toy_checkpoint(path: Path) -> Path:
 
 def test_default_device_is_cpu():
     assert whisper.DEFAULT_DEVICE == "cpu"
+    assert whisper.default_device() == "cpu"
     source = inspect.getsource(whisper.load_model)
-    assert "device = DEFAULT_DEVICE" in source
+    assert "device = default_device()" in source
     assert "cuda if torch.cuda.is_available()" not in source
+    assert "cuda.is_available" not in inspect.getsource(whisper.default_device)
 
 
 def test_cli_device_default_is_cpu():
@@ -43,7 +45,7 @@ def test_cli_device_default_is_cpu():
         .joinpath("whisper", "transcribe.py")
         .read_text(encoding="utf-8")
     )
-    assert "default=DEFAULT_DEVICE" in source
+    assert "default=default_device()" in source
     assert 'default="cuda" if torch.cuda.is_available()' not in source
 
 
@@ -59,6 +61,17 @@ def test_download_refuses_huggingface_hub(tmp_path):
     with pytest.raises(RuntimeError, match="Hugging Face Hub"):
         whisper._download(
             "https://huggingface.co/openai/whisper/resolve/main/tiny.pt",
+            str(tmp_path),
+            False,
+        )
+
+
+def test_download_refuses_cdn_when_weight_pull_disabled(tmp_path):
+    assert not whisper.weight_auto_download_allowed()
+    with pytest.raises(RuntimeError, match="Weight auto-download is disabled"):
+        whisper._download(
+            "https://openaipublic.azureedge.net/main/whisper/models/"
+            "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
             str(tmp_path),
             False,
         )

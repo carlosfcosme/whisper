@@ -28,7 +28,16 @@ def test_ci_no_weights_script_passes():
 
 def test_gitignore_covers_weights_and_caches():
     text = (REPO / ".gitignore").read_text(encoding="utf-8")
-    for token in (".cache/", "cache/", "weights/", "*.pt", "*.safetensors", ".env"):
+    for token in (
+        ".cache/",
+        "cache/",
+        "weights/",
+        ".huggingface/",
+        "*.pt",
+        "*.safetensors",
+        "*.bin",
+        ".env",
+    ):
         assert token in text
 
 

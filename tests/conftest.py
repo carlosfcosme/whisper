@@ -11,6 +11,7 @@ import pytest
 
 # Tests must not hit Hugging Face Hub or download official weights.
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+os.environ.setdefault("WHISPER_NO_WEIGHT_DOWNLOAD", "1")
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"

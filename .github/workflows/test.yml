@@ -38,6 +38,11 @@ jobs:
           pre-commit run --all-files
   bind-and-weights:
     runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: ""
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -54,6 +59,11 @@ jobs:
   whisper-test:
     needs: [pre-commit, bind-and-weights]
     runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: ""
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -91,4 +101,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+      - name: Pytest (CPU-only, no Hub or weight download)
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-xdg
+        run: |
+          pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+          if find "${XDG_CACHE_HOME}" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.safetensors' -o -name '*.bin' \) 2>/dev/null | grep -q .; then
+            echo "CI must not download model weights" >&2
+            find "${XDG_CACHE_HOME}" -type f
+            exit 1
+          fi

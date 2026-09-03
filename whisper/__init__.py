@@ -16,10 +16,33 @@ from .transcribe import transcribe
 from .version import __version__
 
 # CPU is the default device unless the caller passes device= explicitly.
+# default_device() never consults torch.cuda.is_available().
 DEFAULT_DEVICE = "cpu"
 
 _HF_HUB_HOSTS = {"huggingface.co", "hf.co"}
 _HF_HUB_SUFFIXES = (".huggingface.co", ".hf.co")
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def default_device() -> str:
+    """Return the default PyTorch device: CPU, not CUDA-if-available.
+
+    ``WHISPER_DEVICE`` may override. ``torch.cuda.is_available()`` is not used.
+    """
+    explicit = os.environ.get("WHISPER_DEVICE", "").strip()
+    return explicit or DEFAULT_DEVICE
+
+
+def weight_auto_download_allowed() -> bool:
+    """False in CI/tests (``WHISPER_NO_WEIGHT_DOWNLOAD`` or ``CI``)."""
+    if os.environ.get("WHISPER_ALLOW_WEIGHT_DOWNLOAD", "").strip().lower() in _TRUTHY:
+        return True
+    if os.environ.get("WHISPER_NO_WEIGHT_DOWNLOAD", "").strip().lower() in _TRUTHY:
+        return False
+    if os.environ.get("CI", "").strip().lower() in _TRUTHY:
+        return False
+    return True
+
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -83,6 +106,11 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             f"Refusing Hugging Face Hub weight pull from host {host!r}. "
             "Pass a local checkpoint path to load_model()."
         )
+    if not weight_auto_download_allowed():
+        raise RuntimeError(
+            "Weight auto-download is disabled (WHISPER_NO_WEIGHT_DOWNLOAD or CI). "
+            "Pass a local checkpoint path to load_model()."
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -143,7 +171,7 @@ def load_model(
     """
 
     if device is None:
-        device = DEFAULT_DEVICE
+        device = default_device()
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
