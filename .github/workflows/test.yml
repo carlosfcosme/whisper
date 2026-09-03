@@ -8,6 +8,12 @@ on:
       - main
 
 jobs:
+  no-tracked-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if cache or weight artifacts are tracked
+        run: python3 scripts/check_tracked_weights.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
