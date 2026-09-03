@@ -50,7 +50,19 @@ def _fail_if_download_helpers_called(request, monkeypatch):
 
         return inner
 
-    monkeypatch.setattr(urllib.request, "urlopen", blocked("urllib.request.urlopen"))
+    real_urlopen = urllib.request.urlopen
+
+    def urlopen(url, *args, **kwargs):
+        from urllib.parse import urlparse
+
+        target = url if isinstance(url, str) else getattr(url, "full_url", str(url))
+        host = (urlparse(str(target)).hostname or "").lower()
+        if host in {"127.0.0.1", "localhost", "::1"}:
+            return real_urlopen(url, *args, **kwargs)
+        calls.append(("urllib.request.urlopen", target))
+        raise AssertionError(f"download helper urlopen was called: {target!r}")
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
 
     try:
         import huggingface_hub

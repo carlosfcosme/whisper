@@ -15,5 +15,8 @@ thumbs.db
 *.ckpt
 *.safetensors
 *.gguf
+*.onnx
+*.ggml
 .cache/whisper/
+**/.cache/whisper/
 

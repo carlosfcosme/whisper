@@ -40,3 +40,15 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: no-committed-weights
+        name: fail if model weights are committed
+        entry: python scripts/check_no_weights.py
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: gitignore-weights
+        name: fail if cache/weight paths are not gitignored
+        entry: python scripts/check_gitignore_weights.py
+        language: system
+        pass_filenames: false
+        always_run: true
