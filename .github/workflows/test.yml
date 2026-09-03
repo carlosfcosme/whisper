@@ -36,6 +36,42 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  no-committed-weights:
+    name: no committed weights
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights are committed
+        run: bash scripts/check_no_committed_weights.sh
+
+  bind-cpu-no-hub:
+    name: bind cpu no-hub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Install CPU package (no Whisper checkpoints, no Hub)
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev] numpy torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+      - name: Bind, CPU default, no-Hub, and committed-weights tests
+        run: |
+          pytest -vv \
+            tests/test_bind_localhost.py \
+            tests/test_bind_integration.py \
+            tests/test_cpu_default.py \
+            tests/test_no_hub.py \
+            tests/test_committed_weights.py \
+            -m 'not requires_cuda'
+      - name: Fail if model weights are committed
+        run: bash scripts/check_no_committed_weights.sh
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
