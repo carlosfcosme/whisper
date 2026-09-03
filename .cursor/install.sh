@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Idempotent Cloud Agent setup for openai-whisper.
-# Installs the ffmpeg system dependency and the package (with dev extras)
-# using a CPU build of PyTorch so tests and the `whisper` CLI run without a GPU.
+# Idempotent Cloud Agent setup for whisper.
+# Installs ffmpeg and the package (with dev extras) using a CPU build of
+# PyTorch so tests and the `whisper` CLI run without a GPU.
+# Do not download or commit model checkpoints (.pt). Install is deps only.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
