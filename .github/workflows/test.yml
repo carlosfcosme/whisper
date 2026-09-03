@@ -36,9 +36,41 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
-  whisper-test:
-    needs: pre-commit
+  bind-guard:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if 0.0.0.0 or empty-host bind appears under whisper/ or .cursor/
+        run: bash scripts/check_no_all_interfaces.sh
+      - name: Fail if bind policy accepts a non-loopback host
+        run: python3 scripts/check_loopback_bind.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Loopback bind pytest (no torch, no Hub)
+        run: |
+          python -m pip install pytest numpy
+          pytest tests/test_bind.py tests/test_loopback_ci.py tests/test_cpu_default.py tests/test_no_weights.py tests/test_network_intercept.py tests/test_gitignore_enforcement.py -vv
+  no-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights are committed
+        run: python3 scripts/check_no_weights.py
+      - name: Fail if Hub / weight-pull policy is broken
+        run: python3 scripts/check_no_hub.py
+      - name: Fail if gitignore does not cover weights and caches
+        run: python3 scripts/check_gitignore_caches.py
+  whisper-test:
+    needs: [pre-commit, bind-guard, no-weights]
+    runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: ""
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +108,4 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'

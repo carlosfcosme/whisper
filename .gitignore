@@ -9,3 +9,14 @@ thumbs.db
 .DS_Store
 .idea
 
+# Tool and model caches (never commit downloaded weights)
+.cache/
+cache/
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+
