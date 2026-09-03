@@ -40,3 +40,4 @@ def test_offline_venv_script_targets_required_modules():
     assert "HF_HUB_OFFLINE" in text
     assert "--no-index" in text
     assert "--no-deps" in text
+    assert "--no-build-isolation" in text

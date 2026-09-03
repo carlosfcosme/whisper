@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 # Create an isolated venv and run offline tests (no Hub, loopback-only).
-# Uses --system-site-packages + pip --no-index --no-deps so the venv install
-# does not hit the network. Model/WAN fetches are refused at runtime and
-# blocked by a 127.0.0.1:9 proxy.
+# Prefers `venv` + `pip install --no-index --no-deps`. If ensurepip is
+# missing, falls back to `--without-pip` and PYTHONPATH so the suite still
+# runs offline. WAN fetches are refused at runtime and blocked by a
+# 127.0.0.1:9 proxy.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 WORKDIR="${OFFLINE_VENV_DIR:-$(mktemp -d)}"
 PYTHON="${OFFLINE_PYTHON:-python3}"
 
-"$PYTHON" -m venv --system-site-packages "$WORKDIR/venv"
-VENV_PY="$WORKDIR/venv/bin/python"
-
-"$VENV_PY" -m pip install --no-index --no-deps -e "$ROOT"
+if "$PYTHON" -m venv --system-site-packages "$WORKDIR/venv"; then
+  VENV_PY="$WORKDIR/venv/bin/python"
+  "$VENV_PY" -m pip install --no-index --no-deps --no-build-isolation -e "$ROOT"
+else
+  echo "ensurepip unavailable; using --without-pip venv + PYTHONPATH" >&2
+  "$PYTHON" -m venv --without-pip --system-site-packages "$WORKDIR/venv"
+  VENV_PY="$WORKDIR/venv/bin/python"
+  export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+fi
 
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1

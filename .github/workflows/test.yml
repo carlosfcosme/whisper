@@ -72,6 +72,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Ensure python3-venv is available
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends python3-venv
       - name: Install CPU package into the runner site
         run: |
           pip install "numpy" torch==2.5.1+cpu \
