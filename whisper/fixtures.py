@@ -10,15 +10,14 @@ import tempfile
 import urllib.request
 import wave
 from typing import Union
-from urllib.parse import urlparse
 
 from .bind import BIND_HOST, BindError, bind_tcp, require_bind_host
+from .offline import WeightDownloadError, refuse_weight_pull
 
 PathLike = Union[str, os.PathLike]
 
 REMOTE_SCHEMES = ("http://", "https://")
 HUB_MARKERS = ("huggingface.co", "hf.co/")
-_OFFLINE_VALUES = frozenset({"1", "true", "yes", "on"})
 
 
 class RemoteFixtureError(ValueError):
@@ -77,15 +76,6 @@ def write_tiny_wav(
     return assert_local_fixture(target, must_exist=True)
 
 
-class WeightDownloadError(RuntimeError):
-    """Raised when a model-weight pull is refused (offline / no-WAN)."""
-
-
-def offline_enabled() -> bool:
-    """True when ``WHISPER_OFFLINE`` requests no weight downloads."""
-    return os.environ.get("WHISPER_OFFLINE", "").strip().lower() in _OFFLINE_VALUES
-
-
 def _request_url(url) -> str:
     if isinstance(url, str):
         return url
@@ -93,25 +83,6 @@ def _request_url(url) -> str:
     if callable(getter):
         return getter()
     return getattr(url, "full_url", str(url))
-
-
-def is_loopback_or_file_url(url: str) -> bool:
-    """True for ``file:`` URLs and ``http(s)://127.0.0.1/...``."""
-    parsed = urlparse(url)
-    if parsed.scheme == "file":
-        return True
-    if parsed.scheme not in ("http", "https"):
-        return False
-    return (parsed.hostname or "") == BIND_HOST
-
-
-def refuse_weight_pull(url: str) -> None:
-    """Raise ``WeightDownloadError`` for WAN / Hub / CDN weight URLs."""
-    if is_loopback_or_file_url(url):
-        return
-    raise WeightDownloadError(
-        "WHISPER_OFFLINE: refusing weight download from {0!r}".format(url)
-    )
 
 
 def install_weight_download_guard(monkeypatch) -> None:
