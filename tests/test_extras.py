@@ -11,7 +11,9 @@ INSTALL_SH = (ROOT / ".cursor" / "install.sh").read_text(encoding="utf-8")
 TEST_YML = (ROOT / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
 
 DEV_PACKAGES = ("black", "flake8", "isort", "pytest", "scipy")
-DEV_LINE = 'optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]'
+DEV_LINE = (
+    'optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]'
+)
 
 
 def test_only_dev_extra_is_declared():
