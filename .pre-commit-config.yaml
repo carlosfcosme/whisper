@@ -34,3 +34,15 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-loopback-bind
+        name: fail if bind host is not 127.0.0.1
+        language: system
+        entry: python3 scripts/check_loopback_bind.py
+        pass_filenames: false
+        always_run: true
+      - id: check-no-download
+        name: fail if Hub or remote weight download is allowed
+        language: system
+        entry: python3 scripts/check_no_download.py
+        pass_filenames: false
+        always_run: true

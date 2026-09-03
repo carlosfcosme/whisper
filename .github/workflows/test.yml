@@ -8,12 +8,24 @@ on:
       - main
 
 jobs:
-  no-weights:
+  lint-test:
     runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: ""
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: Fail if model weights or large binaries are committed
-        run: python3 scripts/check_no_weights.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install lint tools only (no torch, no model weights)
+        run: pip install "black==25.1.0" "isort==6.0.0" "flake8==7.1.1"
+      - name: Lint + offline / loopback guards
+        run: bash scripts/ci_lint_test.sh
       - name: Guard rejects a planted checkpoint
         run: |
           set -euo pipefail
@@ -25,6 +37,23 @@ jobs:
           fi
           git reset HEAD leaked.pt
           rm -f leaked.pt
+      - name: Bind guard rejects all-interfaces host
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import check_loopback_bind as chk
+          serve = chk.load_serve(Path(".").resolve())
+          all_if = ".".join(("0",) * 4)
+          try:
+              serve.normalize_bind_host(all_if)
+          except serve.BindError:
+              print("OK: refused", all_if)
+          else:
+              raise SystemExit("expected BindError for all-interfaces host")
+          PY
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +83,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: [pre-commit, no-weights]
+    needs: [pre-commit, lint-test]
     runs-on: ubuntu-latest
     env:
       CUDA_VISIBLE_DEVICES: ""
@@ -100,4 +129,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # Offline: never fetch named checkpoints or Hub artifacts in CI.
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'

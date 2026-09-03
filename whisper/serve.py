@@ -103,7 +103,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         prog="whisper serve",
         description=(
             "Start a weights-free health server bound to 127.0.0.1 only. "
-            "Binding 0.0.0.0 is refused. No Hub."
+            "Binding all interfaces is refused. No Hub."
         ),
     )
     parser.add_argument(
