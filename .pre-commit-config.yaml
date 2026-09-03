@@ -34,6 +34,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: no-tracked-cache-weights
+        name: fail if git ls-files matches weight/cache patterns
+        entry: bash scripts/check_cache_weights.sh
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: bind-localhost-only
         name: fail if serve binds 0.0.0.0
         entry: python3 scripts/check_bind_localhost.py

@@ -32,11 +32,16 @@ thumbs.db
 .venv/
 venv/
 .cache/
+.cache/whisper/
+.cache/huggingface/
+.cache/torch/
 cache/
+cache/whisper/
 .huggingface/
 huggingface/
 weights/
 models/
+checkpoints/
 
 # Secrets and keys — never commit.
 .env

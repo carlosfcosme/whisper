@@ -61,6 +61,7 @@ CACHE_PREFIXES = (
     "huggingface/",
     "weights/",
     "models/",
+    "checkpoints/",
 )
 
 ALLOWLIST = frozenset(
