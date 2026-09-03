@@ -1,3 +1,4 @@
+import http.client
 import os
 import random as rand
 import urllib.request
@@ -11,6 +12,14 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
+# Refuse credentials in the test process (never log values).
+for _token_name in (
+    "HF_TOKEN",
+    "HUGGING_FACE_HUB_TOKEN",
+    "HUGGINGFACE_HUB_TOKEN",
+):
+    os.environ.pop(_token_name, None)
 
 _REAL_URLOPEN = urllib.request.urlopen
 
@@ -42,6 +51,16 @@ def _is_loopback_url(url):
     )
 
 
+def _is_hub_host(host):
+    host = (host or "").lower().split(":")[0]
+    return (
+        host == "huggingface.co"
+        or host.endswith(".huggingface.co")
+        or host == "hf.co"
+        or host.endswith(".hf.co")
+    )
+
+
 @pytest.fixture(autouse=True)
 def _forbid_hub_and_remote_downloads(monkeypatch):
     """Block Hub / remote downloads; loopback (demo server) stays allowed."""
@@ -55,6 +74,18 @@ def _forbid_hub_and_remote_downloads(monkeypatch):
         )
 
     monkeypatch.setattr(urllib.request, "urlopen", _blocked)
+
+    _real_https_init = http.client.HTTPSConnection.__init__
+
+    def _https_init(self, host, *args, **kwargs):
+        if _is_hub_host(host):
+            raise RuntimeError(
+                "Network / Hub downloads are forbidden in tests (offline). "
+                "Requested host: {}".format(host)
+            )
+        return _real_https_init(self, host, *args, **kwargs)
+
+    monkeypatch.setattr(http.client.HTTPSConnection, "__init__", _https_init)
 
     try:
         import huggingface_hub

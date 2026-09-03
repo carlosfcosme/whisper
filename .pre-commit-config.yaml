@@ -46,3 +46,15 @@ repos:
         entry: python3 scripts/ci_integration.py
         pass_filenames: false
         always_run: true
+      - id: check-gitignore-caches
+        name: fail if .gitignore omits weight or cache paths
+        language: system
+        entry: python3 scripts/check_gitignore_caches.py
+        pass_filenames: false
+        always_run: true
+      - id: assert-no-hub-fetch
+        name: fail if Hub cache is populated or tokens are set
+        language: system
+        entry: python3 scripts/assert_no_hub_fetch.py
+        pass_filenames: false
+        always_run: true

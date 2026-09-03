@@ -33,6 +33,26 @@ thumbs.db
 .venv/
 venv/
 .cache/
+.cache/whisper/
+.cache/huggingface/
+.huggingface/
+hf_cache/
+whisper_cache/
+checkpoints/
+pretrained/
+pretrained_models/
+weights/
 build/
 dist/
+
+# Hub / tokenizer caches that must never be committed
+huggingface/hub/
+**/models--*/
+
+# Secrets and tokens — never commit (no keys in this repo)
+.env
+.env.*
+*.pem
+*.key
+.huggingface/token
 

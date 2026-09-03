@@ -63,12 +63,21 @@ def check_loopback_only(root: Path) -> List[str]:
     return errors
 
 
+def check_gitignore_caches(root: Path) -> List[str]:
+    check = _load_script("check_gitignore_caches")
+    missing = check.missing_patterns(root)
+    return [
+        "gitignore missing weight/cache path: {}".format(pattern) for pattern in missing
+    ]
+
+
 def collect_errors(root: Optional[Path] = None) -> List[str]:
     root = root if root is not None else repo_root()
     errors: List[str] = []
     errors.extend(check_committed_weights(root))
     errors.extend(check_default_device_cpu(root))
     errors.extend(check_loopback_only(root))
+    errors.extend(check_gitignore_caches(root))
     return errors
 
 
@@ -81,7 +90,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             sys.stderr.write("  {}\n".format(item))
         return 1
     sys.stdout.write(
-        "OK: CI integration — no committed weights; default device cpu; 127.0.0.1 only\n"
+        "OK: CI integration — no committed weights; gitignore caches; "
+        "default device cpu; 127.0.0.1 only\n"
     )
     return 0
 

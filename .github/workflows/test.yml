@@ -11,10 +11,19 @@ jobs:
   integration:
     name: weights-cpu-localhost
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Fail on committed weights; require CPU default and 127.0.0.1
         run: python3 scripts/ci_integration.py
+      - name: Fail if .gitignore omits weight or cache paths
+        run: python3 scripts/check_gitignore_caches.py
+      - name: Fail if Hub tokens are set or Hub cache is populated
+        run: python3 scripts/assert_no_hub_fetch.py --require-offline-env
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -52,6 +61,7 @@ jobs:
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
       HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
     strategy:
       fail-fast: false
       matrix:
@@ -88,9 +98,19 @@ jobs:
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
+      - name: Refuse Hub tokens in CI
+        run: |
+          if [ -n "${HF_TOKEN:-}" ] || [ -n "${HUGGING_FACE_HUB_TOKEN:-}" ] || [ -n "${HUGGINGFACE_HUB_TOKEN:-}" ]; then
+            echo "ERROR: Hub token environment variables must not be set in CI"
+            exit 1
+          fi
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - name: Fail if install downloaded model weights
         run: python3 scripts/assert_no_weight_cache.py
+      - name: Fail if install fetched from the Hub
+        run: python3 scripts/assert_no_hub_fetch.py --require-offline-env
       - run: pytest --durations=0 -vv -m 'not requires_cuda'
       - name: Fail if tests downloaded model weights
         run: python3 scripts/assert_no_weight_cache.py
+      - name: Fail if tests fetched from the Hub
+        run: python3 scripts/assert_no_hub_fetch.py --require-offline-env

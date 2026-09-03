@@ -1,3 +1,4 @@
+import http.client
 import importlib.util
 import os
 import subprocess
@@ -53,12 +54,19 @@ def test_hub_offline_env_is_set():
     assert os.environ.get("WHISPER_OFFLINE") == "1"
     assert os.environ.get("HF_HUB_OFFLINE") == "1"
     assert os.environ.get("TRANSFORMERS_OFFLINE") == "1"
+    assert os.environ.get("HF_TOKEN") is None
+    assert os.environ.get("HUGGING_FACE_HUB_TOKEN") is None
     assert whisper.weights_download_forbidden() is True
 
 
 def test_remote_urlopen_is_blocked():
     with pytest.raises(RuntimeError, match="forbidden"):
         urllib.request.urlopen("https://huggingface.co")
+
+
+def test_https_connection_to_hub_is_blocked():
+    with pytest.raises(RuntimeError, match="forbidden"):
+        http.client.HTTPSConnection("huggingface.co")
 
 
 def test_azure_weight_urlopen_is_blocked():
@@ -164,6 +172,43 @@ def test_assert_no_weight_cache_passes():
     )
     assert result.returncode == 0, result.stderr
     assert "OK:" in result.stdout
+
+
+def test_gitignore_covers_weight_and_cache_paths():
+    script = REPO_ROOT / "scripts" / "check_gitignore_caches.py"
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK:" in result.stdout
+    check = _load_script("check_gitignore_caches")
+    assert check.missing_patterns(REPO_ROOT) == []
+
+
+def test_assert_no_hub_fetch_passes():
+    script = REPO_ROOT / "scripts" / "assert_no_hub_fetch.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--require-offline-env"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        env=dict(os.environ, HF_HUB_OFFLINE="1", WHISPER_OFFLINE="1"),
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK:" in result.stdout
+
+
+def test_assert_no_hub_fetch_flags_cache(tmp_path):
+    hub = _load_script("assert_no_hub_fetch")
+    planted = tmp_path / "hub"
+    planted.mkdir()
+    (planted / "snapshot.bin").write_bytes(b"blob")
+    assert hub.find_hub_artifacts([planted]) == [planted / "snapshot.bin"]
 
 
 def test_assert_no_weight_cache_flags_planted_checkpoint(tmp_path):
