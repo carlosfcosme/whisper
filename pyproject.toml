@@ -30,7 +30,7 @@ dependencies = [
   "tqdm",
   "triton>=2; (platform_machine=='x86_64' and sys_platform=='linux') or sys_platform=='linux2'",
 ]
-optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]
+optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy", "tox" ]
 urls = { Homepage = "https://github.com/openai/whisper" }
 scripts.whisper = "whisper.transcribe:cli"
 
@@ -52,3 +52,9 @@ profile = "black"
 include_trailing_comma = true
 line_length = 88
 multi_line_output = 3
+
+[tool.pytest.ini_options]
+markers = [
+  "requires_cuda: test needs a CUDA GPU",
+  "requires_weights: loads official Whisper checkpoints (skipped offline)",
+]

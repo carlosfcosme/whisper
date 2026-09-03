@@ -14,6 +14,18 @@ from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
 
+# Set either flag to refuse WAN weight fetches (CI / offline tests).
+_OFFLINE_ENV_VARS = ("WHISPER_OFFLINE", "HF_HUB_OFFLINE")
+
+
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _offline_mode() -> bool:
+    return any(_env_flag(var) for var in _OFFLINE_ENV_VARS)
+
+
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -65,10 +77,21 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
+        if _offline_mode():
+            raise RuntimeError(
+                f"Offline mode: {download_target} checksum mismatch; "
+                "refusing to re-download."
             )
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
+        )
+
+    if _offline_mode():
+        raise RuntimeError(
+            "Offline mode: refused to download model weights from "
+            f"{url}. Provide a local checkpoint or unset WHISPER_OFFLINE "
+            "and HF_HUB_OFFLINE."
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(

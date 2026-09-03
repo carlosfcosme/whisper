@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Offline, no-download tests and localhost-only binds are driven by `make`
+and `tox`. See [MAKE_TOX.md](MAKE_TOX.md).
+
 
 ## Available models and languages
 
