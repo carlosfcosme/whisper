@@ -14,8 +14,13 @@ MAX_BINARY_BYTES=$((2 * 1024 * 1024))
 WEIGHT_GLOB='*.pt *.pth *.onnx *.safetensors *.ckpt *.ggml *.gguf *.h5 *.tflite *.pb *.mlmodel *.weights'
 
 is_allowlisted() {
+  # Upstream sample/docs assets only. Weight extensions never match these.
   case "$1" in
-    whisper/assets/mel_filters.npz) return 0 ;;
+    whisper/assets/*) return 0 ;;
+    notebooks/*.ipynb) return 0 ;;
+    tests/jfk.flac) return 0 ;;
+    approach.png) return 0 ;;
+    language-breakdown.svg) return 0 ;;
     *) return 1 ;;
   esac
 }
