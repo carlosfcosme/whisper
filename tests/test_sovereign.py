@@ -1,5 +1,6 @@
 """Sovereign tickets: fail if bind is not 127.0.0.1, Hub is contacted, or weights are pulled."""
 
+import inspect
 import re
 import urllib.request
 from pathlib import Path
@@ -70,7 +71,7 @@ def test_ticket2_inference_device_is_cpu_even_if_cuda_available(monkeypatch):
 def test_ticket2_load_model_does_not_auto_select_cuda():
     src = Path(whisper.__file__).read_text(encoding="utf-8")
     assert _CUDA_AUTO_RE.search(src) is None
-    cli_src = Path(whisper.transcribe.__file__).read_text(encoding="utf-8")
+    cli_src = Path(inspect.getfile(whisper.transcribe)).read_text(encoding="utf-8")
     assert _CUDA_AUTO_RE.search(cli_src) is None
     assert "default_device()" in cli_src
 
