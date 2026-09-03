@@ -53,8 +53,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -77,6 +75,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             "(WHISPER_OFFLINE or HF_HUB_OFFLINE is set). "
             "Missing or invalid local cache: {}".format(download_target)
         )
+
+    os.makedirs(root, exist_ok=True)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
