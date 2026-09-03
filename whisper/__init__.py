@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .fixtures import WeightDownloadError, offline_enabled, refuse_weight_pull
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -66,9 +67,18 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
         else:
+            if offline_enabled():
+                raise WeightDownloadError(
+                    "WHISPER_OFFLINE: checksum mismatch for {0}; will not re-download".format(
+                        download_target
+                    )
+                )
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if offline_enabled():
+        refuse_weight_pull(url)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(

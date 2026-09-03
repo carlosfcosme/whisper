@@ -5,7 +5,12 @@ from pathlib import Path
 import numpy
 import pytest
 
-from whisper.fixtures import assert_local_fixture, write_tiny_wav
+from whisper.bind import bind_tcp, install_localhost_bind_guard
+from whisper.fixtures import (
+    assert_local_fixture,
+    install_weight_download_guard,
+    write_tiny_wav,
+)
 
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parent
@@ -59,10 +64,32 @@ def pytest_fixture_setup(fixturedef, request):
     assert_local_fixture(value, must_exist=True)
 
 
+@pytest.fixture(autouse=True)
+def no_wan_weight_downloads(monkeypatch):
+    """Executable fixture: WAN / CDN / Hub weight pulls fail closed."""
+    install_weight_download_guard(monkeypatch)
+
+
+@pytest.fixture(autouse=True)
+def localhost_only_bind(monkeypatch):
+    """Executable fixture: sockets may bind 127.0.0.1 only."""
+    install_localhost_bind_guard(monkeypatch)
+
+
 @pytest.fixture
 def random():
     rand.seed(42)
     numpy.random.seed(42)
+
+
+@pytest.fixture
+def loopback_socket():
+    """Bound TCP socket on 127.0.0.1. Closed after the test."""
+    sock = bind_tcp(0)
+    try:
+        yield sock
+    finally:
+        sock.close()
 
 
 @pytest.fixture

@@ -54,6 +54,10 @@ def main():
         )
     if "not test_transcribe" not in workflow:
         return _fail("CI pytest command must exclude test_transcribe (no weight pull)")
+    if "check_localhost_bind.py" not in workflow:
+        return _fail("CI must run check_localhost_bind.py")
+    if "python3 -m whisper.fixtures" not in workflow:
+        return _fail("CI must run python3 -m whisper.fixtures")
 
     print("OK: fixtures are local; CI does not pull weights")
     return 0
