@@ -43,3 +43,10 @@ def test_no_pt_tracked_in_repo():
     pts = [p for p in tracked if p.endswith(".pt") or p.endswith(".safetensors")]
     assert pts == []
     assert not os.path.isdir(os.path.expanduser("~/.cache/whisper"))
+
+
+def test_gitignore_covers_cache_and_weights():
+    text = (ROOT / ".gitignore").read_text()
+    assert "cache/" in text
+    assert "weights/" in text
+    assert "*.pt" in text

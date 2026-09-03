@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -31,6 +32,8 @@ def _write_toy_checkpoint(path):
 def test_default_device_is_cpu_not_cuda():
     assert DEFAULT_DEVICE == "cpu"
     assert whisper.DEFAULT_DEVICE == "cpu"
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    assert not torch.cuda.is_available()
 
 
 def test_load_model_defaults_to_cpu(tmp_path):

@@ -28,6 +28,19 @@ def test_make_server_rejects_wildcard():
         make_server("0.0.0.0", 0)
 
 
+def test_listening_socket_is_never_all_interfaces():
+    httpd = make_server("127.0.0.1", 0)
+    try:
+        host, _port = httpd.server_address[:2]
+        sockname = httpd.socket.getsockname()[0]
+        assert host == "127.0.0.1"
+        assert sockname == "127.0.0.1"
+        assert host != "0.0.0.0"
+        assert sockname != "0.0.0.0"
+    finally:
+        httpd.server_close()
+
+
 def test_serve_binds_loopback_and_answers():
     httpd = make_server("127.0.0.1", 0)
     host, port = httpd.server_address[:2]

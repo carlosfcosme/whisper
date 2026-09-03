@@ -84,6 +84,7 @@ jobs:
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - name: Tests without Hub or weight downloads
         env:
+          CUDA_VISIBLE_DEVICES: ""
           HF_HUB_OFFLINE: "1"
           TRANSFORMERS_OFFLINE: "1"
           HF_DATASETS_OFFLINE: "1"

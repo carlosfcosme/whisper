@@ -7,6 +7,8 @@ import numpy
 import pytest
 
 # Tests must not download from Hugging Face Hub or any remote weight host.
+# Default device is CPU-only; do not expose a GPU to the suite.
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
