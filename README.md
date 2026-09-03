@@ -54,6 +54,10 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Lint uses **flake8**, not Ruff. There is no `ruff.toml`. See
+[RUFF.md](RUFF.md) for the inventory and the commands this environment
+actually installs.
+
 
 ## Available models and languages
 
