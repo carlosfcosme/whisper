@@ -9,3 +9,18 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and caches — never commit.
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+*.ggml
+.cache/
+cache/
+weights/
+.huggingface/
+hub/
+

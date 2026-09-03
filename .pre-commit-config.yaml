@@ -34,3 +34,9 @@ repos:
         entry: python3 scripts/check_no_remote_fixtures.py
         pass_filenames: false
         always_run: true
+      - id: check-ignored-artifacts
+        name: fail if weight/cache artifacts are tracked or not ignored
+        language: system
+        entry: python3 scripts/check_ignored_artifacts.py
+        pass_filenames: false
+        always_run: true
