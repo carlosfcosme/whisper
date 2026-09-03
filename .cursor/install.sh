@@ -6,6 +6,12 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Ticket 4: CPU-only, offline, no-store. Setup does not fetch checkpoints.
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-}"
+export WHISPER_OFFLINE="${WHISPER_OFFLINE:-1}"
+export WHISPER_NO_STORE="${WHISPER_NO_STORE:-1}"
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get update -qq
