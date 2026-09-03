@@ -40,3 +40,15 @@ repos:
         entry: python3 scripts/check_loopback_bind.py
         pass_filenames: false
         always_run: true
+      - id: check-ignored-caches
+        name: fail if cache or weight paths are not gitignored
+        language: system
+        entry: python3 scripts/check_ignored_caches.py
+        pass_filenames: false
+        always_run: true
+      - id: check-local-fixtures
+        name: fail if tests are not limited to preexisting local fixtures
+        language: system
+        entry: python3 scripts/check_local_fixtures.py
+        pass_filenames: false
+        always_run: true

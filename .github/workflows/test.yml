@@ -30,6 +30,31 @@ jobs:
           echo "OK: git grep found no 0.0.0.0 under .cursor/"
       - name: Fail if bind host is not loopback
         run: python3 scripts/check_loopback_bind.py
+  sovereign-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: No committed weights
+        run: python3 scripts/check_no_weights.py
+      - name: Caches are gitignored
+        run: python3 scripts/check_ignored_caches.py
+      - name: Preexisting local fixtures only
+        run: python3 scripts/check_local_fixtures.py
+      - name: Bind 127.0.0.1
+        run: |
+          set -euo pipefail
+          if git grep -nF '0.0.0.0' -- .cursor; then
+            echo "ERROR: bind host must be 127.0.0.1; 0.0.0.0 is forbidden in .cursor/"
+            exit 1
+          fi
+          python3 scripts/check_loopback_bind.py
+      - name: Pytest CI sovereign suite
+        run: |
+          pip install pytest numpy
+          pytest --durations=0 -vv tests/test_ci_sovereign.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -59,7 +84,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: [pre-commit, no-committed-weights, loopback-bind]
+    needs: [pre-commit, no-committed-weights, loopback-bind, sovereign-ci]
     runs-on: ubuntu-latest
     env:
       WHISPER_OFFLINE: "1"
