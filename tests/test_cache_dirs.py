@@ -39,6 +39,7 @@ def test_gitignore_covers_cache_dirs_weights_and_secrets():
     ignored = [
         ".cache/whisper/tiny.pt",
         "cache/whisper/base.pt",
+        "weights/tiny.pt",
         "tiny.pt",
         "model.pth",
         ".env",

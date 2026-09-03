@@ -8,6 +8,12 @@ on:
       - main
 
 jobs:
+  no-tracked-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if cache or weight files are tracked
+        run: bash scripts/check_no_tracked_weights.sh
   pre-commit:
     runs-on: ubuntu-latest
     steps:

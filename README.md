@@ -77,8 +77,10 @@ messages print to the terminal when `--verbose` is enabled (the CLI default).
 
 If you point `XDG_CACHE_HOME`, `--model_dir`, or `download_root` at a directory
 inside this checkout (for example `.cache/` or `cache/`), `.gitignore` excludes
-those cache dirs, downloaded weights (`*.pt`, `*.pth`), and local secret files
-(`.env`, `.env.*`). Do not commit checkpoints or credentials.
+those cache dirs, a local `weights/` directory, downloaded weights (`*.pt`,
+`*.pth`), and local secret files (`.env`, `.env.*`). Do not commit checkpoints
+or credentials. CI runs `scripts/check_no_tracked_weights.sh` and fails if
+those cache or weight paths are tracked.
 
 
 ## Available models and languages
