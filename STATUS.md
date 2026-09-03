@@ -15,9 +15,16 @@ grant any additional rights.
 
 ## Offline-safe
 
-Cloud Agent setup pre-caches the `tiny` and `tiny.en` model weights into
-`~/.cache/whisper` during install (see `.cursor/install.sh`). After that,
-transcription and the `.cursor/verify.sh` self-check run from the local cache
-with no network required.
+Cloud Agent setup pre-caches `tiny` and `tiny.en` during install (see
+`.cursor/install.sh`; override with `WHISPER_PRECACHE_MODELS`). After that,
+those models and `.cursor/verify.sh` run from the local cache with no
+network required.
+
+The cache directory is `$XDG_CACHE_HOME/whisper` when `XDG_CACHE_HOME` is
+set, otherwise `~/.cache/whisper`.
+
+Offline use applies only to the pre-cached models. The `whisper` CLI
+defaults to `turbo`, which is not pre-cached and will attempt a download
+unless `--model tiny` or `--model tiny.en` is passed.
 
 No secrets are stored in this repository.
