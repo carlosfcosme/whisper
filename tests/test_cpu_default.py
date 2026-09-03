@@ -2,7 +2,7 @@ import inspect
 
 import torch
 
-from whisper import __init__ as whisper_init
+import whisper
 from whisper.runtime import DEFAULT_DEVICE, default_device
 from whisper.transcribe import cli
 
@@ -21,7 +21,7 @@ def test_default_device_env_override(monkeypatch):
 
 
 def test_load_model_does_not_default_to_cuda():
-    src = inspect.getsource(whisper_init.load_model)
+    src = inspect.getsource(whisper.load_model)
     assert "default_device" in src
     assert 'device = "cuda" if torch.cuda.is_available()' not in src
 
