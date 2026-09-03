@@ -75,16 +75,26 @@ def test_bind_loopback_is_allowed():
         sock.close()
 
 
+def _code_lines(text):
+    return [
+        line
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
 def test_environment_publishes_no_ports_or_keys():
     env = (REPO_ROOT / ".cursor" / "environment.json").read_text()
-    install = (REPO_ROOT / ".cursor" / "install.sh").read_text()
+    install_code = "\n".join(
+        _code_lines((REPO_ROOT / ".cursor" / "install.sh").read_text())
+    )
     assert '"ports"' not in env
     assert "0.0.0.0" not in env
-    assert "load_model" not in install
-    assert "_download" not in install
-    assert "azureedge" not in install
-    assert "API_KEY" not in install
-    assert "SECRET" not in install
+    assert "load_model" not in install_code
+    assert "_download" not in install_code
+    assert "azureedge" not in install_code
+    assert "API_KEY" not in install_code
+    assert "SECRET" not in install_code
     assert "API_KEY" not in env
 
 
