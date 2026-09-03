@@ -14,6 +14,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fail if model weights or large binaries are committed
         run: python3 scripts/check_no_weights.py
+      - name: Verify gitignore ignores cache and weight paths
+        run: |
+          for p in cache/whisper/tiny.pt .cache/whisper/tiny.pt leaked.pt model.pth; do
+            git check-ignore -q -- "$p" || {
+              echo "FAIL: gitignore does not ignore $p"
+              exit 1
+            }
+          done
+          echo "OK: weights ignored by gitignore"
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -42,6 +51,60 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  offline-install-runtime:
+    name: offline install and runtime
+    needs: [no-weights]
+    runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: ""
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      XDG_CACHE_HOME: ${{ runner.temp }}/whisper-xdg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Verify weights ignored
+        run: |
+          python3 scripts/check_no_weights.py
+          for p in cache/whisper/tiny.pt .cache/whisper/tiny.pt leaked.pt model.pth; do
+            git check-ignore -q -- "$p" || {
+              echo "FAIL: gitignore does not ignore $p"
+              exit 1
+            }
+          done
+          echo "OK: weights ignored"
+      - name: Install package (no checkpoints)
+        run: |
+          mkdir -p "$XDG_CACHE_HOME"
+          python -m pip install --upgrade pip
+          pip install .[dev] numpy torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+      - name: Offline install and runtime tests
+        run: |
+          pytest --durations=0 -vv \
+            tests/test_offline_install_runtime.py \
+            tests/test_offline.py \
+            tests/test_serve_localhost.py \
+            -k 'not test_transcribe' -m 'not requires_cuda'
+      - name: Assert no weight download
+        run: |
+          written="$(find "$XDG_CACHE_HOME" -type f \( \
+            -name '*.pt' -o -name '*.pth' -o -name '*.safetensors' \) -print)"
+          if [ -n "$written" ]; then
+            echo "FAIL: weight files written during offline install/runtime:"
+            echo "$written"
+            exit 1
+          fi
+          echo "OK: no weight download"
+
   whisper-test:
     needs: [pre-commit, no-weights]
     runs-on: ubuntu-latest
