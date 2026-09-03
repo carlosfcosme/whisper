@@ -70,6 +70,7 @@ def classify(relpath: str, size: int) -> Optional[str]:
 def find_violations(
     root: Path, relative_paths: Optional[Sequence[str]] = None
 ) -> List[Tuple[str, str]]:
+    root = Path(root)
     paths: Iterable[str] = (
         relative_paths if relative_paths is not None else tracked_files(root)
     )
