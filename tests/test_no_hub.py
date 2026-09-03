@@ -54,3 +54,21 @@ def test_huggingface_hub_is_not_a_dependency():
     assert "huggingface" not in pyproject.lower()
     assert "huggingface" not in requirements.lower()
     assert "hf_hub" not in pyproject.lower()
+
+
+def test_load_model_does_not_pull_weights(monkeypatch, tmp_path):
+    monkeypatch.setenv("WHISPER_OFFLINE", "1")
+    monkeypatch.setenv("HF_HUB_OFFLINE", "1")
+    with pytest.raises(RuntimeError, match="offline|no Hub"):
+        whisper.load_model("tiny", device="cpu", download_root=str(tmp_path))
+    assert list(tmp_path.glob("*.pt")) == []
+
+
+def test_ci_pytest_excludes_transcribe():
+    workflow = (
+        Path(__file__).resolve().parents[1] / ".github" / "workflows" / "test.yml"
+    ).read_text()
+    assert "-k 'not test_transcribe'" in workflow
+    assert "test_transcribe[tiny]" not in workflow
+    assert "HF_HUB_OFFLINE" in workflow
+    assert "assert_no_weight_download.py" in workflow

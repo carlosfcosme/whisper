@@ -52,3 +52,56 @@ def test_check_script_exits_zero_on_clean_repo():
 
 def test_repo_root_matches_checkout():
     assert checker.repo_root() == REPO
+
+
+def test_gitignore_covers_cache_and_weights():
+    text = (REPO / ".gitignore").read_text()
+    for pattern in (
+        "*.pt",
+        "*.pth",
+        "*.safetensors",
+        ".cache/",
+        "**/.cache/whisper/",
+        ".huggingface/",
+    ):
+        assert pattern in text
+
+
+def test_assert_no_weight_download_clean(monkeypatch, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "hf"))
+    monkeypatch.delenv("HUGGINGFACE_HUB_CACHE", raising=False)
+    spec_path = REPO / "scripts" / "assert_no_weight_download.py"
+    spec = importlib.util.spec_from_file_location(
+        "assert_no_weight_download", spec_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    assert module.find_downloads() == []
+    assert module.main() == 0
+
+
+def test_assert_no_weight_download_detects_cache(monkeypatch, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    xdg = tmp_path / "xdg"
+    (xdg / "whisper").mkdir(parents=True)
+    (xdg / "whisper" / "tiny.pt").write_bytes(b"checkpoint")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(xdg))
+    monkeypatch.delenv("HF_HOME", raising=False)
+    monkeypatch.delenv("HUGGINGFACE_HUB_CACHE", raising=False)
+    spec_path = REPO / "scripts" / "assert_no_weight_download.py"
+    spec = importlib.util.spec_from_file_location(
+        "assert_no_weight_download_dirty", spec_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    hits = module.find_downloads()
+    assert any(path.endswith("tiny.pt") for path in hits)
+    assert module.main() == 1

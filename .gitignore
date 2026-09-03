@@ -16,7 +16,13 @@ thumbs.db
 *.ckpt
 *.safetensors
 *.onnx
+*.gguf
+*.ggml
 .cache/
+**/.cache/whisper/
+.huggingface/
+hf_cache/
+whisper-cache/
 .venv/
 venv/
 

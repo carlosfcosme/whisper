@@ -75,6 +75,15 @@ def test_create_server_binds_127_0_0_1():
         httpd.server_close()
 
 
+def test_rejects_0_0_0_0():
+    """Bind must refuse all-interfaces; only 127.0.0.1 is allowed."""
+    with pytest.raises(BindError, match="127.0.0.1"):
+        normalize_bind_host("0.0.0.0")
+    with pytest.raises(BindError):
+        create_server("0.0.0.0", 0)
+    assert main(["--host", "0.0.0.0", "--port", "0"]) == 2
+
+
 def test_create_server_rejects_all_interfaces():
     with pytest.raises(BindError):
         create_server("0.0.0.0", 0)
