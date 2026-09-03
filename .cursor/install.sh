@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Idempotent Cloud Agent setup for openai-whisper.
-# Installs the ffmpeg system dependency and the package (with dev extras)
-# using a CPU build of PyTorch so tests and the `whisper` CLI run without a GPU.
+# Commercial / localhost-only: installs ffmpeg, CPU PyTorch, and the package
+# with dev extras. Does not pull Whisper model weights (no load_model / no
+# checkpoint download). No secrets are written.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -23,5 +24,5 @@ pip install --break-system-packages \
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
 pip install --break-system-packages -e ".[dev]"
 
-echo "whisper environment ready:"
+echo "whisper environment ready (localhost-only, no weight pulls):"
 python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
