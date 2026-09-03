@@ -45,6 +45,7 @@ DOWNLOAD_PATTERNS: Sequence[Tuple[str, str]] = (
 ALLOW_DOWNLOAD_MENTIONS = frozenset(
     {
         "tests/test_offline_hub.py",
+        "tests/test_cli_offline.py",
         "tests/conftest.py",
     }
 )
@@ -52,6 +53,7 @@ ALLOW_DOWNLOAD_MENTIONS = frozenset(
 ALLOW_ZERO_ADDR = frozenset(
     {
         "tests/test_offline_hub.py",
+        "tests/test_cli_offline.py",
     }
 )
 
