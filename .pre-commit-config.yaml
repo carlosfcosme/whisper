@@ -46,3 +46,9 @@ repos:
         entry: python3 scripts/check_loopback_bind.py
         pass_filenames: false
         always_run: true
+      - id: check-gitignore-caches
+        name: fail if gitignore does not cover weights and caches
+        language: system
+        entry: python3 scripts/check_gitignore_caches.py
+        pass_filenames: false
+        always_run: true

@@ -5,6 +5,12 @@ import urllib.request
 import numpy
 import pytest
 
+from tests.network_intercept import (
+    NetworkIntercepted,
+)
+from tests.network_intercept import install as install_network_intercept
+from tests.network_intercept import is_loopback_peer
+
 # Offline, CPU-only test defaults. setdefault keeps an explicit override.
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 os.environ.setdefault("WHISPER_OFFLINE", "1")
@@ -15,6 +21,8 @@ os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
 _REAL_URLOPEN = urllib.request.urlopen
 
+install_network_intercept()
+
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_cuda")
@@ -22,6 +30,13 @@ def pytest_configure(config):
         "markers",
         "requires_local_weights: needs a cached Whisper checkpoint on disk",
     )
+    install_network_intercept()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    from tests.network_intercept import uninstall
+
+    uninstall()
 
 
 @pytest.fixture
@@ -38,9 +53,12 @@ def _request_url(url):
 
 def _is_loopback_url(url):
     target = _request_url(url)
-    return target.startswith("http://127.0.0.1") or target.startswith(
-        "http://localhost"
-    )
+    if target.startswith("http://127.0.0.1") or target.startswith("http://localhost"):
+        return True
+    if "://" in target:
+        host = target.split("://", 1)[1].split("/", 1)[0].split(":", 1)[0]
+        return is_loopback_peer(host)
+    return False
 
 
 @pytest.fixture(autouse=True)
@@ -50,7 +68,7 @@ def _forbid_hub_and_remote_downloads(monkeypatch):
     def _blocked(url, *args, **kwargs):
         if _is_loopback_url(url):
             return _REAL_URLOPEN(url, *args, **kwargs)
-        raise RuntimeError(
+        raise NetworkIntercepted(
             "Network / Hub downloads are forbidden in tests (offline). "
             "Requested: {}".format(_request_url(url))
         )
