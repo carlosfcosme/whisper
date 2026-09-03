@@ -11,7 +11,6 @@ from urllib.request import Request, urlopen
 import pytest
 
 import whisper
-import whisper.transcribe as transcribe_mod
 from whisper.defaults import (
     DEFAULT_DEVICE,
     DEFAULT_HOST,
@@ -65,7 +64,7 @@ def test_default_device_is_cpu():
 
 
 def test_load_model_and_cli_default_to_cpu():
-    source = Path(transcribe_mod.__file__).read_text(encoding="utf-8")
+    source = (ROOT / "whisper" / "transcribe.py").read_text(encoding="utf-8")
     assert "default=DEFAULT_DEVICE" in source
     assert 'default="cuda" if torch.cuda.is_available()' not in source
 
