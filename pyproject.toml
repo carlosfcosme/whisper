@@ -45,6 +45,10 @@ version = { attr = "whisper.version.__version__" }
 exclude = [ "tests*" ]
 namespaces = false
 
+[tool.pytest.ini_options]
+# Collection root. There is no setup.cfg / pytest.ini; tests live here only.
+testpaths = [ "tests" ]
+
 [tool.black]
 
 [tool.isort]

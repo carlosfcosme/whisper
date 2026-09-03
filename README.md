@@ -54,6 +54,10 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+There is no `setup.cfg` (or `setup.py` / `pytest.ini`). Packaging and the pytest
+`testpaths` live in [`pyproject.toml`](pyproject.toml). The test file inventory
+is recorded in [SETUP_CFG.md](SETUP_CFG.md).
+
 
 ## Available models and languages
 
