@@ -1,4 +1,4 @@
 {
-  "name": "openai-whisper",
+  "name": "whisper",
   "install": "bash .cursor/install.sh"
 }

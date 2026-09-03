@@ -1,7 +1,20 @@
+import os
 import random as rand
+import urllib.request
 
 import numpy
 import pytest
+
+# Tests must not hit the Hugging Face Hub.
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+# Tests must not fetch Whisper checkpoints (Azure CDN or otherwise).
+os.environ["WHISPER_NO_DOWNLOAD"] = "1"
+
+_REAL_URLOPEN = urllib.request.urlopen
+_HUB_MARKERS = ("huggingface.co", "hf.co/", "huggingface_hub")
 
 
 def pytest_configure(config):
@@ -12,3 +25,47 @@ def pytest_configure(config):
 def random():
     rand.seed(42)
     numpy.random.seed(42)
+
+
+def _request_url(url):
+    if isinstance(url, str):
+        return url
+    return getattr(url, "full_url", None) or str(url)
+
+
+def _is_hub_url(url):
+    target = _request_url(url).lower()
+    return any(marker in target for marker in _HUB_MARKERS)
+
+
+@pytest.fixture(autouse=True)
+def _forbid_hub_downloads(monkeypatch):
+    """Block Hugging Face Hub downloads. Official CDN / loopback stay allowed."""
+
+    def _blocked(url, *args, **kwargs):
+        if _is_hub_url(url):
+            raise RuntimeError(
+                "Hugging Face Hub is forbidden in tests. Requested: {}".format(
+                    _request_url(url)
+                )
+            )
+        return _REAL_URLOPEN(url, *args, **kwargs)
+
+    monkeypatch.setattr(urllib.request, "urlopen", _blocked)
+
+    try:
+        import huggingface_hub
+    except ImportError:
+        return
+
+    def _hub_blocked(*args, **kwargs):
+        raise RuntimeError("huggingface_hub downloads are forbidden in tests")
+
+    for name in (
+        "hf_hub_download",
+        "snapshot_download",
+        "hf_hub_url",
+        "cached_download",
+    ):
+        if hasattr(huggingface_hub, name):
+            monkeypatch.setattr(huggingface_hub, name, _hub_blocked, raising=False)
