@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bind whisper serve to IPv4 loopback only. Do not use 0.0.0.0. No Hub.
+# Bind whisper serve to IPv4 loopback only. Do not bind all interfaces. No Hub.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
