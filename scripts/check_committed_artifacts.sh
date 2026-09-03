@@ -43,12 +43,12 @@ is_binary() {
 
 fail=0
 while IFS= read -r -d '' path; do
-  if is_allowlisted "$path"; then
-    continue
-  fi
   if is_weight_name "$path"; then
     echo "FAIL: model weight/checkpoint is committed: ${path}"
     fail=1
+    continue
+  fi
+  if is_allowlisted "$path"; then
     continue
   fi
   if [[ ! -f "$path" ]]; then
