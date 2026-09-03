@@ -9,3 +9,14 @@ thumbs.db
 .DS_Store
 .idea
 
+# Project-local caches and checkpoints stay untracked.
+.cache/
+cache/
+weights/
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+*.gguf
+

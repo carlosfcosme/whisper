@@ -36,9 +36,41 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  localhost-bind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fail on all-interface bind or non-loopback listen
+        run: python3 scripts/check_bind_localhost.py
+      - name: Bind-guard tests (no torch, no weights, loopback only)
+        run: |
+          python -m pip install pytest numpy
+          pytest tests/test_bind.py tests/test_serve.py tests/test_check_bind_localhost.py tests/test_network_guard.py -vv --durations=0
+  gitignore-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fail if cache/weight paths are missing from gitignore or tracked
+        run: python3 scripts/check_gitignore_weights.py
+      - name: Gitignore and no-fetch tests (no weight download)
+        run: |
+          python -m pip install pytest numpy
+          pytest tests/test_gitignore_weights.py tests/test_network_guard.py -vv --durations=0
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +108,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda and not requires_weights'
+      - name: Verify gitignore still covers caches and weights
+        if: always()
+        run: python3 scripts/check_gitignore_weights.py
