@@ -48,21 +48,29 @@ python -m pip install -e ".[dev]"
 You may need [Rust](https://www.rust-lang.org/learn/get-started) if tiktoken
 has no wheel for your platform; see README Setup.
 
-## Tests (no weights)
+## Tests (offline bootstrap)
 
-`tests/test_transcribe.py` is the only test that calls `whisper.load_model` and
-fetches checkpoints from `openaipublic.azureedge.net`. Skip it:
+The default target blocks WAN/model fetch and requires `127.0.0.1` binds:
 
 ```bash
-pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+make test-offline
 ```
 
+That is `pytest -m "not requires_network and not requires_cuda" --offline-bootstrap`
+plus a process-local LISTEN check. `tests/test_transcribe.py` is marked
+`requires_network` (it calls `whisper.load_model` and would fetch checkpoints)
+and is not collected. CUDA tests are skipped.
+
+A dead proxy to `127.0.0.1:9` is set so a slipped fetch cannot reach the WAN.
+Guards patch `urllib.request.urlopen`, `socket.create_connection`, and
+`whisper._download`.
+
 This runs the audio (`tests/jfk.flac`, needs `ffmpeg`), tokenizer, CPU timing,
-and normalizer tests. It does not write under `$XDG_CACHE_HOME/whisper` or
-`~/.cache/whisper`.
+normalizer, bind, and offline-guard tests. It does not write under
+`$XDG_CACHE_HOME/whisper` or `~/.cache/whisper`.
 
 Do not smoke-test with the `whisper` CLI. It defaults to `--model turbo` and
-will download that checkpoint. GitHub Actions additionally runs
+will download that checkpoint. GitHub Actions `whisper-test` additionally runs
 `test_transcribe[tiny]` and `test_transcribe[tiny.en]`; those fetch weights
 and are outside this bootstrap.
 
