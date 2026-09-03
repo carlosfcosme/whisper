@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+To clone this repository and run tests (no model weights, no secrets), see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 
 ## Available models and languages
 
