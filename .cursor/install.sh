@@ -5,6 +5,11 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+# shellcheck source=env.sh
+source .cursor/env.sh
+
+# Force: no default checkpoint download, bind 127.0.0.1 only.
+# Do not download named models here. Do not listen on all interfaces.
 
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then

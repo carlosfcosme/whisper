@@ -1,7 +1,6 @@
 import hashlib
 import io
 import os
-import urllib
 import warnings
 from typing import List, Optional, Union
 
@@ -10,6 +9,7 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .env_policy import resolve_device, urlopen_for_weights
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -70,7 +70,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
-    with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
+    # Environment default is no WAN weight fetch (WHISPER_ALLOW_WEIGHT_FETCH=0).
+    with urlopen_for_weights(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
             ncols=80,
@@ -128,7 +129,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = resolve_device()
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

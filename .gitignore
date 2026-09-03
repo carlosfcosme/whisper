@@ -9,3 +9,10 @@ thumbs.db
 .DS_Store
 .idea
 
+# Weight caches and checkpoints. Never commit these.
+.cache/
+cache/
+weights/
+*.pt
+*.pth
+
