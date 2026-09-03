@@ -1,5 +1,6 @@
 """Localhost-only HTTP serve helper. Always binds 127.0.0.1 / ::1."""
 
+import ipaddress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .localhost import serve_bind_host
@@ -24,7 +25,23 @@ def serve(host=None, port=0) -> ThreadingHTTPServer:
     ``port=0`` lets the OS pick an ephemeral port. The caller owns shutdown.
     """
     bind_host = serve_bind_host(host)
-    return ThreadingHTTPServer((bind_host, port), _LocalhostHandler)
+    httpd = ThreadingHTTPServer((bind_host, port), _LocalhostHandler)
+    bound = httpd.server_address[0]
+    try:
+        ip = ipaddress.ip_address(bound)
+    except ValueError:
+        httpd.server_close()
+        raise ValueError(
+            "serve must bind to 127.0.0.1 (got {!r}); "
+            "refusing non-loopback or empty host".format(bound)
+        )
+    if not ip.is_loopback:
+        httpd.server_close()
+        raise ValueError(
+            "serve must bind to 127.0.0.1 (got {!r}); "
+            "refusing non-loopback or empty host".format(bound)
+        )
+    return httpd
 
 
 __all__ = ["serve", "serve_bind_host"]

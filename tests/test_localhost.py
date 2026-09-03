@@ -73,6 +73,24 @@ def test_serve_listens_on_127_0_0_1():
         httpd.server_close()
 
 
+def test_server_never_binds_0_0_0_0():
+    """Regression: a live server must not listen on all interfaces."""
+    wildcard = "0.0.0.0"
+    httpd = serve(port=0)
+    try:
+        host, _port = httpd.server_address[:2]
+        sockname = httpd.socket.getsockname()[0]
+        assert host != wildcard
+        assert sockname != wildcard
+        assert host == "127.0.0.1"
+        assert _is_loopback(host)
+        assert _is_loopback(sockname)
+    finally:
+        httpd.server_close()
+    with pytest.raises(ValueError, match="127.0.0.1"):
+        serve(host=wildcard, port=0)
+
+
 def test_serve_rejects_wildcard_and_empty_host():
     with pytest.raises(ValueError, match="127.0.0.1"):
         serve(host="0.0.0.0", port=0)
