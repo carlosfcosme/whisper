@@ -54,6 +54,10 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+There is no `Makefile` and no `tox` configuration in this repository. The implicit
+developer environment (install extras, weight-free pytest, pre-commit) is recorded
+in [MAKE_TOX.md](MAKE_TOX.md).
+
 
 ## Available models and languages
 
