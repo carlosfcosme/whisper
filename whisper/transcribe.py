@@ -515,6 +515,13 @@ def transcribe(
 
 
 def cli():
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "serve":
+        from .serve import main as serve_main
+
+        raise SystemExit(serve_main(sys.argv[2:]))
+
     from . import available_models
 
     def valid_model_name(name):
