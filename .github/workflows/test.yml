@@ -36,9 +36,45 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Fail if model weights are committed
+        run: python scripts/check_committed_weights.py
+  cpu-offline:
+    runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      WHISPER_NO_STORE: "1"
+      WHISPER_DEVICE: cpu
+      WHISPER_TEST_DISABLE_NETWORK: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Install package with CPU torch
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]" torch \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+      - name: CPU offline tests (network disabled, no weight downloads)
+        run: python scripts/run_cpu_offline_tests.py
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      WHISPER_NO_STORE: "1"
+      WHISPER_DEVICE: cpu
+      WHISPER_TEST_DISABLE_NETWORK: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +112,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: CPU offline tests (network disabled, no weight downloads)
+        run: python scripts/run_cpu_offline_tests.py

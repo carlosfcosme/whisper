@@ -1,17 +1,24 @@
 import os
 
 import pytest
-import torch
 
 import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+@pytest.mark.requires_weights
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
+    checkpoint = whisper.local_checkpoint_path(model_name)
+    if checkpoint is None:
+        pytest.skip(
+            f"offline: weights for {model_name!r} are not on disk "
+            "(CI does not download checkpoints)"
+        )
+    model = whisper.load_model(checkpoint, device="cpu")
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
+    if not os.path.isfile(audio_path):
+        pytest.skip("offline: tests/jfk.flac fixture is missing")
 
     language = "en" if model_name.endswith(".en") else None
     result = model.transcribe(

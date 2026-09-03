@@ -11,6 +11,14 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .runtime import (
+    DEFAULT_DEVICE,
+    default_cache_root,
+    default_device,
+    is_no_store,
+    is_offline,
+    resolve_download_root,
+)
 from .transcribe import transcribe
 from .version import __version__
 
@@ -51,8 +59,36 @@ _ALIGNMENT_HEADS = {
 }
 
 
-def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
+def _fetch_bytes(url: str) -> bytes:
+    with urllib.request.urlopen(url) as source:
+        chunks = []
+        with tqdm(
+            total=int(source.info().get("Content-Length") or 0) or None,
+            ncols=80,
+            unit="iB",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as loop:
+            while True:
+                buffer = source.read(8192)
+                if not buffer:
+                    break
+                chunks.append(buffer)
+                loop.update(len(buffer))
+    return b"".join(chunks)
+
+
+def _download(
+    url: str,
+    root: str,
+    in_memory: bool,
+    offline: Optional[bool] = None,
+    no_store: Optional[bool] = None,
+) -> Union[bytes, str]:
+    if offline is None:
+        offline = is_offline()
+    if no_store is None:
+        no_store = is_no_store()
 
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
@@ -65,33 +101,36 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
+        if offline:
+            raise RuntimeError(
+                f"offline mode: checksum mismatch for {download_target} "
+                "and remote download is disabled"
             )
-
-    with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
-        with tqdm(
-            total=int(source.info().get("Content-Length")),
-            ncols=80,
-            unit="iB",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as loop:
-            while True:
-                buffer = source.read(8192)
-                if not buffer:
-                    break
-
-                output.write(buffer)
-                loop.update(len(buffer))
-
-    model_bytes = open(download_target, "rb").read()
-    if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
-        raise RuntimeError(
-            "Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model."
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; "
+            "re-downloading the file"
         )
 
+    if offline:
+        raise RuntimeError(
+            f"offline mode: checkpoint not found at {download_target}. "
+            "Place a local .pt file there or pass a filesystem path. "
+            "Set WHISPER_OFFLINE=0 only if you intend to download."
+        )
+
+    model_bytes = _fetch_bytes(url)
+    if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
+        raise RuntimeError(
+            "Model has been downloaded but the SHA256 checksum does not not match. "
+            "Please retry loading the model."
+        )
+
+    if no_store:
+        return model_bytes
+
+    os.makedirs(root, exist_ok=True)
+    with open(download_target, "wb") as output:
+        output.write(model_bytes)
     return model_bytes if in_memory else download_target
 
 
@@ -100,11 +139,33 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
+def local_checkpoint_path(
+    name: str, download_root: Optional[str] = None
+) -> Optional[str]:
+    """Return a local checkpoint path if it already exists on disk, else None."""
+    if os.path.isfile(name):
+        return os.path.abspath(name)
+    if name not in _MODELS:
+        return None
+    root = resolve_download_root(download_root)
+    url = _MODELS[name]
+    path = os.path.join(root, os.path.basename(url))
+    if not os.path.isfile(path):
+        return None
+    expected_sha256 = url.split("/")[-2]
+    with open(path, "rb") as handle:
+        if hashlib.sha256(handle.read()).hexdigest() != expected_sha256:
+            return None
+    return path
+
+
 def load_model(
     name: str,
     device: Optional[Union[str, torch.device]] = None,
     download_root: str = None,
     in_memory: bool = False,
+    offline: Optional[bool] = None,
+    no_store: Optional[bool] = None,
 ) -> Whisper:
     """
     Load a Whisper ASR model
@@ -115,11 +176,18 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU
+        (`whisper.DEFAULT_DEVICE`); CUDA is never selected automatically.
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to look up (and, only if offline/no-store are disabled, write)
+        model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
         whether to preload the model weights into host memory
+    offline: bool
+        if True (default), never download a named checkpoint. Set WHISPER_OFFLINE=0
+        or pass offline=False to allow a download.
+    no_store: bool
+        if True (default), do not write a newly fetched checkpoint to disk.
 
     Returns
     -------
@@ -128,13 +196,22 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = default_device()
     if download_root is None:
-        default = os.path.join(os.path.expanduser("~"), ".cache")
-        download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+        download_root = resolve_download_root()
+    if offline is None:
+        offline = is_offline()
+    if no_store is None:
+        no_store = is_no_store()
 
     if name in _MODELS:
-        checkpoint_file = _download(_MODELS[name], download_root, in_memory)
+        checkpoint_file = _download(
+            _MODELS[name],
+            download_root,
+            in_memory,
+            offline=offline,
+            no_store=no_store,
+        )
         alignment_heads = _ALIGNMENT_HEADS[name]
     elif os.path.isfile(name):
         checkpoint_file = open(name, "rb").read() if in_memory else name
@@ -144,8 +221,9 @@ def load_model(
             f"Model {name} not found; available models = {available_models()}"
         )
 
+    use_bytes = in_memory or isinstance(checkpoint_file, bytes)
     with (
-        io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")
+        io.BytesIO(checkpoint_file) if use_bytes else open(checkpoint_file, "rb")
     ) as fp:
         checkpoint = torch.load(fp, map_location=device)
     del checkpoint_file
