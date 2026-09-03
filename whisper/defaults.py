@@ -1,5 +1,6 @@
 """Runtime defaults: CPU device, loopback bind, no Hugging Face Hub."""
 
+import os
 from typing import Iterable, List
 
 DEFAULT_DEVICE = "cpu"
@@ -35,6 +36,17 @@ def require_loopback_host(host: str) -> str:
     if not is_loopback_host(host):
         raise ValueError("server must bind 127.0.0.1")
     return host
+
+
+_OFFLINE_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def downloads_blocked() -> bool:
+    """True when model/network downloads must not run (offline install/CI)."""
+    for key in ("WHISPER_OFFLINE", "HF_HUB_OFFLINE"):
+        if os.environ.get(key, "").strip().lower() in _OFFLINE_TRUTHY:
+            return True
+    return False
 
 
 def committed_weight_paths(paths: Iterable[str]) -> List[str]:
