@@ -6,6 +6,7 @@ import numpy
 import pytest
 
 # Tests must not download from the Hugging Face Hub (or the public internet).
+os.environ["WHISPER_OFFLINE"] = "1"
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"

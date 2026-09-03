@@ -53,6 +53,21 @@ _ALIGNMENT_HEADS = {
 # Default inference device. Callers may still pass device="cuda" explicitly.
 DEFAULT_DEVICE = "cpu"
 
+_OFFLINE_TRUTHY = frozenset({"1", "true", "yes", "on"})
+_OFFLINE_ENV_VARS = (
+    "WHISPER_OFFLINE",
+    "HF_HUB_OFFLINE",
+    "TRANSFORMERS_OFFLINE",
+)
+
+
+def weights_download_forbidden() -> bool:
+    """True when install/test (or the user) has disabled weight downloads."""
+    for key in _OFFLINE_ENV_VARS:
+        if os.environ.get(key, "").strip().lower() in _OFFLINE_TRUTHY:
+            return True
+    return False
+
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
@@ -72,6 +87,13 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if weights_download_forbidden():
+        raise RuntimeError(
+            "Refusing to download model weights while offline "
+            "(WHISPER_OFFLINE or HF_HUB_OFFLINE is set). "
+            "Missing or invalid local cache: {}".format(download_target)
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(

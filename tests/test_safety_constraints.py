@@ -50,8 +50,10 @@ def test_load_model_defaults_to_cpu(tmp_path):
 
 
 def test_hub_offline_env_is_set():
+    assert os.environ.get("WHISPER_OFFLINE") == "1"
     assert os.environ.get("HF_HUB_OFFLINE") == "1"
     assert os.environ.get("TRANSFORMERS_OFFLINE") == "1"
+    assert whisper.weights_download_forbidden() is True
 
 
 def test_remote_urlopen_is_blocked():
@@ -78,6 +80,16 @@ def test_check_no_weights_classifies_extensions():
     assert check.classify("README.md", check.MAX_FILE_BYTES + 1) is not None
 
 
+def test_download_refuses_when_offline(tmp_path):
+    fake_url = (
+        "https://example.invalid/"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/"
+        "tiny.pt"
+    )
+    with pytest.raises(RuntimeError, match="offline"):
+        whisper._download(fake_url, str(tmp_path), False)
+
+
 def test_check_no_weights_passes_on_this_repo():
     script = REPO_ROOT / "scripts" / "check_no_weights.py"
     result = subprocess.run(
@@ -89,6 +101,78 @@ def test_check_no_weights_passes_on_this_repo():
     )
     assert result.returncode == 0, result.stderr
     assert "OK:" in result.stdout
+
+
+def test_install_test_policy_passes_on_this_repo():
+    script = REPO_ROOT / "scripts" / "check_install_test_policy.py"
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK:" in result.stdout
+
+
+def test_install_test_policy_flags_weight_download(tmp_path):
+    policy = _load_script("check_install_test_policy")
+    cursor = tmp_path / ".cursor"
+    cursor.mkdir()
+    weight_name = "tiny" + ".pt"
+    (cursor / "install.sh").write_text(
+        "curl -O https://{host}/models/{name}\n".format(
+            host=policy._AZURE, name=weight_name
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "demo_server.py").write_text(
+        "HOST = '127.0.0.1'\n", encoding="utf-8"
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    hits = policy.find_download_violations(tmp_path)
+    assert hits, "expected a download violation in a fake install.sh"
+    assert any("tiny.pt" in item or "wget" in item or "curl" in item for item in hits)
+
+
+def test_install_test_policy_flags_non_loopback_bind(tmp_path):
+    policy = _load_script("check_install_test_policy")
+    (tmp_path / ".cursor").mkdir()
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "demo_server.py").write_text(
+        'ThreadingHTTPServer(("{}", 7860), Handler)\n'.format(policy.ZERO_ADDR),
+        encoding="utf-8",
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    hits = policy.find_bind_violations(tmp_path)
+    assert hits
+    assert any(policy.ZERO_ADDR in item for item in hits)
+
+
+def test_assert_no_weight_cache_passes():
+    script = REPO_ROOT / "scripts" / "assert_no_weight_cache.py"
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK:" in result.stdout
+
+
+def test_assert_no_weight_cache_flags_planted_checkpoint(tmp_path):
+    cache = _load_script("assert_no_weight_cache")
+    planted = tmp_path / "whisper"
+    planted.mkdir()
+    (planted / "tiny.pt").write_bytes(b"not-weights")
+    found = cache.find_cached_weights([planted])
+    assert found == [planted / "tiny.pt"]
 
 
 def test_demo_server_defaults_to_loopback():

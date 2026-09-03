@@ -34,3 +34,9 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-install-test-policy
+        name: fail if install/test downloads weights or binds off loopback
+        language: system
+        entry: python3 scripts/check_install_test_policy.py
+        pass_filenames: false
+        always_run: true
