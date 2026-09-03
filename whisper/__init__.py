@@ -14,6 +14,25 @@ from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
 
+# Default inference device. Callers may still pass device="cuda" explicitly.
+DEFAULT_DEVICE = "cpu"
+
+_OFFLINE_TRUTHY = frozenset({"1", "true", "yes", "on"})
+_OFFLINE_ENV_VARS = (
+    "WHISPER_OFFLINE",
+    "HF_HUB_OFFLINE",
+    "TRANSFORMERS_OFFLINE",
+)
+
+
+def weights_download_forbidden() -> bool:
+    """True when tests/CI (or the user) have disabled weight downloads."""
+    for key in _OFFLINE_ENV_VARS:
+        if os.environ.get(key, "").strip().lower() in _OFFLINE_TRUTHY:
+            return True
+    return False
+
+
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -70,6 +89,13 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
+    if weights_download_forbidden():
+        raise RuntimeError(
+            "Refusing to download model weights while offline "
+            "(WHISPER_OFFLINE or HF_HUB_OFFLINE is set). "
+            "Missing or invalid local cache: {}".format(download_target)
+        )
+
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
@@ -115,7 +141,7 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU.
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
@@ -128,7 +154,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

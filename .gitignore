@@ -9,3 +9,31 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and checkpoints — download at runtime; never commit.
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+*.h5
+*.hdf5
+*.gguf
+*.ggml
+*.tflite
+*.pb
+*.mar
+*.joblib
+*.params
+*.weights
+
+# Local caches, dumps, and secrets
+.cache/
+cache/
+weights/
+.venv/
+venv/
+build/
+dist/
+.env
+.env.*
