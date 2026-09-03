@@ -70,6 +70,7 @@ jobs:
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
       HF_HUB_DISABLE_TELEMETRY: "1"
+      WHISPER_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:

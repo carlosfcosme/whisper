@@ -14,6 +14,11 @@ from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
 
+
+def _is_offline() -> bool:
+    return os.getenv("WHISPER_OFFLINE", "").strip().lower() in {"1", "true", "yes"}
+
+
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -66,9 +71,18 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
         else:
+            if _is_offline():
+                raise RuntimeError(
+                    f"WHISPER_OFFLINE=1: checksum mismatch for {download_target}"
+                )
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if _is_offline():
+        raise RuntimeError(
+            f"WHISPER_OFFLINE=1: refusing to download {os.path.basename(url)}"
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
