@@ -18,8 +18,10 @@ echo "  WHISPER_LOCALHOST_ONLY=${WHISPER_LOCALHOST_ONLY}"
 echo "  allowed hosts: localhost, 127.0.0.0/8, ::1"
 echo "  refused: remote/WAN pulls (CDN, public DNS, LAN, public IPs)"
 
-echo "== Guard tests (no network) =="
-python3 -m pytest -q tests/test_localhost_only.py
+echo "  serve/bind: 127.0.0.1 only"
+
+echo "== Guard tests (no network, no weights) =="
+python3 -m pytest -q tests/test_localhost_only.py tests/test_bind_localhost.py
 
 echo "== Cache-miss against the official CDN must be refused =="
 python3 - <<'PY'
@@ -38,4 +40,4 @@ with tempfile.TemporaryDirectory() as tmp:
         raise SystemExit("FAIL: WAN pull to the official CDN was not refused")
 PY
 
-echo "== VERIFY OK: precache/verify path is localhost-only =="
+echo "== VERIFY OK: localhost-only pulls; serve/bind is 127.0.0.1 =="

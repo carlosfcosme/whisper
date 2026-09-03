@@ -30,4 +30,23 @@ bash .cursor/verify.sh
 Override: unset `WHISPER_LOCALHOST_ONLY` (or set it to `0`) only when you
 intentionally want a WAN fetch. Do not do that in verify.
 
+## Serve / bind: 127.0.0.1 only
+
+Any serve or start path must bind **127.0.0.1** only. Wildcard, LAN, and
+WAN listen addresses are rejected before the socket is opened.
+
+- **Allowed bind:** `127.0.0.1`
+- **Rejected:** wildcard (`0.0.0.0`, `::`), `localhost`, `::1`, LAN, WAN
+- **Enforcement:** `whisper.bind.require_bind_127_0_0_1` — used by
+  `python -m whisper.serve` and `.cursor/start.sh`
+- **No weights. No WAN.** The serve path is a local health endpoint. It
+  does not call `load_model` / `_download` and does not fetch checkpoints.
+
+```bash
+bash .cursor/start.sh
+```
+
+`tests/test_bind_localhost.py` fails if `0.0.0.0` appears in start scripts
+(`.cursor/*.sh`, `start*.sh`, `serve*.sh`, `.cursor/environment.json`).
+
 No secrets are stored in this repository.
