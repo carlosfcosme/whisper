@@ -5,6 +5,7 @@ from typing import Iterable, List
 DEFAULT_DEVICE = "cpu"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
+LOOPBACK_HOSTS = ("127.0.0.1",)
 
 WEIGHT_SUFFIXES = (".pt", ".pth", ".ckpt", ".safetensors")
 
@@ -26,8 +27,12 @@ def reject_huggingface_hub(value: str) -> None:
         raise ValueError("Hugging Face Hub is not supported; use a local checkpoint")
 
 
+def is_loopback_host(host: str) -> bool:
+    return host in LOOPBACK_HOSTS
+
+
 def require_loopback_host(host: str) -> str:
-    if host != DEFAULT_HOST:
+    if not is_loopback_host(host):
         raise ValueError("server must bind 127.0.0.1")
     return host
 

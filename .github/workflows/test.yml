@@ -48,8 +48,14 @@ jobs:
             echo "error: Hugging Face Hub must not be a project dependency" >&2
             exit 1
           fi
+  loopback-bind-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if bind host is not loopback
+        run: bash .github/scripts/fail_if_non_loopback_bind.sh
   whisper-test:
-    needs: [pre-commit, no-committed-weights]
+    needs: [pre-commit, no-committed-weights, loopback-bind-guard]
     runs-on: ubuntu-latest
     env:
       XDG_CACHE_HOME: ${{ runner.temp }}/whisper-xdg

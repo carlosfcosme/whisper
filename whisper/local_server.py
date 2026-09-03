@@ -11,6 +11,7 @@ from .defaults import (
     DEFAULT_DEVICE,
     DEFAULT_HOST,
     DEFAULT_PORT,
+    is_loopback_host,
     reject_huggingface_hub,
     require_loopback_host,
 )
@@ -96,6 +97,10 @@ class LocalWhisperServer(ThreadingHTTPServer):
     def __init__(self, host: str, port: int, device: str = DEFAULT_DEVICE):
         host = require_loopback_host(host)
         super().__init__((host, port), LocalWhisperHandler)
+        bound = self.server_address[0]
+        if not is_loopback_host(bound):
+            self.server_close()
+            raise RuntimeError("server must listen on 127.0.0.1")
         self.device = device or DEFAULT_DEVICE
 
 
