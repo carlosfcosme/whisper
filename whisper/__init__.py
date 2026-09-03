@@ -11,8 +11,16 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .offline import (
+    OfflineDownloadError,
+    apply_offline_env,
+    is_blocked_hub_url,
+    refuse_hub_url,
+)
 from .transcribe import transcribe
 from .version import __version__
+
+apply_offline_env()
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -51,10 +59,6 @@ _ALIGNMENT_HEADS = {
 }
 
 
-class OfflineDownloadError(RuntimeError):
-    """Raised when a checkpoint is missing and network download is disabled."""
-
-
 def default_device() -> str:
     """Return the default inference device.
 
@@ -91,6 +95,7 @@ def default_download_root() -> str:
 def _download(
     url: str, root: str, in_memory: bool, download: bool = False
 ) -> Union[bytes, str]:
+    refuse_hub_url(url)
     os.makedirs(root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
