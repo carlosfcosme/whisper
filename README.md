@@ -54,9 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
-Cursor Cloud Agent VMs for this checkout are **CPU-only by default** (no CUDA).
-`whisper.default_device()` returns `cpu` on that path, and checkpoint
-auto-download (including Hugging Face Hub) is refused. See [AGENTS.md](AGENTS.md).
+Sovereign Cloud Agent path (see [AGENTS.md](AGENTS.md)): **CPU default**,
+**no Hugging Face Hub download in tests**, and helper listeners **bind
+`127.0.0.1`** (never `0.0.0.0`).
 
 
 ## Available models and languages

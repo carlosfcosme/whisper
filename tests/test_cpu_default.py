@@ -8,6 +8,7 @@ import whisper
 from whisper.runtime import (
     CPU_ONLY_ENV,
     WeightDownloadError,
+    default_bind_host,
     default_device,
     refuse_weight_auto_download,
 )
@@ -24,11 +25,12 @@ def _forbid_network(monkeypatch):
 
 
 def test_default_device_is_cpu_and_no_hf_hub_pull(monkeypatch, tmp_path):
-    """Cloud Agent / CI default device is cpu; unit tests never hit the Hub."""
+    """Sovereign path: CPU default, no Hub pull, bind 127.0.0.1."""
     assert os.environ.get(CPU_ONLY_ENV) == "1"
     assert default_device() == "cpu"
     assert whisper.default_device() == "cpu"
     assert torch.device(default_device()).type == "cpu"
+    assert default_bind_host() == "127.0.0.1"
 
     # Not the implicit cuda-if-available check: CPU-only wins even if CUDA
     # claims to be available.

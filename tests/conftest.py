@@ -4,14 +4,31 @@ import random as rand
 import numpy
 import pytest
 
-# Cloud Agent / CI path: CPU-only default and no weight auto-download.
+# Sovereign Cloud Agent / CI path: CPU-only, no Hub download, bind 127.0.0.1.
 # setdefault so a caller can override (e.g. WHISPER_ALLOW_WEIGHT_DOWNLOAD=1).
 os.environ.setdefault("WHISPER_CPU_ONLY", "1")
 os.environ.setdefault("WHISPER_NO_WEIGHT_DOWNLOAD", "1")
+os.environ.setdefault("WHISPER_LOCALHOST_ONLY", "1")
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_cuda")
+
+
+@pytest.fixture(autouse=True)
+def _bind_127_0_0_1_only(monkeypatch):
+    """Unit tests must not bind a wildcard or public interface."""
+    import socket
+
+    original_bind = socket.socket.bind
+
+    def guarded(self, address):
+        host = address[0] if isinstance(address, tuple) and address else address
+        if host in ("", "0.0.0.0", "::", "::0"):
+            raise OSError("unit tests must bind 127.0.0.1, not a wildcard")
+        return original_bind(self, address)
+
+    monkeypatch.setattr(socket.socket, "bind", guarded)
 
 
 @pytest.fixture(autouse=True)

@@ -11,7 +11,14 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
-from .runtime import WeightDownloadError, default_device, refuse_weight_auto_download
+from .runtime import (
+    BindError,
+    WeightDownloadError,
+    bind_localhost,
+    default_bind_host,
+    default_device,
+    refuse_weight_auto_download,
+)
 from .transcribe import transcribe
 from .version import __version__
 
