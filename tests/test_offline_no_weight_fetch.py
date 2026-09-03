@@ -75,7 +75,8 @@ def test_load_model_and_cli_use_cpu_default():
     import inspect
 
     assert "default_device()" in inspect.getsource(whisper.load_model)
-    assert "default=default_device()" in inspect.getsource(whisper.transcribe.cli)
+    cli_src = (REPO_ROOT / "whisper" / "transcribe.py").read_text()
+    assert "default=default_device()" in cli_src
 
 
 def test_package_source_does_not_bind_all_interfaces():
