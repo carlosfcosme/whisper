@@ -25,9 +25,9 @@ _TRUTHY = {"1", "true", "yes", "on"}
 
 
 def default_device() -> str:
-    """Return the default PyTorch device: CPU, not CUDA-if-available.
+    """Return the default PyTorch device: CPU, never CUDA auto-select.
 
-    ``WHISPER_DEVICE`` may override. ``torch.cuda.is_available()`` is not used.
+    ``WHISPER_DEVICE`` may override. CUDA availability is ignored.
     """
     explicit = os.environ.get("WHISPER_DEVICE", "").strip()
     return explicit or DEFAULT_DEVICE

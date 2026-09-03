@@ -34,7 +34,7 @@ def test_default_device_is_cpu():
     source = inspect.getsource(whisper.load_model)
     assert "device = default_device()" in source
     assert "cuda if torch.cuda.is_available()" not in source
-    assert "cuda.is_available" not in inspect.getsource(whisper.default_device)
+    assert "is_available" not in inspect.getsource(whisper.default_device)
 
 
 def test_cli_device_default_is_cpu():
