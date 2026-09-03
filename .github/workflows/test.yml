@@ -42,6 +42,24 @@ jobs:
           done
       - name: Python git ls-files guard
         run: python3 scripts/check_tracked_weights.py
+  downloads-blocked:
+    runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_CPU_ONLY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prove Hub and cache-miss downloads are refused
+        run: python3 scripts/check_downloads_blocked.py
+  loopback-bind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prove listeners bind 127.0.0.1 only
+        run: python3 scripts/check_loopback_bind.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -71,7 +89,15 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: [pre-commit, no-tracked-weights]
+    needs: [pre-commit, no-tracked-weights, downloads-blocked, loopback-bind]
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_LOCALHOST_ONLY: "1"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -110,4 +136,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # No Hub / no weight download: skip test_transcribe (would pull checkpoints).
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
