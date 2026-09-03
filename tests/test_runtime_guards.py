@@ -5,6 +5,7 @@ import inspect
 import json
 import socket
 import subprocess
+import sys
 import threading
 import urllib.request
 from pathlib import Path
@@ -13,7 +14,11 @@ import pytest
 
 import whisper
 from whisper.bind import BIND_HOST, BindError, require_bind_127_0_0_1
-from whisper.runtime import default_device, service_bind_host
+from whisper.runtime import (
+    default_device,
+    refuse_forbidden_fetch,
+    service_bind_host,
+)
 from whisper.serve import make_server
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -24,9 +29,16 @@ WEIGHT_URL = (
 HUB_URL = "https://huggingface.co/openai/whisper-tiny/resolve/main/tiny.pt"
 
 
+def test_download_blocks_model_url_without_offline(tmp_path, monkeypatch):
+    monkeypatch.delenv("WHISPER_OFFLINE", raising=False)
+    with pytest.raises(RuntimeError, match="weight download"):
+        whisper._download(WEIGHT_URL, str(tmp_path), in_memory=False)
+    assert list(tmp_path.glob("*.pt")) == []
+
+
 def test_offline_download_refuses_wan_fetch(tmp_path, monkeypatch):
     monkeypatch.setenv("WHISPER_OFFLINE", "1")
-    with pytest.raises(RuntimeError, match="WHISPER_OFFLINE"):
+    with pytest.raises(RuntimeError, match="weight download|WHISPER_OFFLINE"):
         whisper._download(WEIGHT_URL, str(tmp_path), in_memory=False)
     assert list(tmp_path.glob("*.pt")) == []
 
@@ -44,9 +56,24 @@ def test_offline_download_uses_cached_checkpoint(tmp_path, monkeypatch):
 def test_load_model_offline_does_not_fetch(tmp_path, monkeypatch):
     monkeypatch.setenv("WHISPER_OFFLINE", "1")
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
-    with pytest.raises(RuntimeError, match="WHISPER_OFFLINE"):
+    with pytest.raises(RuntimeError, match="weight download|WHISPER_OFFLINE"):
         whisper.load_model("tiny", download_root=str(tmp_path))
     assert list(tmp_path.rglob("*.pt")) == []
+
+
+def test_load_model_blocks_download_without_offline(tmp_path, monkeypatch):
+    monkeypatch.delenv("WHISPER_OFFLINE", raising=False)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    with pytest.raises(RuntimeError, match="weight download"):
+        whisper.load_model("tiny", download_root=str(tmp_path))
+    assert list(tmp_path.rglob("*.pt")) == []
+
+
+def test_refuse_forbidden_fetch_blocks_weights_without_offline():
+    with pytest.raises(RuntimeError, match="weight download"):
+        refuse_forbidden_fetch(WEIGHT_URL, offline=False)
+    with pytest.raises(RuntimeError, match="Hub"):
+        refuse_forbidden_fetch(HUB_URL, offline=False)
 
 
 def test_urlopen_hook_blocks_weight_urls():
@@ -139,6 +166,20 @@ def test_serve_binds_loopback_and_answers():
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_ci_fail_bind_wildcard_script():
+    script = REPO_ROOT / ".github" / "scripts" / "fail-bind-wildcard.py"
+    assert script.is_file()
+    completed = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "ok:" in completed.stdout
+    assert "127.0.0.1" in completed.stdout
 
 
 def test_no_secret_or_weight_files_tracked():

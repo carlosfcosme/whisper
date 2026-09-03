@@ -49,3 +49,15 @@ repos:
         entry: python3 .github/scripts/fail-remote-fixture-urls.py
         pass_filenames: false
         always_run: true
+      - id: verify-gitignore
+        name: verify gitignore covers cache/weights/secrets
+        language: python
+        entry: python3 .github/scripts/verify-gitignore.py
+        pass_filenames: false
+        always_run: true
+      - id: fail-bind-wildcard
+        name: package must bind 127.0.0.1 only
+        language: python
+        entry: python3 .github/scripts/fail-bind-wildcard.py
+        pass_filenames: false
+        always_run: true

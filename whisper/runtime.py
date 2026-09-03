@@ -45,13 +45,17 @@ def is_weight_url(url):
 
 
 def refuse_forbidden_fetch(url, offline=False):
-    """Raise before a Hub or (when offline) weight URL is opened."""
+    """Raise before a Hub or model-weight WAN URL is opened.
+
+    Cache hits in ``_download`` never reach this function. ``offline`` also
+    blocks any remaining network fetch.
+    """
     if is_hub_url(url):
         raise RuntimeError("Hugging Face Hub fetch is refused: %s" % (_url_text(url),))
+    if is_weight_url(url):
+        raise RuntimeError("model weight download is refused: %s" % (_url_text(url),))
     if offline:
-        raise RuntimeError(
-            "WHISPER_OFFLINE is set; refusing to fetch model weights from the network"
-        )
+        raise RuntimeError("WHISPER_OFFLINE is set; refusing to fetch from the network")
 
 
 __all__ = [

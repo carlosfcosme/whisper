@@ -107,3 +107,4 @@ def test_ci_script_accepts_local_fixtures():
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
+    assert "ok:" in completed.stdout

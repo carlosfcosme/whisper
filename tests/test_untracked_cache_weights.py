@@ -1,6 +1,7 @@
 """Cache and weight paths must stay untracked."""
 
 import subprocess
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -113,3 +114,16 @@ def test_tracked_assets_are_not_gitignored():
         result = _git("check-ignore", "-q", "--", path)
         assert result.returncode == 1, f"did not expect {path} to be gitignored"
         assert (REPO_ROOT / path).is_file()
+
+
+def test_ci_verify_gitignore_script():
+    script = REPO_ROOT / ".github" / "scripts" / "verify-gitignore.py"
+    assert script.is_file()
+    listed = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert listed.returncode == 0, listed.stderr
+    assert "ok: gitignore" in listed.stdout
