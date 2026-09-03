@@ -112,6 +112,21 @@ def test_bind_tcp_refuses_all_interfaces():
         bind.bind_tcp(host=ALL_INTERFACES, port=0)
 
 
+def test_loopback_server_never_reports_all_interfaces_listen():
+    """Regression: after a successful bind, no LISTEN row is the IPv4 wildcard."""
+    sock = bind.bind_tcp(host=bind.LOOPBACK_HOST, port=0)
+    try:
+        host, _port = sock.getsockname()[:2]
+        assert host == bind.LOOPBACK_HOST
+        assert host != ALL_INTERFACES
+        bind.assert_no_nonloopback_listeners()
+        for row in bind.process_listen_records():
+            assert row.host != ALL_INTERFACES
+            assert row.host == bind.LOOPBACK_HOST
+    finally:
+        sock.close()
+
+
 def test_proc_tcp_parser_flags_bind_all():
     sample = (
         "  sl  local_address rem_address   st tx_queue rx_queue tr "

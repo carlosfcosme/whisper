@@ -55,6 +55,36 @@ def test_create_server_refuses_all_interfaces():
             mods["serve"].create_server(host=ALL_INTERFACES, port=0)
 
 
+def test_server_never_binds_all_interfaces():
+    """Regression: a live server must not listen on the IPv4 wildcard."""
+    with _isolated_whisper_modules("bind", "serve") as mods:
+        bind = mods["bind"]
+        serve = mods["serve"]
+        with pytest.raises(bind.BindError, match="127.0.0.1"):
+            serve.create_server(host=ALL_INTERFACES, port=0)
+        bind.install_bind_guard()
+        raw = bind.socket.socket(bind.socket.AF_INET, bind.socket.SOCK_STREAM)
+        try:
+            with pytest.raises(bind.BindError, match="127.0.0.1"):
+                raw.bind((ALL_INTERFACES, 0))
+        finally:
+            raw.close()
+        httpd = serve.create_server(host=LOOPBACK, port=0)
+        try:
+            host, port = httpd.server_address[:2]
+            assert host == LOOPBACK
+            assert host != ALL_INTERFACES
+            assert port > 0
+            bind.assert_no_nonloopback_listeners()
+            for row in bind.process_listen_records():
+                assert row.host == LOOPBACK
+                assert row.host != ALL_INTERFACES
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+            bind.uninstall_bind_guard()
+
+
 @pytest.mark.parametrize("host", ["::", "*", "", "10.0.0.1", "example.com"])
 def test_create_server_refuses_non_loopback(host):
     with _isolated_whisper_modules("bind", "serve") as mods:
