@@ -2,9 +2,18 @@
 # Idempotent Cloud Agent setup for openai-whisper.
 # Installs the ffmpeg system dependency and the package (with dev extras)
 # using a CPU build of PyTorch so tests and the `whisper` CLI run without a GPU.
+#
+# Sovereign Cloud Agent path defaults (also set by tests/conftest.py and CI):
+#   WHISPER_CPU_ONLY=1            → whisper.default_device() == cpu
+#   WHISPER_NO_WEIGHT_DOWNLOAD=1  → refuse checkpoint auto-download (incl. HF Hub)
+#   WHISPER_LOCALHOST_ONLY=1      → helper listeners bind 127.0.0.1
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+export WHISPER_CPU_ONLY="${WHISPER_CPU_ONLY:-1}"
+export WHISPER_NO_WEIGHT_DOWNLOAD="${WHISPER_NO_WEIGHT_DOWNLOAD:-1}"
+export WHISPER_LOCALHOST_ONLY="${WHISPER_LOCALHOST_ONLY:-1}"
 
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
@@ -24,4 +33,4 @@ pip install --break-system-packages \
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
-python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__, '| device', whisper.default_device(), '| bind', whisper.default_bind_host())"

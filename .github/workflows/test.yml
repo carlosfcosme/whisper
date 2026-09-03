@@ -39,6 +39,11 @@ jobs:
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      # Sovereign path: CPU-only default, no checkpoint auto-download, bind 127.0.0.1.
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_LOCALHOST_ONLY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +81,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # CPU-only, no GPU, no Hub: skip test_transcribe (load_model would pull weights).
+      # addopts already excludes requires_cuda (see pyproject.toml).
+      - run: pytest --durations=0 -vv -k 'not test_transcribe'
