@@ -99,6 +99,11 @@ Run the following to view all available options:
 
 See [tokenizer.py](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py) for the list of all available languages.
 
+`whisper serve` starts a weights-free health server bound to **127.0.0.1** only. Binding all interfaces is refused. The Cloud Agent start script is `.cursor/start.sh` (same bind).
+
+    whisper serve
+    bash .cursor/start.sh
+
 
 ## Python usage
 
