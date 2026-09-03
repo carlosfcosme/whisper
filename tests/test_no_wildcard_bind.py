@@ -21,7 +21,7 @@ def _checker():
 
 offline_check = _checker()
 
-pytestmark = pytest.mark.localhost_only
+pytestmark = [pytest.mark.localhost_only, pytest.mark.offline_default]
 
 
 def test_current_start_paths_are_loopback():

@@ -27,7 +27,7 @@ def _checker():
 
 offline_check = _checker()
 
-pytestmark = pytest.mark.localhost_only
+pytestmark = [pytest.mark.localhost_only, pytest.mark.offline_default]
 
 
 def test_current_default_path_is_offline():
@@ -207,8 +207,11 @@ def test_ci_workflow_has_offline_default_job():
     code = offline_check.strip_hash_comments(text)
     assert "offline-default:" in text
     assert "scripts/check_default_offline.py" in text
+    assert "test_offline_default.py" in text
+    assert "grep_loopback_bind.sh" in text
     assert "test_transcribe[tiny]" not in code
     assert "test_transcribe[tiny.en]" not in code
+    assert offline_check.reasons_offline_default_job_incomplete(text) == []
 
 
 def test_environment_is_localhost_only_and_keyless():

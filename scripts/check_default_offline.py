@@ -71,6 +71,7 @@ def reasons_default_path_fetches_weights(
     """
     reasons: List[str] = []
 
+    from_disk = workflow_text is None
     if workflow_text is None:
         workflow_text = WORKFLOW.read_text()
     if install_text is None:
@@ -150,6 +151,31 @@ def reasons_default_path_fetches_weights(
             "(load_model / _download / CDN is not allowed in default CI commands)"
         )
 
+    if from_disk:
+        reasons.extend(reasons_offline_default_job_incomplete(workflow_text))
+
+    return reasons
+
+
+def reasons_offline_default_job_incomplete(workflow_text: str) -> List[str]:
+    """Fail if CI does not run the offline-default suite (fixtures + bind)."""
+    reasons: List[str] = []
+    try:
+        block = job_block(workflow_text, "offline-default")
+    except ValueError as exc:
+        return [str(exc)]
+    code = strip_hash_comments(block)
+    if "test_offline_default.py" not in code:
+        reasons.append("offline-default job does not run tests/test_offline_default.py")
+    if "check_default_offline.py" not in code:
+        reasons.append("offline-default job does not run check_default_offline.py")
+    if "grep_loopback_bind.sh" not in code:
+        reasons.append(
+            "offline-default job does not run grep_loopback_bind.sh "
+            "(127.0.0.1 bind must be wired)"
+        )
+    if "WHISPER_OFFLINE" not in code:
+        reasons.append("offline-default job must set WHISPER_OFFLINE")
     return reasons
 
 

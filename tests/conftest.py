@@ -1,6 +1,7 @@
 import os
 import random as rand
 import urllib.request
+from pathlib import Path
 from urllib.parse import urlparse
 
 import pytest
@@ -13,6 +14,8 @@ os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
 _LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+_TESTS_DIR = Path(__file__).resolve().parent
+_LOCAL_AUDIO_FIXTURE = _TESTS_DIR / "jfk.flac"
 
 
 def pytest_configure(config):
@@ -24,6 +27,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "localhost_only: localhost-only checks (no model-weight download, no WAN)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "offline_default: fail network/model fetch; require local fixtures and 127.0.0.1",
     )
 
 
@@ -64,6 +71,17 @@ def _localhost_only_urlopen(monkeypatch):
         )
 
     monkeypatch.setattr(urllib.request, "urlopen", guarded)
+
+
+@pytest.fixture
+def sample_audio_path():
+    """Committed local audio fixture. Tests must not download this file."""
+    if not _LOCAL_AUDIO_FIXTURE.is_file():
+        pytest.fail(
+            "offline-default tests require the local fixture tests/jfk.flac "
+            "(no network fetch, no remote URL)"
+        )
+    return str(_LOCAL_AUDIO_FIXTURE)
 
 
 @pytest.fixture
