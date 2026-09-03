@@ -21,6 +21,7 @@ pip install --break-system-packages \
   --extra-index-url https://pypi.org/simple
 
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
+# Do not download checkpoints here; CI fails if install fetches weights.
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"

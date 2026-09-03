@@ -9,3 +9,29 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model checkpoints and local caches — CI fails if these are tracked
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.gguf
+*.onnx
+.cache/
+cache/
+weights/
+
+# Runtime / test artifacts
+artifacts/
+test-results/
+outputs/
+htmlcov/
+.coverage
+coverage.xml
+dist/
+build/
+*.log
+tests/*.txt
+tests/*.vtt
+tests/*.srt
+tests/*.tsv
+
