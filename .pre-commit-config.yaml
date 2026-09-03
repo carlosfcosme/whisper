@@ -34,4 +34,16 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-gitignore-invariants
+        name: fail if gitignore drops weight/cache coverage
+        language: system
+        entry: python3 scripts/check_gitignore_invariants.py
+        pass_filenames: false
+        always_run: true
+      - id: check-bind-guard
+        name: fail unless bind_guard refuses 0.0.0.0
+        language: system
+        entry: python3 scripts/check_bind_guard.py
+        pass_filenames: false
+        always_run: true
 

@@ -1,48 +1,31 @@
 """Localhost-only helper server. Does not load model weights."""
 
 import argparse
-import ipaddress
 import json
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import List, Optional
 
-DEFAULT_HOST = "127.0.0.1"
+from .bind_guard import (
+    DEFAULT_HOST,
+    BindError,
+    bind_guard,
+    is_loopback_host,
+    normalize_bind_host,
+)
+
 DEFAULT_PORT = 8765
 
-
-class BindError(ValueError):
-    """Raised when a bind host is not a loopback address."""
-
-
-def normalize_bind_host(host: str) -> str:
-    """Return a loopback bind address, or raise BindError.
-
-    ``localhost`` is rewritten to ``127.0.0.1`` (no DNS). Unspecified
-    addresses such as ``0.0.0.0`` and ``::`` are refused.
-    """
-    raw = (host or "").strip()
-    if raw.startswith("[") and raw.endswith("]"):
-        raw = raw[1:-1]
-    if not raw:
-        raise BindError("bind host is required; use 127.0.0.1")
-    if raw.lower() == "localhost":
-        return DEFAULT_HOST
-    try:
-        ip = ipaddress.ip_address(raw.split("%", 1)[0])
-    except ValueError as exc:
-        raise BindError(f"refusing non-localhost bind {host!r}; use 127.0.0.1") from exc
-    if not ip.is_loopback:
-        raise BindError(f"refusing non-localhost bind {host!r}; use 127.0.0.1")
-    return str(ip)
-
-
-def is_loopback_host(host: str) -> bool:
-    try:
-        normalize_bind_host(host)
-        return True
-    except BindError:
-        return False
+__all__ = [
+    "DEFAULT_HOST",
+    "DEFAULT_PORT",
+    "BindError",
+    "bind_guard",
+    "is_loopback_host",
+    "normalize_bind_host",
+    "create_server",
+    "main",
+]
 
 
 class _HealthHandler(BaseHTTPRequestHandler):
@@ -72,7 +55,7 @@ def create_server(
     host: str = DEFAULT_HOST, port: int = DEFAULT_PORT
 ) -> ThreadingHTTPServer:
     """Bind a weights-free health server. Host must be loopback."""
-    host = normalize_bind_host(host)
+    host = bind_guard(host)
     httpd = ThreadingHTTPServer((host, port), _HealthHandler)
     bound = httpd.server_address[0]
     if not is_loopback_host(bound):

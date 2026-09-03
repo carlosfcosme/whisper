@@ -8,6 +8,23 @@ on:
       - main
 
 jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Gitignore weight/cache invariants
+        run: python3 scripts/check_gitignore_invariants.py
+      - name: Bind guard fails on 0.0.0.0
+        run: python3 scripts/check_bind_guard.py
+      - name: No committed weights
+        run: python3 scripts/check_no_weights.py
+      - name: Invariant tests (no torch / no WAN)
+        run: |
+          python3 -m pip install pytest
+          python3 -m pytest -vv tests/test_gitignore_invariants.py tests/test_bind_guard.py
   no-weights:
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +60,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: [pre-commit, no-weights]
+    needs: [pre-commit, no-weights, invariants]
     runs-on: ubuntu-latest
     env:
       CUDA_VISIBLE_DEVICES: ""
