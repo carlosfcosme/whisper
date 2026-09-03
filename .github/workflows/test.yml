@@ -26,6 +26,10 @@ jobs:
         run: pip install "black==25.1.0" "isort==6.0.0" "flake8==7.1.1"
       - name: Lint + offline / loopback guards
         run: bash scripts/ci_lint_test.sh
+      - name: Enforce 127.0.0.1-only bind
+        run: python3 scripts/check_loopback_bind.py
+      - name: Block Hub and remote model download
+        run: python3 scripts/check_no_download.py
       - name: Guard rejects a planted checkpoint
         run: |
           set -euo pipefail
