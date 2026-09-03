@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+This repository uses **pre-commit** (see [`.pre-commit-config.yaml`](.pre-commit-config.yaml)).
+Install and run commands are in [PRECOMMIT.md](PRECOMMIT.md).
+
 
 ## Available models and languages
 
