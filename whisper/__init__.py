@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
-from .defaults import DEFAULT_DEVICE
+from .defaults import DEFAULT_DEVICE, weights_download_forbidden
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -70,6 +70,13 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if weights_download_forbidden():
+        raise RuntimeError(
+            "Refusing to download model weights while offline "
+            "(WHISPER_OFFLINE or HF_HUB_OFFLINE is set). "
+            "Missing or invalid local cache: {}".format(download_target)
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
