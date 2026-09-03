@@ -8,6 +8,45 @@ on:
       - main
 
 jobs:
+  no-tracked-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: git ls-files must not list weights or caches
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files -- \
+            '.cache' '.cache/**' \
+            'cache' 'cache/**' \
+            'weights' 'weights/**' \
+            '.huggingface' '.huggingface/**' \
+            '*.pt' '*.pth' '*.onnx' '*.safetensors' \
+            '*.ckpt' '*.ggml' '*.gguf' '*.bin' '*.weights')"
+          if [ -n "$tracked" ]; then
+            echo "weight/cache paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+      - name: gitignore must cover weight/cache sample paths
+        run: |
+          set -euo pipefail
+          for path in \
+            .cache/whisper/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            tiny.pt \
+            model.pth \
+            model.safetensors \
+            model.bin
+          do
+            git check-ignore -q -- "$path"
+          done
+      - name: Python git ls-files guard
+        run: python3 scripts/check_tracked_weights.py
+      - name: Ignore coverage test (no Hub, no torch)
+        run: |
+          python -m pip install pytest
+          pytest tests/test_gitignore_weights.py -vv
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +76,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-tracked-weights]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

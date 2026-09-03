@@ -1,6 +1,10 @@
 import random as rand
 
-import numpy
+try:
+    import numpy
+except ImportError:  # no-tracked-weights CI installs pytest only
+    numpy = None
+
 import pytest
 
 
@@ -11,4 +15,5 @@ def pytest_configure(config):
 @pytest.fixture
 def random():
     rand.seed(42)
-    numpy.random.seed(42)
+    if numpy is not None:
+        numpy.random.seed(42)

@@ -9,3 +9,25 @@ thumbs.db
 .DS_Store
 .idea
 
+# Weight artifacts and local caches must stay untracked.
+# load_model() writes checkpoints to ~/.cache/whisper or
+# $XDG_CACHE_HOME/whisper; --model_dir / download_root can point
+# inside this checkout. CI fails if git ls-files lists these.
+.cache/
+cache/
+weights/
+**/.cache/whisper/
+**/.cache/huggingface/
+**/.cache/torch/
+**/whisper_cache/
+.huggingface/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.ggml
+*.gguf
+*.bin
+*.weights
+
