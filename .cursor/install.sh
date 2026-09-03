@@ -6,6 +6,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Offline by default: do not fetch Whisper weights or talk to the Hub.
+export WHISPER_OFFLINE=1
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+export HF_HUB_DISABLE_TELEMETRY=1
+unset WHISPER_ALLOW_DOWNLOADS || true
+
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get update -qq
