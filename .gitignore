@@ -9,3 +9,10 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights must not be committed (CI fails if they are tracked).
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.ckpt
+

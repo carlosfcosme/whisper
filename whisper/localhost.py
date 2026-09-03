@@ -59,8 +59,21 @@ def url_is_localhost(url: str) -> bool:
     return hostname_is_localhost(parsed.hostname)
 
 
+_HUB_HOST_MARKERS = ("huggingface.co", "hf.co")
+
+
+def refuse_hub_pull(url: str) -> None:
+    """Always refuse HuggingFace Hub downloads. Tests and CI stay offline."""
+    host = (urlparse(url).hostname or "").lower()
+    if any(
+        marker == host or host.endswith("." + marker) for marker in _HUB_HOST_MARKERS
+    ):
+        raise RemotePullError(f"Refusing HuggingFace Hub pull from host {host!r}.")
+
+
 def refuse_remote_pull(url: str) -> None:
     """No-op unless localhost-only mode is on; then reject non-loopback URLs."""
+    refuse_hub_pull(url)
     if not localhost_only_enabled():
         return
     if url_is_localhost(url):
@@ -83,6 +96,7 @@ class LocalhostOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 def urlopen_maybe_localhost_only(url: str):
     """``urlopen`` that refuses remote/WAN targets when localhost-only is on."""
+    refuse_hub_pull(url)
     if not localhost_only_enabled():
         return urllib.request.urlopen(url)
     refuse_remote_pull(url)

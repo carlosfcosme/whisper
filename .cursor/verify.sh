@@ -24,6 +24,9 @@ echo "  refused: remote/WAN pulls (CDN, public DNS, LAN, public IPs)"
 echo "  serve/bind: 127.0.0.1 only (integration: CLI + start.sh; wildcard exits 2)"
 echo "  pytest: -m localhost_only (no transcription tests, no weight download)"
 
+echo "== Offline guard (no Hub in tests, no committed weights) =="
+python3 scripts/ci_fail_hub_or_weights.py
+
 echo "== Guard tests (no network, no weights) =="
 python3 -m pytest -q -m 'localhost_only and not requires_cuda'
 
