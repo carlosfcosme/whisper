@@ -21,6 +21,7 @@ pip install --break-system-packages \
   --extra-index-url https://pypi.org/simple
 
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
+# Packaging is pyproject.toml (no setup.cfg). Pytest collects tests/ only.
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
