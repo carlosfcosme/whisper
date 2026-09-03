@@ -1,16 +1,28 @@
 import os
 
 import pytest
-import torch
 
 import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+def _local_checkpoint(model_name: str) -> str:
+    root = os.path.join(
+        os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "whisper"
+    )
+    path = os.path.join(root, os.path.basename(whisper._MODELS[model_name]))
+    if not os.path.isfile(path):
+        pytest.skip(
+            "no local checkpoint for {}; tests must not Hub-download".format(model_name)
+        )
+    return path
+
+
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
+    _local_checkpoint(model_name)
+    device = whisper.default_device()
+    model = whisper.load_model(model_name, device=device)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None

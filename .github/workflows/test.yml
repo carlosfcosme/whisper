@@ -8,6 +8,12 @@ on:
       - main
 
 jobs:
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if cache/weight dirs or blobs are tracked
+        run: python3 scripts/check_no_weights.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +43,16 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-committed-weights]
     runs-on: ubuntu-latest
+    env:
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      CUDA_VISIBLE_DEVICES: ""
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +90,14 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # CPU-only, no Hub, no weight download: skip test_transcribe.
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+      - name: Tests must not create a whisper weight cache
+        run: |
+          set -euo pipefail
+          cache="${XDG_CACHE_HOME:-$HOME/.cache}/whisper"
+          if [ -d "$cache" ]; then
+            echo "whisper weight cache was created; tests must not download" >&2
+            ls -la "$cache" >&2
+            exit 1
+          fi
