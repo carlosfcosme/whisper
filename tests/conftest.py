@@ -24,8 +24,13 @@ os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 # downloading. Tests that genuinely need the network (e.g. downloading model
 # weights) must be marked with @pytest.mark.requires_network.
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "0.0.0.0", ""})
+# Binding must be strictly loopback: "0.0.0.0"/"" mean all interfaces, so they are
+# not allowed for bind (that would expose a runtime service beyond loopback).
+_LOOPBACK_BIND_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+_INET_FAMILIES = (socket.AF_INET, socket.AF_INET6)
 _real_socket_connect = socket.socket.connect
 _real_socket_connect_ex = socket.socket.connect_ex
+_real_socket_bind = socket.socket.bind
 
 
 def _connect_host(address):
@@ -62,6 +67,18 @@ def _guarded_connect_ex(self, address, *args, **kwargs):
     _blocked_network(address)
 
 
+def _guarded_bind(self, address, *args, **kwargs):
+    # Only enforce for IP sockets; AF_UNIX and others are left alone.
+    if self.family in _INET_FAMILIES:
+        host = _connect_host(address)
+        if isinstance(host, str) and host not in _LOOPBACK_BIND_HOSTS:
+            raise RuntimeError(
+                f"Blocked non-loopback bind to {host!r} during tests; the runtime "
+                "must bind to loopback only."
+            )
+    return _real_socket_bind(self, address, *args, **kwargs)
+
+
 @pytest.fixture(autouse=True)
 def block_non_loopback_network(request):
     if request.node.get_closest_marker("requires_network"):
@@ -69,11 +86,13 @@ def block_non_loopback_network(request):
         return
     socket.socket.connect = _guarded_connect
     socket.socket.connect_ex = _guarded_connect_ex
+    socket.socket.bind = _guarded_bind
     try:
         yield
     finally:
         socket.socket.connect = _real_socket_connect
         socket.socket.connect_ex = _real_socket_connect_ex
+        socket.socket.bind = _real_socket_bind
 
 
 @pytest.fixture

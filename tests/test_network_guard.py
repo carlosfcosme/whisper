@@ -31,3 +31,19 @@ def test_loopback_connect_is_allowed():
             s.connect(("127.0.0.1", 9))
     finally:
         s.close()
+
+
+def test_runtime_binds_only_loopback():
+    # Binding a runtime service to loopback is allowed.
+    s = socket.socket()
+    try:
+        s.bind(("127.0.0.1", 0))
+    finally:
+        s.close()
+    # Binding to all interfaces (non-loopback) is blocked by the guard.
+    s2 = socket.socket()
+    try:
+        with pytest.raises(RuntimeError):
+            s2.bind(("0.0.0.0", 0))
+    finally:
+        s2.close()
