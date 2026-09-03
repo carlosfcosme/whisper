@@ -27,5 +27,10 @@ def require_bind_127_0_0_1(host: Optional[str]) -> str:
         return BIND_HOST
     raise BindError(
         f"serve/bind must use {BIND_HOST} only, got {host!r}. "
-        "Do not listen on a wildcard, LAN, or WAN address."
+        "Non-loopback binds are refused."
     )
+
+
+def refuse_non_loopback_bind(host: Optional[str]) -> str:
+    """Refuse any bind address that is not IPv4 loopback ``127.0.0.1``."""
+    return require_bind_127_0_0_1(host)

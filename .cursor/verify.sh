@@ -10,6 +10,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 export WHISPER_LOCALHOST_ONLY=1
+export WHISPER_DEVICE=cpu
+export CUDA_VISIBLE_DEVICES=
 
 VERIFY_CACHE="$(mktemp -d)"
 cleanup() { rm -rf "$VERIFY_CACHE"; }

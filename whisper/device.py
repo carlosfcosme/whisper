@@ -9,6 +9,7 @@ import os
 
 
 def default_device() -> str:
+    """CPU-only default. ``WHISPER_DEVICE`` may override; empty means cpu."""
     override = os.environ.get("WHISPER_DEVICE")
     if override is not None and override.strip():
         return override.strip()

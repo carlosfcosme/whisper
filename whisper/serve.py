@@ -12,7 +12,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 
-from .bind import BIND_HOST, BindError, require_bind_127_0_0_1
+from .bind import BIND_HOST, BindError, refuse_non_loopback_bind
 
 DEFAULT_PORT = 8765
 
@@ -32,7 +32,7 @@ class _HealthHandler(BaseHTTPRequestHandler):
 
 def make_server(host: str = BIND_HOST, port: int = DEFAULT_PORT) -> ThreadingHTTPServer:
     """Create the serve socket after the bind guard. Does not fetch weights."""
-    require_bind_127_0_0_1(host)
+    refuse_non_loopback_bind(host)
     return ThreadingHTTPServer((BIND_HOST, port), _HealthHandler)
 
 

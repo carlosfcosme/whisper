@@ -5,7 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from whisper.bind import BIND_HOST, BindError, require_bind_127_0_0_1
+from whisper.bind import (
+    BIND_HOST,
+    BindError,
+    refuse_non_loopback_bind,
+    require_bind_127_0_0_1,
+)
 from whisper.serve import make_server
 
 pytestmark = pytest.mark.localhost_only
@@ -57,6 +62,12 @@ def test_require_bind_accepts_loopback():
 def test_require_bind_rejects_non_127(host):
     with pytest.raises(BindError, match="127.0.0.1"):
         require_bind_127_0_0_1(host)
+    with pytest.raises(BindError, match="loopback|127.0.0.1"):
+        refuse_non_loopback_bind(host)
+
+
+def test_refuse_non_loopback_accepts_127():
+    assert refuse_non_loopback_bind(BIND_HOST) == BIND_HOST
 
 
 def test_start_scripts_exist_and_bind_loopback():
