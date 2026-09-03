@@ -9,3 +9,18 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and checkpoints — download at runtime, never commit.
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+weights/
+.cache/
+
+# Local secrets — never commit credentials or API keys
+.env
+.env.*
+

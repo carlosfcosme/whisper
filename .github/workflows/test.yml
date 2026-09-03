@@ -8,6 +8,36 @@ on:
       - main
 
 jobs:
+  bind-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest only (no torch, no model weights)
+        run: python -m pip install pytest
+      - name: Fail if serve/listen binds all interfaces
+        run: pytest tests/test_bind.py -vv
+      - name: Application sources must not contain 0.0.0.0
+        run: |
+          set -euo pipefail
+          if git grep -nF '0.0.0.0' -- whisper .cursor; then
+            echo "0.0.0.0 is not allowed in serve/listen paths" >&2
+            exit 1
+          fi
+      - name: Weight and secret paths stay untracked
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files -- '*.pt' '*.pth' '*.bin' '*.ckpt' '*.safetensors' '*.onnx' '*.gguf' 'weights' 'weights/**' '.cache' '.cache/**' '.env' '.env.*')"
+          if [ -n "$tracked" ]; then
+            echo "These weight/secret paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+          for path in tiny.pt weights/tiny.pt .cache/whisper/tiny.pt model.pth .env .env.local; do
+            git check-ignore -q -- "$path"
+          done
   pre-commit:
     runs-on: ubuntu-latest
     steps:

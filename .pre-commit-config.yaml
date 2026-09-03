@@ -26,3 +26,10 @@ repos:
       - id: flake8
         types: [python]
         args: ["--max-line-length", "88", "--ignore", "E203,E501,W503,W504"]
+  - repo: local
+    hooks:
+      - id: no-bind-all-interfaces
+        name: application code must not bind 0.0.0.0
+        language: pygrep
+        entry: '0\.0\.0\.0'
+        files: '^(whisper/.*|\.cursor/.*)$'
