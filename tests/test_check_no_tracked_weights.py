@@ -37,6 +37,9 @@ def test_ci_invokes_weight_and_bind_checks():
     workflow = WORKFLOW.read_text()
     assert "scripts/check_no_tracked_weights.sh" in workflow
     assert "scripts/check_bind_localhost.py" in workflow
+    assert "scripts/check_ci_no_weight_pull.py" in workflow
+    assert "not test_transcribe" in workflow
+    assert "test_transcribe[tiny]" not in workflow
     assert BIND_CHECK.is_file()
     assert SCRIPT.is_file()
 
