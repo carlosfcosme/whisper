@@ -1,3 +1,4 @@
+import os
 import sys
 
 import pytest
@@ -17,6 +18,11 @@ def test_resolve_device_ignores_cuda_availability(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     assert whisper.resolve_device(None) == "cpu"
     assert whisper.resolve_device("cuda") == "cuda"
+
+
+def test_tests_are_cpu_only_by_default():
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    assert whisper.resolve_device(None) == "cpu"
 
 
 def test_cli_device_help_defaults_to_cpu(capsys, monkeypatch):

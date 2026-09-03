@@ -1,5 +1,8 @@
 import os
+import urllib.request
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 HUB_TOKENS = (
@@ -25,3 +28,20 @@ def test_unit_tests_do_not_reference_hub():
         text = path.read_text(encoding="utf-8")
         for token in HUB_TOKENS:
             assert token not in text, "{} references Hub ({})".format(path, token)
+
+
+def test_urlopen_blocks_hub_and_weight_cdn():
+    with pytest.raises(RuntimeError, match="Hub / weight"):
+        urllib.request.urlopen("https://huggingface.co/openai/whisper")
+    with pytest.raises(RuntimeError, match="Hub / weight"):
+        urllib.request.urlopen(
+            "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt"
+        )
+
+
+def test_ci_skips_transcribe_and_sets_hub_offline():
+    yml = (ROOT / ".github/workflows/test.yml").read_text(encoding="utf-8")
+    assert "HF_HUB_OFFLINE" in yml
+    assert "-k 'not test_transcribe'" in yml
+    assert "test_transcribe[tiny]" not in yml
+    assert "huggingface" not in yml.lower()

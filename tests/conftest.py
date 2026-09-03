@@ -5,14 +5,15 @@ import urllib.request
 import numpy
 import pytest
 
-# Tests must not hit the Hugging Face Hub.
+# CPU-only default for the test process. CUDA_VISIBLE_DEVICES=0 still wins.
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+# Tests must not hit the Hugging Face Hub or pull checkpoints.
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 
 _REAL_URLOPEN = urllib.request.urlopen
-_HUB_MARKERS = ("huggingface.co", "hf.co/", "huggingface_hub")
 
 
 def pytest_configure(config):
@@ -31,23 +32,25 @@ def _request_url(url):
     return getattr(url, "full_url", None) or str(url)
 
 
-def _is_hub_url(url):
-    target = _request_url(url).lower()
-    return any(marker in target for marker in _HUB_MARKERS)
+def _is_loopback_url(url):
+    target = _request_url(url)
+    return target.startswith("http://127.0.0.1") or target.startswith(
+        "http://localhost"
+    )
 
 
 @pytest.fixture(autouse=True)
-def _forbid_hub_downloads(monkeypatch):
-    """Block Hugging Face Hub downloads. Official CDN / loopback stay allowed."""
+def _forbid_hub_and_weight_downloads(monkeypatch):
+    """Block Hub and weight-CDN downloads. Loopback stays allowed."""
 
     def _blocked(url, *args, **kwargs):
-        if _is_hub_url(url):
-            raise RuntimeError(
-                "Hugging Face Hub is forbidden in tests. Requested: {}".format(
-                    _request_url(url)
-                )
+        if _is_loopback_url(url):
+            return _REAL_URLOPEN(url, *args, **kwargs)
+        raise RuntimeError(
+            "Hub / weight downloads are forbidden in tests. Requested: {}".format(
+                _request_url(url)
             )
-        return _REAL_URLOPEN(url, *args, **kwargs)
+        )
 
     monkeypatch.setattr(urllib.request, "urlopen", _blocked)
 
