@@ -54,6 +54,7 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Type checking: mypy is **not** configured in this tree. See [MYPY.md](MYPY.md).
 
 ## Available models and languages
 
