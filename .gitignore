@@ -9,3 +9,12 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weight caches — never commit checkpoints
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+.cache/whisper/
+
