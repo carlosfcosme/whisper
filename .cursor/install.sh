@@ -21,6 +21,7 @@ pip install --break-system-packages \
   --extra-index-url https://pypi.org/simple
 
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
+# mypy is not in .[dev] and is not configured. See MYPY.md.
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
