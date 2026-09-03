@@ -71,7 +71,7 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
-    # Cache miss: refuse Hub always; refuse every remote pull when offline.
+    # Cache miss: Hub is never allowed. Remote pulls are off by default.
     guard_download_url(url)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:

@@ -4,6 +4,7 @@ import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+@pytest.mark.requires_download
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str, sample_audio_path):
     device = whisper.default_device()

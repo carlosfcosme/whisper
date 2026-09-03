@@ -9,16 +9,19 @@ import whisper
 from whisper.offline import (
     LOCALHOST,
     OFFLINE_FIXTURES,
+    DownloadHelperCalled,
     assert_no_committed_weights,
     bind_host,
     bind_localhost,
     committed_weight_files,
     default_device,
+    downloads_allowed,
     guard_download_url,
     is_hub_url,
 )
 from whisper.offline import main as offline_main
 from whisper.offline import (
+    offline_enabled,
     offline_fixture_paths,
     require_local_path,
     resolve_offline_fixture,
@@ -89,8 +92,16 @@ def test_download_refuses_hub_without_network(monkeypatch, tmp_path):
         whisper._download(url, str(tmp_path), False)
 
 
+def test_offline_is_default(monkeypatch):
+    monkeypatch.delenv("WHISPER_OFFLINE", raising=False)
+    monkeypatch.delenv("WHISPER_ALLOW_DOWNLOAD", raising=False)
+    assert offline_enabled() is True
+    assert downloads_allowed() is False
+
+
 def test_offline_mode_refuses_cdn_cache_miss(monkeypatch, tmp_path):
-    monkeypatch.setenv("WHISPER_OFFLINE", "1")
+    monkeypatch.delenv("WHISPER_OFFLINE", raising=False)
+    monkeypatch.delenv("WHISPER_ALLOW_DOWNLOAD", raising=False)
 
     def boom(*_args, **_kwargs):
         raise AssertionError("urlopen must not be called when offline")
@@ -101,8 +112,46 @@ def test_offline_mode_refuses_cdn_cache_miss(monkeypatch, tmp_path):
         whisper._download(url, str(tmp_path), False)
 
 
+def test_load_model_does_not_download_by_default(monkeypatch, tmp_path):
+    monkeypatch.delenv("WHISPER_OFFLINE", raising=False)
+    monkeypatch.delenv("WHISPER_ALLOW_DOWNLOAD", raising=False)
+    with pytest.raises(RuntimeError, match="offline mode"):
+        whisper.load_model("tiny", download_root=str(tmp_path))
+
+
+def test_allow_download_reaches_urlopen_for_cdn_only(monkeypatch, tmp_path):
+    monkeypatch.setenv("WHISPER_OFFLINE", "0")
+    called = []
+
+    def fake_urlopen(url, *_args, **_kwargs):
+        called.append(url)
+        raise AssertionError("network")
+
+    monkeypatch.setattr(whisper.urllib.request, "urlopen", fake_urlopen)
+    url = whisper._MODELS["tiny"]
+    with pytest.raises(AssertionError, match="network"):
+        whisper._download(url, str(tmp_path), False)
+    assert called
+
+
+def test_hub_refused_even_when_downloads_allowed(monkeypatch, tmp_path):
+    monkeypatch.setenv("WHISPER_OFFLINE", "0")
+    monkeypatch.setenv("WHISPER_ALLOW_DOWNLOAD", "1")
+    url = "https://huggingface.co/openai/whisper-tiny/resolve/main/tiny.pt"
+    with pytest.raises(RuntimeError, match="Hub"):
+        whisper._download(url, str(tmp_path), False)
+
+
+def test_download_helpers_fail_in_tests():
+    with pytest.raises(DownloadHelperCalled, match="download helper"):
+        urllib.request.urlopen("https://example.com/")
+    with pytest.raises(DownloadHelperCalled, match="download helper"):
+        whisper.urllib.request.urlopen("https://huggingface.co/foo")
+
+
 def test_offline_cache_hit_is_not_a_pull(monkeypatch, tmp_path):
-    monkeypatch.setenv("WHISPER_OFFLINE", "1")
+    monkeypatch.delenv("WHISPER_OFFLINE", raising=False)
+    monkeypatch.delenv("WHISPER_ALLOW_DOWNLOAD", raising=False)
 
     def boom(*_args, **_kwargs):
         raise AssertionError("cache hit must not pull")

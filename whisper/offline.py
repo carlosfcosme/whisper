@@ -18,6 +18,13 @@ LOCALHOST = "127.0.0.1"
 WEIGHT_GLOBS = ("*.pt", "*.pth", "*.ckpt", "*.safetensors")
 HUB_HOST_SUFFIXES = ("huggingface.co", "hf.co", "hf-mirror.com")
 REMOTE_SCHEMES = ("http", "https", "hf", "huggingface")
+_TRUTHY = {"1", "true", "yes", "on"}
+_FALSY = {"0", "false", "no", "off"}
+
+
+class DownloadHelperCalled(AssertionError):
+    """Raised when a network download helper is invoked while offline / in tests."""
+
 
 # In-repo fixtures. Resolved from the git/checkout root — never Hub URLs.
 OFFLINE_FIXTURES = (
@@ -30,12 +37,26 @@ OFFLINE_FIXTURES = (
 
 
 def offline_enabled() -> bool:
-    return os.environ.get("WHISPER_OFFLINE", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    """Offline is the default. Opt in to CDN pulls with WHISPER_OFFLINE=0
+    or WHISPER_ALLOW_DOWNLOAD=1. Hugging Face Hub is never allowed.
+    """
+    offline = os.environ.get("WHISPER_OFFLINE")
+    if offline is not None and offline.strip() != "":
+        return offline.strip().lower() not in _FALSY
+    allow = os.environ.get("WHISPER_ALLOW_DOWNLOAD", "").strip().lower()
+    if allow in _TRUTHY:
+        return False
+    return True
+
+
+def downloads_allowed() -> bool:
+    return not offline_enabled()
+
+
+def banned_download(*_args, **_kwargs):
+    raise DownloadHelperCalled(
+        "download helper called (offline by default; no Hub; no weight pull)"
+    )
 
 
 def default_device() -> str:
@@ -120,7 +141,7 @@ def offline_fixture_paths(root: Optional[str] = None) -> List[str]:
 
 
 def guard_download_url(url: str) -> None:
-    """Refuse Hub always. Refuse every remote pull when WHISPER_OFFLINE=1."""
+    """Refuse Hub always. Refuse every remote pull unless downloads are opted in."""
     if is_hub_url(url):
         raise RuntimeError(f"Hugging Face Hub downloads are disabled: {url}")
     if offline_enabled() and is_remote_url(url):

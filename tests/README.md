@@ -5,9 +5,11 @@ from the source tree. **Do not download sample audio or model weights** to
 run the default suite.
 
 The sample-audio path is not an env var. Enforcement lives in
-`whisper/offline.py` (local fixtures, Hub refused, bind `127.0.0.1`, CPU
-default). `python3 whisper/offline.py --check` fails CI if weights are
-committed. No secrets are required.
+`whisper/offline.py`: **offline by default**, Hub refused, bind `127.0.0.1`,
+CPU default. Tests fail if `urlopen` / Hub download helpers are called.
+`python3 whisper/offline.py --check` fails CI if weights are committed.
+Opt in to official CDN pulls with `WHISPER_OFFLINE=0` (Hub stays forbidden).
+No secrets are required.
 
 ## Sample audio
 
@@ -28,13 +30,8 @@ Do **not** fetch a JFK clip (or any other speech sample) from the network.
 
 - [`test_audio.py`](test_audio.py) — `load_audio` / `log_mel_spectrogram`
   only. No `load_model`. **No weight pull.**
-- [`test_transcribe.py`](test_transcribe.py) — the same local file plus
-  `whisper.load_model(...)`. That **does** fetch checkpoints on a cache
-  miss. Skip it to stay offline:
-
-  ```bash
-  pytest -k 'not test_transcribe' -m 'not requires_cuda'
-  ```
+- [`test_transcribe.py`](test_transcribe.py) — marked `requires_download`.
+  Skipped while offline (the default). Do not run it in CI.
 
 ## Other in-repo fixtures (no network pull)
 
