@@ -43,6 +43,7 @@ def _bind_127_0_0_1_only(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_remote_urlopen(monkeypatch):
     """Unit tests may talk to 127.0.0.1 only. No Hub, no WAN."""
+    import socket
     import urllib.request
 
     real = urllib.request.urlopen
@@ -55,6 +56,18 @@ def _no_remote_urlopen(monkeypatch):
         raise RuntimeError("unit tests must not open remote URL: {}".format(target))
 
     monkeypatch.setattr(urllib.request, "urlopen", guarded)
+
+    real_cc = socket.create_connection
+
+    def guarded_cc(address, *args, **kwargs):
+        host = address[0] if isinstance(address, tuple) else address
+        if str(host).lower() not in {"127.0.0.1", "localhost", "::1"}:
+            raise OSError(
+                "unit tests must connect to 127.0.0.1, not {!r}".format(address)
+            )
+        return real_cc(address, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "create_connection", guarded_cc)
 
 
 @pytest.fixture(autouse=True)

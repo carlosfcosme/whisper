@@ -95,4 +95,6 @@ jobs:
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - run: python scripts/check_no_weights.py
       # CPU default, no Hub, no weight pull: skip test_transcribe (load_model).
+      # tests/test_venv_offline.py creates a pip-free venv, refuses model/network
+      # fetch, and requires whisper serve to bind 127.0.0.1 only.
       - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'

@@ -17,4 +17,6 @@ thumbs.db
 *.onnx
 *.gguf
 .cache/whisper/
+venv/
+.venv/
 
