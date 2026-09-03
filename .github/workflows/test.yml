@@ -36,9 +36,32 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  no-tracked-weights:
+    runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest only (no torch, no Hub)
+        run: pip install pytest
+      - name: git ls-files must not list weight blobs
+        run: |
+          python3 scripts/check_tracked_weights.py
+          bash scripts/check_tracked_weights.sh
+      - name: Ignore-rule coverage
+        run: python3 -m pytest --durations=0 -vv tests/test_gitignore_weights.py
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
