@@ -54,10 +54,12 @@ jobs:
         run: python3 scripts/check_bind_localhost.py
       - name: Fail if committed weights or caches exist
         run: python3 scripts/check_no_weights.py
-      - name: Bind and no-weights tests (no torch, no Hub)
+      - name: Fail if installer is not offline / loopback / weight-free
+        run: python3 scripts/check_offline_installer.py
+      - name: Bind, no-weights, and offline installer tests (no torch, no Hub)
         run: |
           python -m pip install pytest
-          pytest tests/test_bind.py tests/test_no_weights.py -vv
+          pytest tests/test_bind.py tests/test_no_weights.py tests/test_offline_installer.py -vv
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
@@ -98,4 +100,14 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+      - name: Offline installer (skip apt/pip; no weight download)
+        run: |
+          export WHISPER_OFFLINE_INSTALL=1
+          export WHISPER_NO_WEIGHT_DOWNLOAD=1
+          export HF_HUB_OFFLINE=1
+          if unshare --net --map-root-user true; then
+            unshare --net --map-root-user bash .cursor/install.sh
+          else
+            bash .cursor/install.sh
+          fi
       - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'

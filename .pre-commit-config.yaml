@@ -38,3 +38,8 @@ repos:
         entry: python3 scripts/check_no_weights.py
         language: system
         pass_filenames: false
+      - id: check-offline-installer
+        name: offline installer (no Hub, loopback, ignored weights)
+        entry: python3 scripts/check_offline_installer.py
+        language: system
+        pass_filenames: false
