@@ -36,6 +36,15 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  installer-no-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Assert installer does not download weights
+        run: python3 scripts/check_installer_no_weights.py
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest

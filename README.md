@@ -29,6 +29,8 @@ To update the package to the latest version of this repository, please run:
 
     pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
 
+Cloud Agent bootstrap ([`.cursor/install.sh`](.cursor/install.sh)) does **not** download model weights and does not bind a public interface (localhost only). `WHISPER_NO_WEIGHT_DOWNLOAD=1` and `WHISPER_LOCALHOST_ONLY=1` are the installer defaults. The `installer-no-weights` CI job asserts this.
+
 It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
 
 ```bash

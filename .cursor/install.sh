@@ -2,9 +2,16 @@
 # Idempotent Cloud Agent setup for openai-whisper.
 # Installs the ffmpeg system dependency and the package (with dev extras)
 # using a CPU build of PyTorch so tests and the `whisper` CLI run without a GPU.
+#
+# Default: do not download model weights. Localhost only (no WAN pulls).
+# Do not call load_model or the whisper CLI here — those fetch checkpoints.
+# Do not bind 0.0.0.0. This script starts no server.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+export WHISPER_NO_WEIGHT_DOWNLOAD="${WHISPER_NO_WEIGHT_DOWNLOAD:-1}"
+export WHISPER_LOCALHOST_ONLY="${WHISPER_LOCALHOST_ONLY:-1}"
 
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
@@ -23,5 +30,15 @@ pip install --break-system-packages \
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
 pip install --break-system-packages -e ".[dev]"
 
+# Import-only readiness check. Isolated cache so this cannot leave checkpoints
+# in ~/.cache/whisper. load_model / the whisper CLI are forbidden here.
+_install_cache="$(mktemp -d)"
+trap 'rm -rf "${_install_cache}"' EXIT
 echo "whisper environment ready:"
-python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+XDG_CACHE_HOME="${_install_cache}" python3 -c \
+  "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+
+if find "${_install_cache}" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.bin' -o -name '*.safetensors' \) | grep -q .; then
+  echo "install.sh must not download model weights" >&2
+  exit 1
+fi
