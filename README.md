@@ -85,14 +85,6 @@ The following command will transcribe speech in audio files, using the `turbo` m
 
     whisper audio.flac audio.mp3 audio.wav --model turbo
 
-Inference defaults to CPU. Pass `--device cuda` to use a GPU.
-
-A weights-free health server is available for local checks and always binds
-loopback only (`127.0.0.1`; `0.0.0.0` is refused):
-
-    python -m whisper.serve
-    whisper-serve --host 127.0.0.1 --port 8765
-
 The default setting (which selects the `turbo` model) works well for transcribing English. To transcribe an audio file containing non-English speech, you can specify the language using the `--language` option:
 
     whisper japanese.wav --language Japanese
