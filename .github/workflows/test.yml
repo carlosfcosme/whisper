@@ -8,6 +8,12 @@ on:
       - main
 
 jobs:
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights or large binaries are committed
+        run: python3 scripts/check_no_weights.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +43,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-committed-weights]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
