@@ -1,15 +1,20 @@
 import os
 
 import pytest
-import torch
 
 import whisper
+from whisper.runtime import weight_auto_download_allowed
 from whisper.tokenizer import get_tokenizer
 
 
+@pytest.mark.requires_weights
+@pytest.mark.skipif(
+    not weight_auto_download_allowed(),
+    reason="weight auto-download is disabled (CI / WHISPER_NO_WEIGHT_DOWNLOAD)",
+)
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = whisper.default_device()
     model = whisper.load_model(model_name).to(device)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
