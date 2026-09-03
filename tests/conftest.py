@@ -6,6 +6,8 @@ import numpy
 import pytest
 
 _HF_HOSTS = ("huggingface.co", "hf.co")
+_WEIGHT_HOSTS = ("openaipublic.azureedge.net",)
+_ALLOW_WEIGHT_DOWNLOAD = False
 
 
 class _NoHubFinder:
@@ -19,6 +21,7 @@ class _NoHubFinder:
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_cuda")
+    config.addinivalue_line("markers", "allows_weight_download")
     if not any(isinstance(f, _NoHubFinder) for f in sys.meta_path):
         sys.meta_path.insert(0, _NoHubFinder())
 
@@ -27,11 +30,22 @@ def pytest_configure(config):
     def _guarded_urlopen(url, *args, **kwargs):
         target = url if isinstance(url, str) else getattr(url, "full_url", str(url))
         lowered = str(target).lower()
-        if any(host in lowered for host in _HF_HOSTS):
-            raise RuntimeError("Hugging Face Hub is disabled in tests: %s" % target)
+        blocked = _HF_HOSTS if _ALLOW_WEIGHT_DOWNLOAD else _HF_HOSTS + _WEIGHT_HOSTS
+        if any(host in lowered for host in blocked):
+            raise RuntimeError("offline: weight/Hub download disabled: %s" % target)
         return real_urlopen(url, *args, **kwargs)
 
     urllib.request.urlopen = _guarded_urlopen
+
+
+@pytest.fixture(autouse=True)
+def _offline_weight_flag(request):
+    global _ALLOW_WEIGHT_DOWNLOAD
+    _ALLOW_WEIGHT_DOWNLOAD = (
+        request.node.get_closest_marker("allows_weight_download") is not None
+    )
+    yield
+    _ALLOW_WEIGHT_DOWNLOAD = False
 
 
 @pytest.fixture

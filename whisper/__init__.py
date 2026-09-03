@@ -12,6 +12,7 @@ from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .device import default_device
 from .model import ModelDimensions, Whisper
+from .offline import refuse_weight_download
 from .transcribe import transcribe
 from .version import __version__
 
@@ -70,6 +71,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    refuse_weight_download(url)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
