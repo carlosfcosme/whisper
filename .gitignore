@@ -5,6 +5,21 @@ __pycache__/
 .pytest_cache
 .ipynb_checkpoints
 
+# Model checkpoints and local caches (never commit weights)
+.cache/
+cache/
+weights/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+
+# Secrets (no credentials in the tree)
+.env
+.env.*
+
 thumbs.db
 .DS_Store
 .idea

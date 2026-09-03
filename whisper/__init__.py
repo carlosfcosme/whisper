@@ -1,7 +1,7 @@
 import hashlib
 import io
 import os
-import urllib
+import urllib.request
 import warnings
 from typing import List, Optional, Union
 
@@ -11,6 +11,11 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .offline import (
+    WeightDownloadError,
+    allow_weight_download,
+    refuse_weight_download,
+)
 from .transcribe import transcribe
 from .version import __version__
 
@@ -67,8 +72,13 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             return model_bytes if in_memory else download_target
         else:
             warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
+                f"{download_target} exists, but the SHA256 checksum does not match; "
+                "re-download is offline-by-default and will not contact a hub or WAN "
+                "unless WHISPER_ALLOW_WEIGHT_DOWNLOAD=1"
             )
+
+    # Offline by default: cache miss must not contact model hubs or the WAN.
+    refuse_weight_download(url, download_target)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -117,7 +127,10 @@ def load_model(
     device : Union[str, torch.device]
         the PyTorch device to put the model into
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to download the model files; by default, it uses "~/.cache/whisper".
+        A cache miss does not download (offline by default). Official CDN
+        fetches require WHISPER_ALLOW_WEIGHT_DOWNLOAD=1. Hub URLs are refused.
+        No credentials or external activation are used.
     in_memory: bool
         whether to preload the model weights into host memory
 

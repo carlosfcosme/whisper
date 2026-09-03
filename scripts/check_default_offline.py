@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Fail if the default install or CI path would fetch model weights.
+
+Default CI must not select ``test_transcribe[tiny]`` (that path WAN-pulls
+checkpoints). Install and start scripts must not call ``load_model`` or hit
+Hub/CDN URLs. No API keys or tokens.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Iterable, List, Optional
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW = REPO_ROOT / ".github" / "workflows" / "test.yml"
+INSTALL = REPO_ROOT / ".cursor" / "install.sh"
+ENVIRONMENT = REPO_ROOT / ".cursor" / "environment.json"
+START = REPO_ROOT / ".cursor" / "start.sh"
+
+FETCH_RE = re.compile(
+    r"load_model|_download|openaipublic|azureedge\.net|huggingface\.co|"
+    r"hf\.co|WHISPER_PRECACHE|pre-?cache|hf_hub_download|from_pretrained",
+    re.I,
+)
+SECRET_ASSIGN_RE = re.compile(
+    r"(API_KEY|SECRET_KEY|ACCESS_TOKEN|HF_TOKEN|HUGGING_FACE_HUB_TOKEN|"
+    r"OPENAI_API_KEY|AWS_SECRET|PRIVATE_KEY)\s*[:=]",
+    re.I,
+)
+SECRET_LITERAL_RE = re.compile(r"\b(sk-|hf_|ghp_)[A-Za-z0-9_\-]{8,}")
+
+
+def strip_hash_comments(text: str) -> str:
+    lines = []
+    for line in text.splitlines():
+        lines.append(line.split("#", 1)[0])
+    return "\n".join(lines)
+
+
+def job_block(workflow_text: str, job_name: str) -> str:
+    header = re.search(rf"^  {re.escape(job_name)}:\s*$", workflow_text, flags=re.M)
+    if header is None:
+        raise ValueError(f"missing CI job {job_name!r} in {WORKFLOW}")
+    rest = workflow_text[header.end() :]
+    nxt = re.search(r"^  [A-Za-z0-9_-]+:\s*$", rest, flags=re.M)
+    end = header.end() + nxt.start() if nxt is not None else None
+    return workflow_text[header.start() : end]
+
+
+def _pytest_lines(block: str) -> List[str]:
+    return [ln.strip() for ln in block.splitlines() if re.search(r"\bpytest\b", ln)]
+
+
+def _secret_reasons(label: str, text: str) -> Iterable[str]:
+    if SECRET_ASSIGN_RE.search(text):
+        yield f"{label} looks like it embeds a secret/key assignment"
+    if SECRET_LITERAL_RE.search(text):
+        yield f"{label} looks like it embeds a key literal"
+
+
+def reasons_default_path_fetches_weights(
+    *,
+    workflow_text: Optional[str] = None,
+    install_text: Optional[str] = None,
+    environment_text: Optional[str] = None,
+    start_text: Optional[str] = None,
+) -> List[str]:
+    """Return reasons the default install/CI path would fetch weights."""
+    reasons: List[str] = []
+
+    if workflow_text is None:
+        workflow_text = WORKFLOW.read_text()
+    if install_text is None:
+        install_text = INSTALL.read_text() if INSTALL.is_file() else ""
+    if environment_text is None:
+        environment_text = ENVIRONMENT.read_text() if ENVIRONMENT.is_file() else "{}"
+    if start_text is None:
+        start_text = START.read_text() if START.is_file() else ""
+
+    try:
+        block = job_block(workflow_text, "whisper-test")
+    except ValueError as exc:
+        reasons.append(str(exc))
+        block = ""
+
+    pytest_lines = _pytest_lines(block)
+    if block and not pytest_lines:
+        reasons.append("whisper-test job does not run pytest")
+    for line in pytest_lines:
+        if "test_transcribe[" in line:
+            reasons.append(
+                "CI pytest selects a weight-fetching transcribe case "
+                f"(fetch-of-weights is the default path): {line}"
+            )
+        if "not test_transcribe" not in line and "not requires_weights" not in line:
+            reasons.append(
+                "whisper-test pytest does not exclude test_transcribe "
+                f"(default path would fetch tiny/tiny.en weights): {line}"
+            )
+
+    install_code = strip_hash_comments(install_text)
+    if FETCH_RE.search(install_code):
+        reasons.append(
+            "install.sh would fetch or precache model weights "
+            "(load_model / CDN / Hub is not allowed on the default path)"
+        )
+    reasons.extend(_secret_reasons("install.sh", install_code))
+
+    start_code = strip_hash_comments(start_text)
+    if start_code.strip() and FETCH_RE.search(start_code):
+        reasons.append(
+            "start.sh would fetch or precache model weights "
+            "(load_model / CDN / Hub is not allowed on the default path)"
+        )
+    reasons.extend(_secret_reasons("start.sh", start_code))
+
+    try:
+        env = json.loads(environment_text)
+    except json.JSONDecodeError as exc:
+        reasons.append(f"environment.json is not valid JSON: {exc}")
+    else:
+        if any(
+            key.lower() in {"secret", "token", "api_key", "hf_token"}
+            for key in env
+            if isinstance(key, str)
+        ):
+            reasons.append("environment.json must not store keys")
+
+    workflow_code = strip_hash_comments(workflow_text)
+    reasons.extend(_secret_reasons("test.yml", workflow_code))
+    if FETCH_RE.search(workflow_code):
+        reasons.append(
+            "CI workflow would fetch or precache model weights "
+            "(load_model / _download / CDN is not allowed in default CI commands)"
+        )
+
+    return reasons
+
+
+def main() -> int:
+    reasons = reasons_default_path_fetches_weights()
+    if reasons:
+        print("FAIL: fetch-of-weights is the default install/CI path:")
+        for reason in reasons:
+            print(f"  - {reason}")
+        return 1
+    print("OK: default install/CI is offline (no weight download, no Hub, no keys)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
