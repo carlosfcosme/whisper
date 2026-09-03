@@ -54,6 +54,8 @@ GITIGNORE_PATTERNS = (
     "checkpoints/",
     ".huggingface/",
     "huggingface/hub/",
+    ".venv/",
+    ".venv-offline/",
 )
 
 

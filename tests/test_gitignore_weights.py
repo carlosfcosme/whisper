@@ -24,6 +24,8 @@ MUST_IGNORE = (
     "checkpoints/epoch0.ckpt",
     ".huggingface/hub/models--x/snapshots/y/model.safetensors",
     "huggingface/hub/models--openai--whisper/snapshots/z/model.safetensors",
+    ".venv/lib/python3.12/site-packages/tiny.pt",
+    ".venv-offline/cache/base.pt",
 )
 
 MUST_KEEP = (

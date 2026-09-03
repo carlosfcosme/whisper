@@ -28,4 +28,7 @@ weights/
 checkpoints/
 .huggingface/
 huggingface/hub/
+.venv/
+.venv-offline/
+venv/
 
