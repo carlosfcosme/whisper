@@ -24,15 +24,22 @@ That is refused.
   remote/WAN host.
 
 ```bash
+bash tests/run_localhost_only.sh
 bash .cursor/verify.sh
 ```
 
-CI runs that same script. The `localhost-only-verify` job in
-`.github/workflows/test.yml` installs the package (PyTorch only) and
-invokes `.cursor/verify.sh`. It does **not** run `test_transcribe` and
-must not download Whisper checkpoints. Tests are selected with
-`-m localhost_only`. A disposable `XDG_CACHE_HOME` is asserted empty of
-`.pt` / `.pth` / `.bin` files when verify exits.
+`tests/run_localhost_only.sh` is the executable localhost-only runner
+(`WHISPER_LOCALHOST_ONLY=1`, CPU, disposable cache). Pytest hooks block
+non-loopback `urlopen` / `urlretrieve` for `@pytest.mark.localhost_only`
+so network and model downloads cannot run. Generated artifacts
+(`.pytest_cache`, coverage, transcript files under `tests/`) are
+gitignored.
+
+CI runs `.cursor/verify.sh`, which invokes that runner. The
+`localhost-only-verify` job in `.github/workflows/test.yml` installs the
+package (PyTorch only) and must not download Whisper checkpoints. Tests
+are selected with `-m localhost_only`. A disposable `XDG_CACHE_HOME` is
+asserted empty of `.pt` / `.pth` / `.bin` files when verify exits.
 
 Override: unset `WHISPER_LOCALHOST_ONLY` (or set it to `0`) only when you
 intentionally want a WAN fetch. Do not do that in verify or CI.

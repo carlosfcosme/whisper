@@ -178,3 +178,32 @@ def test_redirect_handler_refuses_wan_target(monkeypatch):
     req = urllib.request.Request("http://127.0.0.1/from")
     with pytest.raises(RemotePullError, match="example.com"):
         handler.redirect_request(req, None, 302, "Found", {}, "https://example.com/to")
+
+
+def test_localhost_only_blocks_wan_urlopen():
+    from conftest import NetworkDownloadBlocked
+
+    with pytest.raises(NetworkDownloadBlocked, match="example.com"):
+        urllib.request.urlopen("https://example.com/tiny.pt", timeout=1)
+
+
+def test_localhost_only_blocks_wan_urlretrieve(tmp_path):
+    from conftest import NetworkDownloadBlocked
+
+    dest = tmp_path / "tiny.pt"
+    with pytest.raises(NetworkDownloadBlocked, match="example.com"):
+        urllib.request.urlretrieve("https://example.com/tiny.pt", filename=str(dest))
+    assert not dest.exists()
+
+
+def test_localhost_only_allows_loopback_urlopen():
+    from urllib.error import URLError
+
+    from conftest import NetworkDownloadBlocked
+
+    try:
+        urllib.request.urlopen("http://127.0.0.1:1/", timeout=0.3)
+    except NetworkDownloadBlocked:
+        raise AssertionError("loopback urlopen must not be blocked")
+    except (URLError, OSError, TimeoutError):
+        pass

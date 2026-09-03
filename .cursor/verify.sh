@@ -30,7 +30,7 @@ echo "== Offline guard (no Hub in tests, no committed weights) =="
 python3 scripts/ci_fail_hub_or_weights.py
 
 echo "== Guard tests (no network, no weights) =="
-python3 -m pytest -q -m 'localhost_only and not requires_cuda'
+bash tests/run_localhost_only.sh
 
 echo "== Cache-miss against the official CDN must be refused =="
 python3 - <<'PY'

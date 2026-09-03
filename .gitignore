@@ -13,6 +13,23 @@ thumbs.db
 *.pt
 *.pth
 *.safetensors
+*.onnx
 *.gguf
 *.ckpt
+*.h5
+
+# Test / verify artifacts (generated; never commit)
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+junit.xml
+test-results/
+artifacts/
+*.log
+tests/*.txt
+tests/*.vtt
+tests/*.srt
+tests/*.tsv
+tests/*.json
 

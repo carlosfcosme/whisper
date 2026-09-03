@@ -23,7 +23,11 @@ class HubAccessBlocked(RuntimeError):
     """Raised when a test tries to reach the Hugging Face Hub."""
 
 
-def _hub_host(url) -> str:
+class NetworkDownloadBlocked(RuntimeError):
+    """Raised when a localhost_only test tries a non-loopback download."""
+
+
+def _url_host(url) -> str:
     target = getattr(url, "full_url", url)
     return (urlparse(str(target)).hostname or "").lower()
 
@@ -35,15 +39,24 @@ def _is_blocked_hub_host(host: str) -> bool:
 
 
 @pytest.fixture(autouse=True)
-def _block_hub_urlopen(monkeypatch):
+def _block_network_and_model_downloads(request, monkeypatch):
     import urllib.request
 
+    from whisper.localhost import hostname_is_localhost
+
     real_urlopen = urllib.request.urlopen
+    strict = request.node.get_closest_marker("localhost_only") is not None
 
     def guarded_urlopen(url, *args, **kwargs):
-        host = _hub_host(url)
+        host = _url_host(url)
         if _is_blocked_hub_host(host):
             raise HubAccessBlocked(f"Hugging Face Hub is forbidden in tests: {host}")
+        raw = str(getattr(url, "full_url", url))
+        scheme = urlparse(raw).scheme
+        if strict and scheme in ("http", "https") and not hostname_is_localhost(host):
+            raise NetworkDownloadBlocked(
+                f"Network/model download blocked in localhost_only tests: {host or raw}"
+            )
         return real_urlopen(url, *args, **kwargs)
 
     monkeypatch.setattr(urllib.request, "urlopen", guarded_urlopen)
