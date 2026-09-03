@@ -115,7 +115,8 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. When omitted, CUDA is used
+        if available, otherwise CPU (CPU-only default on Cloud Agent / CI).
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
