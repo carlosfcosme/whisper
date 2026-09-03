@@ -9,3 +9,7 @@ thumbs.db
 .DS_Store
 .idea
 
+# Downloaded model checkpoints (never commit weights)
+*.pt
+.cache/
+
