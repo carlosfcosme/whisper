@@ -8,6 +8,34 @@ on:
       - main
 
 jobs:
+  committed-weights:
+    name: fail on committed weights
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights are committed
+        run: python3 .github/scripts/check_no_committed_weights.py
+      - name: Fail if weight paths are not gitignored
+        run: |
+          set -euo pipefail
+          for path in \
+            .cache/whisper/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            tiny.pt \
+            model.pth \
+            model.safetensors
+          do
+            git check-ignore -q -- "$path"
+          done
+      - name: Fail if Hub clients are package dependencies
+        run: |
+          set -euo pipefail
+          if grep -qiE 'huggingface|hf[_-]?hub|transformers' pyproject.toml requirements.txt; then
+            echo "Hugging Face Hub clients must not be package dependencies" >&2
+            exit 1
+          fi
+
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +65,12 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, committed-weights]
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
