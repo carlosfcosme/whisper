@@ -12,6 +12,7 @@ from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .bind import LOCALHOST, bind_host, listen
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .device import DEFAULT_DEVICE, default_device
+from .invariant import check_offline_invariant
 from .model import ModelDimensions, Whisper
 from .offline import weights_offline
 from .transcribe import transcribe
@@ -55,8 +56,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -68,14 +67,14 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
-            )
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
+        )
 
     if weights_offline():
         raise RuntimeError("offline: refusing to download weights from {0}".format(url))
 
+    os.makedirs(root, exist_ok=True)
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),

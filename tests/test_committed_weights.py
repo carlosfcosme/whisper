@@ -3,9 +3,11 @@
 import subprocess
 from pathlib import Path
 
+from whisper.offline import GITIGNORED_WEIGHT_PATTERNS
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-GITIGNORE_PATTERNS = (".cache/", "cache/", "weights/", "*.pt", "*.pth")
+GITIGNORE_PATTERNS = GITIGNORED_WEIGHT_PATTERNS
 LS_FILES_PATHSPECS = (
     ".cache",
     ".cache/**",

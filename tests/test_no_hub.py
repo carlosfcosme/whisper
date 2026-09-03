@@ -56,6 +56,8 @@ def test_ci_does_not_download_weights():
     assert "Fail if CI downloaded weights" in workflow
     assert "local-fixtures" in workflow
     assert "python3 tests/local_fixtures.py" in workflow
+    assert "offline-invariant" in workflow
+    assert "python3 whisper/invariant.py" in workflow
 
 
 def test_test_sources_do_not_reference_the_hub():

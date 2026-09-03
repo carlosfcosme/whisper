@@ -20,6 +20,17 @@ def test_bind_host_rejects_wildcards():
             bind_host(host)
 
 
+def test_bind_host_resolves_localhost_alias():
+    assert bind_host("localhost") == "127.0.0.1"
+    assert bind_host("127.0.0.1") == "127.0.0.1"
+
+
+def test_bind_host_rejects_non_loopback():
+    for host in ("8.8.8.8", "1.2.3.4", "192.168.0.1", "example.com"):
+        with pytest.raises(ValueError, match="127.0.0.1"):
+            bind_host(host)
+
+
 def test_bind_host_opens_localhost_socket():
     host = bind_host()
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
