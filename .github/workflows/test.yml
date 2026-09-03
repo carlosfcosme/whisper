@@ -30,6 +30,14 @@ jobs:
           do
             git check-ignore -q -- "$path"
           done
+      - name: Fail if committed weights
+        run: python3 scripts/check_no_weights.py
+  no-all-interfaces:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if all-interfaces bind is present or accepted
+        run: python3 scripts/check_no_all_interfaces.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -66,6 +74,8 @@ jobs:
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
       HF_HUB_DISABLE_TELEMETRY: "1"
+      WHISPER_OFFLINE: "1"
+      CUDA_VISIBLE_DEVICES: ""
     strategy:
       fail-fast: false
       matrix:
@@ -103,4 +113,4 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda and not requires_weights'

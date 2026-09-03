@@ -6,18 +6,17 @@ from urllib.parse import urlparse
 import numpy
 import pytest
 
-# Unit tests must not hit the Hugging Face Hub. setdefault so a caller can
-# opt back in (e.g. HF_HUB_OFFLINE=0) for an explicit integration run.
-# These flags are respected by huggingface_hub / transformers / datasets
-# if those packages are present in the environment.
+# Unit tests must not hit the Hugging Face Hub and must not pull weights.
+# setdefault so a caller can opt back in for an explicit integration run.
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("WHISPER_OFFLINE", "1")
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 
 # Whisper downloads checkpoints with urllib.request.urlopen
-# (whisper/__init__.py). Guard Hub hosts only; Azure / other URLs stay open
-# so test_transcribe can still load a cached or official checkpoint.
+# (whisper/__init__.py). Guard Hub hosts and the official weight CDN.
 _HUB_NETLOCS = frozenset(
     {
         "huggingface.co",
@@ -26,6 +25,7 @@ _HUB_NETLOCS = frozenset(
         "www.hf.co",
     }
 )
+_WEIGHT_NETLOCS = frozenset({"openaipublic.azureedge.net"})
 
 _original_urlopen = urllib.request.urlopen
 
@@ -41,6 +41,8 @@ def _urlopen_without_hub(url, *args, **kwargs):
         or host.endswith(".hf.co")
     ):
         raise RuntimeError(f"unit tests must not contact the Hugging Face Hub ({host})")
+    if host in _WEIGHT_NETLOCS or "/whisper/models/" in raw:
+        raise RuntimeError(f"tests must not pull model weights ({host})")
     return _original_urlopen(url, *args, **kwargs)
 
 
@@ -49,6 +51,7 @@ urllib.request.urlopen = _urlopen_without_hub
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_cuda")
+    config.addinivalue_line("markers", "requires_weights")
 
 
 @pytest.fixture
