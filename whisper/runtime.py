@@ -80,17 +80,24 @@ def refuse_weight_auto_download(url: str) -> None:
 
 
 def serve_bind_host(host=None) -> str:
-    """Return ``127.0.0.1``, or raise if the host is not that address."""
-    if host in (None, "", "localhost"):
+    """Return ``127.0.0.1``, or raise if the host is not that address.
+
+    ``None`` means the default. An empty string is a wildcard (``INADDR_ANY``)
+    and is refused. ``localhost`` is rewritten to ``127.0.0.1``.
+    """
+    if host is None:
         return DEFAULT_BIND_HOST
     raw = str(host).strip().lower().rstrip(".")
     if raw.startswith("[") and raw.endswith("]"):
         raw = raw[1:-1]
-    if raw == DEFAULT_BIND_HOST:
+    if not raw:
+        raise BindError(
+            f"Refusing bind to {host!r}. Listeners must bind {DEFAULT_BIND_HOST}."
+        )
+    if raw in {DEFAULT_BIND_HOST, "localhost"}:
         return DEFAULT_BIND_HOST
-    shown = host if host else "<wildcard>"
     raise BindError(
-        f"Refusing bind to {shown!r}. Listeners must bind {DEFAULT_BIND_HOST}."
+        f"Refusing bind to {host!r}. Listeners must bind {DEFAULT_BIND_HOST}."
     )
 
 
@@ -106,7 +113,7 @@ def default_bind_host() -> str:
     ``0.0.0.0`` / ``::`` / public hosts are refused.
     """
     explicit = os.environ.get(BIND_HOST_ENV, "").strip()
-    return serve_bind_host(explicit or DEFAULT_BIND_HOST)
+    return serve_bind_host(explicit or None)
 
 
 def bind_localhost(sock, port=0) -> Tuple[str, int]:
