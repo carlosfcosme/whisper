@@ -19,11 +19,12 @@ class BindError(ValueError):
 
 
 def normalize_bind_host(host: str) -> str:
-    """Return a loopback bind address, or raise BindError.
+    """Return ``127.0.0.1``, or raise BindError.
 
-    ``localhost`` is rewritten to ``127.0.0.1`` (no DNS). Unspecified
-    addresses such as ``0.0.0.0`` and ``::`` are refused, as are LAN and
-    public hosts.
+    ``localhost`` is rewritten to ``127.0.0.1`` (no DNS). IPv6 loopback
+    ``::1`` is refused because ``ThreadingHTTPServer`` is AF_INET-only.
+    Unspecified addresses such as ``0.0.0.0`` and ``::`` are refused, as
+    are LAN and public hosts.
     """
     raw = (host or "").strip()
     if raw.startswith("[") and raw.endswith("]"):
@@ -36,9 +37,9 @@ def normalize_bind_host(host: str) -> str:
         ip = ipaddress.ip_address(raw.split("%", 1)[0])
     except ValueError:
         raise BindError("refusing non-localhost bind {!r}; use 127.0.0.1".format(host))
-    if not ip.is_loopback:
+    if ip.version != 4 or str(ip) != DEFAULT_HOST:
         raise BindError("refusing non-localhost bind {!r}; use 127.0.0.1".format(host))
-    return str(ip)
+    return DEFAULT_HOST
 
 
 def is_loopback_host(host: str) -> bool:
@@ -109,8 +110,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="whisper serve",
         description=(
-            "Start a weights-free health server bound to loopback only "
-            "(127.0.0.1 / ::1). Binding 0.0.0.0 is refused. No Hub."
+            "Start a weights-free health server bound to 127.0.0.1 only. "
+            "Binding 0.0.0.0 or ::1 is refused. No Hub."
         ),
     )
     parser.add_argument(

@@ -54,20 +54,26 @@ def assert_start_scripts_localhost_only(paths: Iterable[Path]) -> None:
 
 @pytest.mark.parametrize(
     "host",
-    ["127.0.0.1", "localhost", "LOCALHOST", "::1"],
+    ["127.0.0.1", "localhost", "LOCALHOST"],
 )
 def test_normalize_bind_host_allows_loopback(host):
     bound = normalize_bind_host(host)
+    assert bound == "127.0.0.1"
     assert is_loopback_host(bound)
 
 
 @pytest.mark.parametrize(
     "host",
-    [ALL_INTERFACES, "::", "*", "", "192.168.1.10", "example.com", "10.0.0.1"],
+    [ALL_INTERFACES, "::", "::1", "*", "", "192.168.1.10", "example.com", "10.0.0.1"],
 )
 def test_normalize_bind_host_refuses_non_loopback(host):
-    with pytest.raises(BindError):
+    with pytest.raises(BindError, match="127.0.0.1"):
         normalize_bind_host(host)
+
+
+def test_create_server_refuses_ipv6_loopback():
+    with pytest.raises(BindError, match="127.0.0.1"):
+        create_server(host="::1", port=0)
 
 
 def test_create_server_refuses_all_interfaces():
