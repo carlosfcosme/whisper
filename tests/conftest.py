@@ -62,13 +62,6 @@ def _guarded_connect_ex(self, address, *args, **kwargs):
     _blocked_network(address)
 
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "requires_cuda")
-    config.addinivalue_line(
-        "markers", "requires_network: test needs real network access (downloads)"
-    )
-
-
 @pytest.fixture(autouse=True)
 def block_non_loopback_network(request):
     if request.node.get_closest_marker("requires_network"):

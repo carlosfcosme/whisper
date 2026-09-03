@@ -52,3 +52,13 @@ profile = "black"
 include_trailing_comma = true
 line_length = 88
 multi_line_output = 3
+
+[tool.pytest.ini_options]
+# CPU-only, no-weight-pull default: exclude tests that need real network access
+# (weight downloads) or a CUDA device. Override with `-m` to run them, e.g.
+# `pytest -m requires_network` or `pytest -m requires_cuda`.
+addopts = "-m 'not requires_network and not requires_cuda'"
+markers = [
+  "requires_cuda: test needs a CUDA device",
+  "requires_network: test needs real network access (e.g. weight downloads)",
+]
