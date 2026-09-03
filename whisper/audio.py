@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from .local_fixtures import assert_local_path
 from .utils import exact_div
 
 # hard-coded audio hyperparameters
@@ -38,6 +39,9 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     -------
     A NumPy array containing the audio waveform, in float32 dtype.
     """
+
+    # Refuse http(s)/Hub paths so ffmpeg never WAN-pulls a fixture.
+    assert_local_path(file)
 
     # This launches a subprocess to decode audio while down-mixing
     # and resampling as necessary.  Requires the ffmpeg CLI in PATH.
