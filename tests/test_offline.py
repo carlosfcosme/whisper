@@ -159,3 +159,35 @@ def test_ci_has_no_weights_job():
     assert "scripts/check_no_weights.py" in workflow
     assert "HF_HUB_OFFLINE" in workflow
     assert "WHISPER_OFFLINE" in workflow
+    assert "-k 'not test_transcribe'" in workflow
+    assert "test_transcribe[tiny]" not in workflow
+    assert "huggingface.co" not in workflow
+    assert "load_model" not in workflow
+    assert "no Hub / no weight download" in workflow
+
+
+def test_gitignore_covers_cache_and_weights():
+    text = (REPO_ROOT / ".gitignore").read_text()
+    for pattern in ("*.pt", "*.pth", ".cache/", "cache/"):
+        assert pattern in text, pattern
+
+
+def test_git_check_ignore_cache_and_weights(tmp_path):
+    planted = [
+        "cache/whisper/tiny.pt",
+        ".cache/whisper/tiny.pt",
+        "leaked.pt",
+        "model.pth",
+    ]
+    result = subprocess.run(
+        ["git", "check-ignore", "-v", "--stdin"],
+        cwd=str(REPO_ROOT),
+        input="\n".join(planted) + "\n",
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    ignored = {line.split()[-1] for line in result.stdout.splitlines() if line}
+    for path in planted:
+        assert path in ignored, (path, result.stdout)
