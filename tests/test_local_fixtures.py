@@ -19,18 +19,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CHECK_SCRIPT = REPO_ROOT / ".github" / "scripts" / "check_no_remote_fixtures.py"
 
 
-@pytest.mark.parametrize(
-    "url",
-    [
+def test_guard_rejects_remote_fixture_urls():
+    urls = (
         "https://huggingface.co/openai/whisper-tiny/resolve/main/jfk.flac",
         "http://example.com/sample.wav",
         "https://hf.co/datasets/foo/bar/resolve/main/audio.flac",
-    ],
-)
-def test_guard_rejects_remote_fixture_urls(url):
-    assert is_remote_fixture_url(url)
-    with pytest.raises(RemoteFixtureError, match="local"):
-        assert_local_fixture(url, must_exist=False)
+    )
+    for url in urls:
+        assert is_remote_fixture_url(url)
+        with pytest.raises(RemoteFixtureError, match="local"):
+            assert_local_fixture(url, must_exist=False)
 
 
 def test_sample_audio_is_in_repo_file(sample_audio_path):

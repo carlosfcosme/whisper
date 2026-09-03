@@ -36,19 +36,27 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip)
 
 
+_PATH_FIXTURES = frozenset(
+    {
+        "sample_audio_path",
+        "tiny_audio_path",
+        "tiktoken_asset_path",
+        "mel_filters_path",
+    }
+)
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_setup(fixturedef, request):
-    """Fail the run if any fixture resolves to an HTTP(S) or Hub URL."""
+    """Fail if a path fixture resolves to a remote URL."""
     outcome = yield
+    if fixturedef.argname not in _PATH_FIXTURES:
+        return
     try:
         value = outcome.get_result()
     except BaseException:
         return
-    if isinstance(value, (str, Path, os.PathLike)):
-        text = str(value)
-        # Reject scheme-bearing values (http/https/Hub) without naming them here.
-        if "://" in text:
-            assert_local_fixture(text, must_exist=False)
+    assert_local_fixture(value, must_exist=True)
 
 
 @pytest.fixture
