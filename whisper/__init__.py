@@ -1,18 +1,19 @@
 import hashlib
 import io
 import os
-import urllib
 import warnings
 from typing import List, Optional, Union
 
 import torch
-from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
+
+# Inference defaults to CPU. Callers may still pass device="cuda" explicitly.
+DEFAULT_DEVICE = "cpu"
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -51,6 +52,10 @@ _ALIGNMENT_HEADS = {
 }
 
 
+class WeightDownloadError(RuntimeError):
+    """Named checkpoint is missing locally; network weight pull is disabled."""
+
+
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
@@ -65,34 +70,16 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
-            )
-
-    with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
-        with tqdm(
-            total=int(source.info().get("Content-Length")),
-            ncols=80,
-            unit="iB",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as loop:
-            while True:
-                buffer = source.read(8192)
-                if not buffer:
-                    break
-
-                output.write(buffer)
-                loop.update(len(buffer))
-
-    model_bytes = open(download_target, "rb").read()
-    if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
-        raise RuntimeError(
-            "Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model."
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; "
+            "weight pull is disabled"
         )
 
-    return model_bytes if in_memory else download_target
+    raise WeightDownloadError(
+        "checkpoint {} is not on disk; weight pull is disabled".format(
+            os.path.basename(url)
+        )
+    )
 
 
 def available_models() -> List[str]:
@@ -115,9 +102,11 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU
+        (``DEFAULT_DEVICE``). CUDA is never selected automatically.
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to look for cached model files; by default, it uses "~/.cache/whisper".
+        Missing named checkpoints raise ``WeightDownloadError`` (no network pull).
     in_memory: bool
         whether to preload the model weights into host memory
 
@@ -128,7 +117,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

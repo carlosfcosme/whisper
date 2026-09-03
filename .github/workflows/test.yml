@@ -8,6 +8,14 @@ on:
       - main
 
 jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights, caches, or secrets are committed
+        run: python3 scripts/check_no_weights.py
+      - name: Fail if serve or start scripts bind 0.0.0.0
+        run: python3 scripts/check_bind_localhost.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +45,14 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, policy]
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      CUDA_VISIBLE_DEVICES: ""
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +90,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - run: pytest --durations=0 -vv -m 'not requires_cuda and not requires_weights'
+      - name: Committed caches and weights stay absent
+        run: python3 scripts/check_no_weights.py
