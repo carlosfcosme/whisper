@@ -9,3 +9,9 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model checkpoints — never commit weights. CI fails if these are tracked.
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
