@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-# Fail if the all-interfaces bind token appears under whisper/ or .cursor/.
-# Tests may mention the token when asserting it is rejected.
+# Fail if all-interface / non-loopback bind tokens appear under whisper/ or
+# .cursor/. Tests may mention those tokens when asserting they are rejected.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
-if git grep -nF '0.0.0.0' -- whisper .cursor; then
-  echo "ERROR: 0.0.0.0 is forbidden under whisper/ and .cursor/; bind 127.0.0.1" >&2
+failed=0
+if git grep -nE '0\.0\.0\.0|INADDR_ANY|inaddr_any' -- whisper .cursor; then
+  echo "ERROR: all-interface bind token is forbidden under whisper/ and .cursor/; bind 127.0.0.1" >&2
+  failed=1
+fi
+if git grep -nE '(HTTPServer|ThreadingHTTPServer|TCPServer|UDPServer|bind|listen)[[:space:]]*\([[:space:]]*\([[:space:]]*['\''"]['\''"]' -- whisper .cursor; then
+  echo "ERROR: empty-host bind() is forbidden under whisper/ and .cursor/; bind 127.0.0.1" >&2
+  failed=1
+fi
+if [[ "$failed" -ne 0 ]]; then
   exit 1
 fi
-echo "OK: no 0.0.0.0 under whisper/ or .cursor/"
+echo "OK: no 0.0.0.0 / INADDR_ANY / empty-host bind under whisper/ or .cursor/"

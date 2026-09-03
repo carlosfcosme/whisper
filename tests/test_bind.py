@@ -41,9 +41,35 @@ def test_require_loopback_host_rejects_non_loopback(host):
         require_loopback_host(host)
 
 
-def test_create_server_rejects_all_interfaces():
+@pytest.mark.parametrize(
+    "host",
+    [
+        ALL_INTERFACES,
+        "0.0.0.0",
+        "::",
+        "*",
+        "",
+        "192.168.1.1",
+        "10.0.0.1",
+        "8.8.8.8",
+        "example.com",
+    ],
+)
+def test_create_server_rejects_non_loopback(host):
     with pytest.raises(BindError):
-        create_server(host="0.0.0.0", port=0)
+        create_server(host=host, port=0)
+
+
+def test_create_server_default_binds_loopback():
+    httpd = create_server(port=0)
+    try:
+        host, port = httpd.server_address[:2]
+        assert host == LOOPBACK_HOST
+        assert port > 0
+        with socket.create_connection((host, port), timeout=1):
+            pass
+    finally:
+        httpd.server_close()
 
 
 def test_create_server_binds_loopback():
@@ -58,8 +84,9 @@ def test_create_server_binds_loopback():
         httpd.server_close()
 
 
-def test_serve_cli_rejects_all_interfaces():
-    assert serve_main(["--host", "0.0.0.0", "--port", "9"]) == 2
+@pytest.mark.parametrize("host", ["0.0.0.0", "*", "192.168.1.1", "example.com"])
+def test_serve_cli_rejects_non_loopback(host):
+    assert serve_main(["--host", host, "--port", "9"]) == 2
 
 
 def test_application_sources_do_not_contain_all_interfaces_literal():
