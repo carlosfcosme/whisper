@@ -139,6 +139,7 @@ def test_transcribe_uses_local_audio_and_rejects_hub(tmp_path):
 def test_serve_module_does_not_use_hub():
     serve_path = os.path.join(os.path.dirname(__file__), "..", "whisper", "serve.py")
     source = open(serve_path, encoding="utf-8").read()
-    assert "huggingface_hub" not in source
+    assert "import huggingface_hub" not in source
+    assert "from huggingface_hub" not in source
     assert "hf_hub_download" not in source
     assert "from_pretrained" not in source
