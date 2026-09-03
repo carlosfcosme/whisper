@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+This checkout does not ship or activate a virtualenv. The Cloud Agent
+install uses system pip and the user site; see [VENV.md](VENV.md).
+
 
 ## Available models and languages
 
