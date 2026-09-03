@@ -12,6 +12,12 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get install -y --no-install-recommends ffmpeg
 fi
 
+# Offline install: dependency-only. Do not fetch checkpoints.
+export WHISPER_OFFLINE=1
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_DISABLE_TELEMETRY=1
+
 # CPU-only PyTorch (no CUDA in the Cloud Agent VM), pinned to the version CI
 # uses for Python 3.12. --break-system-packages installs into the user site so
 # the `whisper`, `pytest`, and lint entrypoints land on ~/.local/bin (on PATH).
@@ -24,4 +30,4 @@ pip install --break-system-packages \
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
-python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__, '| offline', whisper.offline.offline_enabled())"
