@@ -34,3 +34,15 @@ repos:
         entry: python3 scripts/check_tracked_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-bind-localhost
+        name: bind 127.0.0.1 only
+        language: system
+        entry: python3 scripts/check_bind_localhost.py
+        pass_filenames: false
+        always_run: true
+      - id: check-ci-no-weight-pull
+        name: CI must not pull Hub or test weights
+        language: system
+        entry: python3 scripts/check_ci_no_weight_pull.py
+        pass_filenames: false
+        always_run: true
