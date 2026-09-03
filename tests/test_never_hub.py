@@ -31,7 +31,7 @@ HUB_URLS = (
     "https://hf.co/openai/whisper-tiny",
     "https://cdn-lfs.huggingface.co/repos/openai/whisper-tiny",
 )
-ALLOWED_URLS = (
+WEIGHT_URLS = (
     "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt",
     "file:///tmp/tiny.pt",
 )
@@ -97,15 +97,10 @@ def test_urlopen_blocks_huggingface_request_object():
         urllib.request.urlopen(request)
 
 
-@pytest.mark.parametrize("url", ALLOWED_URLS)
-def test_urlopen_does_not_block_non_hub_hosts(url, monkeypatch):
-    sentinel = object()
-
-    def _passthrough(*args, **kwargs):
-        return sentinel
-
-    monkeypatch.setattr("hub_offline._original_urlopen", _passthrough)
-    assert urllib.request.urlopen(url) is sentinel
+@pytest.mark.parametrize("url", WEIGHT_URLS)
+def test_urlopen_blocks_weight_pulls(url):
+    with pytest.raises(RuntimeError, match="weights|remote hosts"):
+        urllib.request.urlopen(url)
 
 
 def test_is_huggingface_hub_host_matches_cdn_and_aliases():

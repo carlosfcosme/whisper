@@ -2,11 +2,14 @@
 
 import os
 
+from .bind import DEFAULT_PORT, LOOPBACK_HOST
+
+BIND_HOST = LOOPBACK_HOST
+BIND_PORT = DEFAULT_PORT
+
 DEFAULT_DEVICE = "cpu"
 DEFAULT_OFFLINE = True
 DEFAULT_NO_STORE = True
-BIND_HOST = "127.0.0.1"
-BIND_PORT = 8765
 
 HUB_MARKERS = (
     "huggingface.co",

@@ -25,7 +25,10 @@ def test_serve_bind_host_defaults_to_loopback():
     assert is_loopback_host("127.0.0.1")
 
 
-@pytest.mark.parametrize("host", [ALL_INTERFACES, "::", "192.168.1.1", "example.com"])
+@pytest.mark.parametrize(
+    "host",
+    [ALL_INTERFACES, "::", "::1", "*", "", "192.168.1.1", "example.com"],
+)
 def test_serve_bind_host_rejects_non_localhost(host):
     with pytest.raises((BindError, ValueError), match="127.0.0.1"):
         serve_bind_host(host)
@@ -37,6 +40,7 @@ def test_serve_listens_on_127_0_0_1():
     try:
         host, port = httpd.server_address[:2]
         assert host == "127.0.0.1"
+        assert httpd.socket.getsockname()[0] == "127.0.0.1"
         assert is_loopback_host(host)
         assert port > 0
 

@@ -40,3 +40,15 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-no-all-interfaces
+        name: fail if all-interface bind tokens appear
+        language: system
+        entry: bash scripts/check_no_all_interfaces.sh
+        pass_filenames: false
+        always_run: true
+      - id: check-loopback-bind
+        name: fail if bind policy accepts a non-loopback host
+        language: system
+        entry: python3 scripts/check_loopback_bind.py
+        pass_filenames: false
+        always_run: true

@@ -49,4 +49,8 @@ def test_load_model_defaults_to_cpu(tmp_path):
 def test_cli_device_default_is_cpu():
     transcribe_mod = importlib.import_module("whisper.transcribe")
     source = Path(transcribe_mod.__file__).read_text(encoding="utf-8")
-    assert '--device", default="cpu"' in source
+    device_lines = [line for line in source.splitlines() if '"--device"' in line]
+    assert device_lines
+    assert "DEFAULT_DEVICE" in device_lines[0]
+    assert "cuda.is_available" not in device_lines[0]
+    assert 'sys.argv[1] == "serve"' in source

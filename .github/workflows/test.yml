@@ -48,8 +48,16 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  bind-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if all-interface or empty-host bind appears
+        run: bash scripts/check_no_all_interfaces.sh
+      - name: Fail if bind policy accepts a non-loopback host
+        run: python3 scripts/check_loopback_bind.py
   whisper-test:
-    needs: [pre-commit, cache-weights, no-committed-weights]
+    needs: [pre-commit, cache-weights, no-committed-weights, bind-guard]
     runs-on: ubuntu-latest
     env:
       CUDA_VISIBLE_DEVICES: ""

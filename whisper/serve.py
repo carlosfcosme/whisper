@@ -1,68 +1,35 @@
-"""Localhost-only HTTP serve helper. Always binds 127.0.0.1 / ::1."""
+"""Weights-free health server. Binds 127.0.0.1 only."""
 
 from __future__ import annotations
 
 import argparse
-import ipaddress
 import json
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import BaseServer
 from typing import List, Optional, Tuple
 
-from .runtime import (
-    BIND_HOST,
-    BIND_PORT,
-    DEFAULT_DEVICE,
-    DEFAULT_NO_STORE,
-    DEFAULT_OFFLINE,
+from .bind import (
+    DEFAULT_PORT,
+    LOOPBACK_HOST,
+    BindError,
+    create_loopback_httpd,
+    require_loopback_host,
 )
+from .runtime import DEFAULT_DEVICE, DEFAULT_NO_STORE, DEFAULT_OFFLINE
 
-DEFAULT_PORT = BIND_PORT
-ALLOWED_BIND_HOSTS = frozenset({"127.0.0.1", "::1"})
-
-
-class BindError(ValueError):
-    """Raised when a bind host is not a loopback address."""
+BIND_HOST = LOOPBACK_HOST
+BIND_PORT = DEFAULT_PORT
 
 
 def serve_bind_host(host: Optional[str] = None) -> str:
-    """Return a loopback bind address, or raise BindError.
-
-    ``localhost`` is rewritten to ``127.0.0.1`` (no DNS). Unspecified
-    addresses such as ``0.0.0.0`` and ``::`` are refused, as are LAN and
-    public hosts.
-    """
-    if host in (None, "", "localhost"):
-        return BIND_HOST
-    raw = host.strip()
-    if raw.startswith("[") and raw.endswith("]"):
-        raw = raw[1:-1]
-    if raw.lower() == "localhost":
-        return BIND_HOST
-    if raw in ALLOWED_BIND_HOSTS:
-        return raw
-    try:
-        ip = ipaddress.ip_address(raw.split("%", 1)[0])
-    except ValueError:
-        raise BindError(
-            "serve must bind to 127.0.0.1 (got {!r}); refusing non-localhost hosts".format(
-                host
-            )
-        )
-    if not ip.is_loopback:
-        raise BindError(
-            "serve must bind to 127.0.0.1 (got {!r}); refusing non-localhost hosts".format(
-                host
-            )
-        )
-    return str(ip)
+    """Return 127.0.0.1, or raise BindError."""
+    return require_loopback_host(host)
 
 
 def is_loopback_host(host: str) -> bool:
     try:
-        serve_bind_host(host)
-        return True
+        return require_loopback_host(host) == LOOPBACK_HOST
     except BindError:
         return False
 
@@ -96,31 +63,24 @@ class _HealthHandler(BaseHTTPRequestHandler):
 
 
 def create_server(
-    host: str = BIND_HOST, port: int = DEFAULT_PORT
+    host: str = LOOPBACK_HOST, port: int = DEFAULT_PORT
 ) -> ThreadingHTTPServer:
-    """Bind a weights-free health server. Host must be loopback."""
-    host = serve_bind_host(host)
-    httpd = ThreadingHTTPServer((host, port), _HealthHandler)
-    bound = httpd.server_address[0]
-    if not is_loopback_host(bound):
-        httpd.server_close()
-        raise BindError(
-            "serve must bind to 127.0.0.1 (got {!r}); refusing non-localhost hosts".format(
-                bound
-            )
-        )
-    return httpd
+    """Bind a weights-free health server. Host must be 127.0.0.1."""
+    require_loopback_host(host)
+    return create_loopback_httpd(_HealthHandler, host=host, port=port)
 
 
-def serve(host: Optional[str] = None, port: int = 0) -> ThreadingHTTPServer:
-    """Bind a tiny HTTP server to localhost only.
+def serve(host: Optional[str] = None, port: int = 0):
+    """Bind a tiny HTTP server to 127.0.0.1 only.
 
     ``port=0`` lets the OS pick an ephemeral port. The caller owns shutdown.
     """
-    return create_server(serve_bind_host(host), port)
+    return create_server(require_loopback_host(host), port)
 
 
-def serve_forever(host: str = BIND_HOST, port: int = DEFAULT_PORT) -> Tuple[str, int]:
+def serve_forever(
+    host: str = LOOPBACK_HOST, port: int = DEFAULT_PORT
+) -> Tuple[str, int]:
     httpd: Optional[BaseServer] = None
     try:
         httpd = create_server(host, port)
@@ -140,13 +100,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="whisper-serve",
         description=(
-            "Start a weights-free health server bound to loopback only "
-            "(127.0.0.1 / ::1). Binding 0.0.0.0 is refused."
+            "Start a weights-free health server bound to 127.0.0.1 only. "
+            "All-interface binds are refused. No Hub."
         ),
     )
     parser.add_argument(
         "--host",
-        default=BIND_HOST,
+        default=LOOPBACK_HOST,
         help="bind address (default: 127.0.0.1; loopback only)",
     )
     parser.add_argument(
@@ -167,8 +127,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 
 __all__ = [
-    "ALLOWED_BIND_HOSTS",
     "BIND_HOST",
+    "BIND_PORT",
     "BindError",
     "create_server",
     "is_loopback_host",
