@@ -28,4 +28,6 @@ cache/whisper/
 weights/
 **/weights/
 checkpoints/
+.huggingface/
+hub/
 

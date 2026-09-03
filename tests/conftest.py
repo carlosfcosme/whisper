@@ -1,5 +1,6 @@
 import os
 import random as rand
+import socket
 import urllib.request
 from urllib.parse import urlparse
 
@@ -58,3 +59,28 @@ def pytest_configure(config):
 def random():
     rand.seed(42)
     numpy.random.seed(42)
+
+
+@pytest.fixture(autouse=True)
+def _bind_loopback_only(monkeypatch):
+    """Runtime tests must bind 127.0.0.1 / loopback, not a wildcard."""
+    original_bind = socket.socket.bind
+    wildcard = frozenset(("", "::", "[::]"))
+    loopback = frozenset(("127.0.0.1", "::1", "localhost"))
+    unspecified = ".".join(["0"] * 4)
+
+    def guarded(self, address):
+        if getattr(self, "family", None) not in (socket.AF_INET, socket.AF_INET6):
+            return original_bind(self, address)
+        host = address
+        if isinstance(address, (tuple, list)) and address:
+            host = address[0]
+        if isinstance(host, bytes):
+            host = host.decode("utf-8", "replace")
+        if isinstance(host, str) and (host in wildcard or host == unspecified):
+            raise OSError("runtime tests must bind 127.0.0.1, not a wildcard")
+        if isinstance(host, str) and host not in loopback:
+            raise OSError("runtime tests must bind 127.0.0.1, not %r" % (host,))
+        return original_bind(self, address)
+
+    monkeypatch.setattr(socket.socket, "bind", guarded)
