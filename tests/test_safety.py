@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -57,16 +58,48 @@ def test_hub_offline_env_is_set():
     assert whisper.weights_download_forbidden() is True
 
 
+def test_default_device_stays_cpu_when_cuda_reports_available(tmp_path, monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    assert whisper.DEFAULT_DEVICE == "cpu"
+    dims = ModelDimensions(
+        n_mels=80,
+        n_audio_ctx=16,
+        n_audio_state=32,
+        n_audio_head=4,
+        n_audio_layer=1,
+        n_vocab=50,
+        n_text_ctx=16,
+        n_text_state=32,
+        n_text_head=4,
+        n_text_layer=1,
+    )
+    model = Whisper(dims)
+    ckpt = tmp_path / "toy.pt"
+    torch.save({"dims": dims.__dict__, "model_state_dict": model.state_dict()}, ckpt)
+    loaded = whisper.load_model(str(ckpt))
+    assert loaded.device.type == "cpu"
+
+
+def test_tests_are_cpu_only():
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    assert torch.cuda.is_available() is False
+
+
 def test_remote_urlopen_is_blocked():
-    with pytest.raises(RuntimeError, match="forbidden"):
+    with pytest.raises(RuntimeError, match="WAN is forbidden"):
         urllib.request.urlopen("https://huggingface.co")
 
 
 def test_azure_weight_urlopen_is_blocked():
-    with pytest.raises(RuntimeError, match="forbidden"):
+    with pytest.raises(RuntimeError, match="WAN is forbidden"):
         urllib.request.urlopen(
             "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt"
         )
+
+
+def test_wan_socket_connect_is_refused():
+    with pytest.raises(RuntimeError, match="WAN is forbidden"):
+        socket.create_connection(("1.1.1.1", 80), timeout=1)
 
 
 def test_download_refuses_when_offline(tmp_path):
