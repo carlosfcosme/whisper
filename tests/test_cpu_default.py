@@ -1,12 +1,15 @@
 """CPU is the default device. Does not download official weights."""
 
 import inspect
+import urllib.request
 from pathlib import Path
 
+import pytest
 import torch
 
 import whisper
 from whisper.model import ModelDimensions, Whisper
+from whisper.offline import WeightDownloadError
 
 
 def _toy_checkpoint(path: Path) -> Path:
@@ -52,3 +55,20 @@ def test_load_model_omitted_device_is_cpu_even_if_cuda_claims_available(
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     loaded = whisper.load_model(str(_toy_checkpoint(tmp_path / "toy.pt")))
     assert loaded.device.type == "cpu"
+
+
+def test_named_model_cache_miss_does_not_hit_hub_or_cdn(monkeypatch, tmp_path):
+    def boom(*args, **kwargs):
+        raise AssertionError("tests must not open a network connection")
+
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    hub = "https://huggingface.co/openai/whisper-tiny/resolve/main/pytorch_model.bin"
+    with pytest.raises(WeightDownloadError, match="Hub"):
+        whisper._download(hub, str(tmp_path), in_memory=False)
+    with pytest.raises(WeightDownloadError, match="disabled"):
+        whisper._download(whisper._MODELS["tiny"], str(tmp_path), in_memory=False)
+    with pytest.raises(WeightDownloadError):
+        whisper.load_model("tiny", download_root=str(tmp_path))
+    assert list(tmp_path.iterdir()) == [] or all(
+        path.is_dir() for path in tmp_path.iterdir()
+    )

@@ -28,7 +28,19 @@ def test_ci_no_weights_script_passes():
 
 def test_gitignore_covers_weights_and_caches():
     text = (REPO / ".gitignore").read_text(encoding="utf-8")
-    for token in (".cache/", "cache/", "weights/", "*.pt", "*.safetensors", ".env"):
+    for token in (
+        ".cache/",
+        ".cache/whisper/",
+        ".cache/huggingface/",
+        "cache/",
+        "weights/",
+        "checkpoints/",
+        "huggingface/",
+        "*.pt",
+        "*.safetensors",
+        "pytorch_model.bin",
+        ".env",
+    ):
         assert token in text
 
 
@@ -46,6 +58,23 @@ def test_huggingface_and_cdn_urlopen_are_blocked():
         )
 
 
+def test_offline_module_refuses_hub_without_network():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "whisper_offline_isolated", REPO / "whisper" / "offline.py"
+    )
+    offline = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(offline)
+    hub = "https://huggingface.co/openai/whisper-tiny/resolve/main/pytorch_model.bin"
+    assert offline.is_hf_hub_url(hub)
+    assert not offline.is_hf_hub_url(
+        "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt"
+    )
+    with pytest.raises(offline.WeightDownloadError, match="Hub"):
+        offline.refuse_weight_network_pull(hub)
+
+
 def test_no_field_brain_and_no_keys():
     forbidden = ("Field-Brain", "FIELD_BRAIN", "API_KEY", "SECRET_KEY", "BEGIN RSA")
     for path in (
@@ -54,6 +83,7 @@ def test_no_field_brain_and_no_keys():
         REPO / ".cursor" / "start.sh",
         REPO / "scripts" / "check_bind_localhost.py",
         REPO / "scripts" / "check_no_weights.py",
+        REPO / "whisper" / "offline.py",
     ):
         text = path.read_text(encoding="utf-8")
         for token in forbidden:

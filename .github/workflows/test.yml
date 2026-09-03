@@ -7,6 +7,13 @@ on:
     branches:
       - main
 
+env:
+  HF_HUB_OFFLINE: "1"
+  TRANSFORMERS_OFFLINE: "1"
+  HF_DATASETS_OFFLINE: "1"
+  HF_HUB_DISABLE_TELEMETRY: "1"
+  WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest

@@ -11,14 +11,20 @@ thumbs.db
 
 # Model weights and local caches must stay untracked.
 .cache/
+.cache/whisper/
+.cache/huggingface/
 cache/
 weights/
+checkpoints/
+huggingface/
 *.pt
 *.pth
 *.ckpt
 *.safetensors
 *.onnx
 *.gguf
+*.ggml
+pytorch_model.bin
 .env
 .env.*
 

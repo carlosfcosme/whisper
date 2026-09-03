@@ -30,8 +30,22 @@ WEIGHT_SUFFIXES = frozenset(
         ".weights",
     }
 )
-CACHE_PARTS = frozenset({".cache", "cache", "weights"})
+CACHE_PARTS = frozenset({".cache", "cache", "weights", "checkpoints", "huggingface"})
 MAX_FILE_BYTES = 10 * 1024 * 1024
+REQUIRED_GITIGNORE = (
+    ".cache/",
+    ".cache/whisper/",
+    ".cache/huggingface/",
+    "cache/",
+    "weights/",
+    "checkpoints/",
+    "huggingface/",
+    "*.pt",
+    "*.pth",
+    "*.safetensors",
+    "pytorch_model.bin",
+    ".env",
+)
 
 
 def fail(message: str) -> None:
@@ -77,13 +91,35 @@ def find_violations(
     return violations
 
 
+def check_gitignore() -> None:
+    text = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    missing = [token for token in REQUIRED_GITIGNORE if token not in text]
+    if missing:
+        fail("gitignore must cover weight/cache paths: {}".format(missing))
+
+
+def check_workflow_offline() -> None:
+    workflow = ROOT / ".github" / "workflows" / "test.yml"
+    text = workflow.read_text(encoding="utf-8")
+    if "HF_HUB_OFFLINE" not in text:
+        fail("CI workflow must set HF_HUB_OFFLINE so jobs never hit the Hub")
+    if "WHISPER_NO_WEIGHT_DOWNLOAD" not in text:
+        fail("CI workflow must set WHISPER_NO_WEIGHT_DOWNLOAD")
+    if "curl" in text and "huggingface" in text:
+        fail("CI workflow must not curl Hugging Face Hub")
+    if "wget" in text and "huggingface" in text:
+        fail("CI workflow must not wget Hugging Face Hub")
+
+
 def main() -> int:
+    check_gitignore()
+    check_workflow_offline()
     violations = find_violations(ROOT)
     if violations:
         for relpath, reason in violations:
             print(f"FAIL: {relpath}: {reason}", file=sys.stderr)
         raise SystemExit(1)
-    print("no-weights: ok (no committed checkpoints or caches)")
+    print("no-weights: ok (no committed checkpoints or caches; CI offline)")
     return 0
 
 

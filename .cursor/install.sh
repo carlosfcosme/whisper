@@ -6,6 +6,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Offline by default: no Hub fetch, no weight download during install.
+export WHISPER_NO_WEIGHT_DOWNLOAD="${WHISPER_NO_WEIGHT_DOWNLOAD:-1}"
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get update -qq
