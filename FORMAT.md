@@ -5,6 +5,7 @@ The Cloud Agent environment installs **Black**, not Ruff.
 Black is present because `.cursor/install.sh` runs `pip install -e ".[dev]"`,
 and `black` is listed in `pyproject.toml` `[project.optional-dependencies] dev`.
 `ruff` is not a project dependency and is not on `PATH`.
+The install script records this so the Cloud Agent environment is explicit.
 
 Do not run `ruff format` or add a Ruff config unless those files change.
 

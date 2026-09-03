@@ -1,5 +1,4 @@
 {
   "name": "openai-whisper",
-  // Formatter: Black (via .[dev] in install.sh). Ruff is not present. See FORMAT.md.
   "install": "bash .cursor/install.sh"
 }
