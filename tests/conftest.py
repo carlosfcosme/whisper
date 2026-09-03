@@ -1,11 +1,98 @@
+import os
 import random as rand
+import socket
 
 import numpy
 import pytest
 
+# Deterministic, offline-friendly test defaults. conftest is imported before any
+# test module (and thus before torch), so setting these here applies to the whole
+# session. All use setdefault so a caller can override them (e.g.
+# CUDA_VISIBLE_DEVICES=0 to run on a GPU).
+#
+# CPU-only default: hide CUDA devices so tests run on CPU regardless of hardware.
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+# Unit tests must not hit the Hugging Face Hub: force HF libraries offline if present.
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "requires_cuda")
+# Loopback-only network guard: unit tests must not reach the network (e.g. the
+# Hugging Face Hub). We allow connections only to loopback addresses and block
+# everything else so any external fetch fails loudly instead of silently
+# downloading. Tests that genuinely need the network (e.g. downloading model
+# weights) must be marked with @pytest.mark.requires_network.
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "0.0.0.0", ""})
+# Binding must be strictly loopback: "0.0.0.0"/"" mean all interfaces, so they are
+# not allowed for bind (that would expose a runtime service beyond loopback).
+_LOOPBACK_BIND_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+_INET_FAMILIES = (socket.AF_INET, socket.AF_INET6)
+_real_socket_connect = socket.socket.connect
+_real_socket_connect_ex = socket.socket.connect_ex
+_real_socket_bind = socket.socket.bind
+
+
+def _connect_host(address):
+    if isinstance(address, tuple) and address:
+        return address[0]
+    return address  # AF_UNIX path (str) or similar; not a network address
+
+
+def _is_loopback(address):
+    host = _connect_host(address)
+    if not isinstance(host, str):
+        return True  # non-inet (e.g. AF_UNIX) is allowed
+    return host in _LOOPBACK_HOSTS
+
+
+def _blocked_network(address):
+    host = _connect_host(address)
+    raise RuntimeError(
+        f"Blocked non-loopback network connect to {host!r} during tests; unit "
+        "tests must not reach the network (e.g. the Hugging Face Hub). Mark tests "
+        "that genuinely need downloads with @pytest.mark.requires_network."
+    )
+
+
+def _guarded_connect(self, address, *args, **kwargs):
+    if _is_loopback(address):
+        return _real_socket_connect(self, address, *args, **kwargs)
+    _blocked_network(address)
+
+
+def _guarded_connect_ex(self, address, *args, **kwargs):
+    if _is_loopback(address):
+        return _real_socket_connect_ex(self, address, *args, **kwargs)
+    _blocked_network(address)
+
+
+def _guarded_bind(self, address, *args, **kwargs):
+    # Only enforce for IP sockets; AF_UNIX and others are left alone.
+    if self.family in _INET_FAMILIES:
+        host = _connect_host(address)
+        if isinstance(host, str) and host not in _LOOPBACK_BIND_HOSTS:
+            raise RuntimeError(
+                f"Blocked non-loopback bind to {host!r} during tests; the runtime "
+                "must bind to loopback only."
+            )
+    return _real_socket_bind(self, address, *args, **kwargs)
+
+
+@pytest.fixture(autouse=True)
+def block_non_loopback_network(request):
+    if request.node.get_closest_marker("requires_network"):
+        yield
+        return
+    socket.socket.connect = _guarded_connect
+    socket.socket.connect_ex = _guarded_connect_ex
+    socket.socket.bind = _guarded_bind
+    try:
+        yield
+    finally:
+        socket.socket.connect = _real_socket_connect
+        socket.socket.connect_ex = _real_socket_connect_ex
+        socket.socket.bind = _real_socket_bind
 
 
 @pytest.fixture
