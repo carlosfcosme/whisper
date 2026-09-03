@@ -55,30 +55,6 @@ pip install setuptools-rust
 ```
 
 
-## Model cache directory
-
-`whisper.load_model()` and the `whisper` CLI download checkpoints into a cache
-directory. The directory **name** is always `whisper`. The parent comes from
-the implicit `XDG_CACHE_HOME` environment variable (XDG Base Directory):
-
-| Condition | Cache directory |
-|-----------|-----------------|
-| `XDG_CACHE_HOME` is set | `$XDG_CACHE_HOME/whisper` |
-| unset (default) | `~/.cache/whisper` |
-
-Overrides:
-
-- CLI: `whisper audio.wav --model_dir /path/to/cache`
-- Python: `whisper.load_model("turbo", download_root="/path/to/cache")`
-
-Whisper does not create a separate logging directory. Progress and debug
-messages print to the terminal when `--verbose` is enabled (the CLI default).
-
-Do not commit downloaded weights (`.pt` files) or secrets. Project-local cache
-directory names `.cache/` and `cache/` (and `.cache/whisper`, `cache/whisper`)
-are listed in `.gitignore`.
-
-
 ## Available models and languages
 
 There are six model sizes, four with English-only versions, offering speed and accuracy tradeoffs.
