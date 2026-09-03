@@ -41,7 +41,6 @@ def test_runtime_bootstrap_writes_no_weights(tmp_path):
     env = os.environ.copy()
     env["XDG_CACHE_HOME"] = str(tmp_path)
     env["WHISPER_OFFLINE"] = "1"
-    env["HF_HUB_OFFLINE"] = "1"
     code = (
         "import whisper;"
         "sock = whisper.listen();"
