@@ -2,6 +2,9 @@ import random as rand
 
 import numpy
 import pytest
+from hub_offline import install_hub_guards
+
+install_hub_guards()
 
 
 def pytest_configure(config):
