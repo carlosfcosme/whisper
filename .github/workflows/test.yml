@@ -110,3 +110,21 @@ jobs:
       - run: pip3 install .["dev"] numpy torch==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - name: Offline load path (helpers must not be invoked)
         run: pytest --durations=0 -vv tests/test_offline_load.py
+  cloud-agent-offline:
+    needs: [pre-commit, no-committed-weights]
+    runs-on: ubuntu-latest
+    env:
+      # Cloud Agent: no Hub / no weight pulls; helper startup is 127.0.0.1 only.
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_LOCALHOST_ONLY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip3 install .["dev"] numpy torch==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+      - name: Cloud Agent offline tests (block downloads, loopback startup)
+        run: pytest --durations=0 -vv tests/test_cloud_agent_offline.py
