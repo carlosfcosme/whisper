@@ -24,6 +24,21 @@ from .localhost import (
 DEFAULT_PORT = 8765
 
 
+def listen_url(host: str, port: int) -> str:
+    """Return an http URL with IPv6 hosts bracketed (``http://[::1]:port``)."""
+    raw = (host or "").strip()
+    if raw.startswith("[") and raw.endswith("]"):
+        authority = raw
+    else:
+        try:
+            ip = ipaddress.ip_address(raw.split("%", 1)[0])
+        except ValueError:
+            authority = raw
+        else:
+            authority = f"[{ip}]" if ip.version == 6 else str(ip)
+    return f"http://{authority}:{port}"
+
+
 class _HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0]
@@ -82,7 +97,7 @@ def serve_forever(
         httpd = create_server(host, port)
         bound_host, bound_port = httpd.server_address[:2]
         print(
-            f"whisper serve listening on http://{bound_host}:{bound_port}",
+            f"whisper serve listening on {listen_url(bound_host, bound_port)}",
             flush=True,
         )
         httpd.serve_forever()

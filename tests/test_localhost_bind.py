@@ -15,7 +15,7 @@ from whisper.localhost import (
     is_loopback_host,
     require_loopback_bind,
 )
-from whisper.serve import create_server, main
+from whisper.serve import create_server, listen_url, main
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -98,6 +98,12 @@ def test_create_server_binds_loopback_only():
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_listen_url_brackets_ipv6():
+    assert listen_url("::1", 8765) == "http://[::1]:8765"
+    assert listen_url("[::1]", 80) == "http://[::1]:80"
+    assert listen_url(LOOPBACK_BIND, 8765) == "http://127.0.0.1:8765"
 
 
 def test_cli_refuses_all_interfaces(capsys):
