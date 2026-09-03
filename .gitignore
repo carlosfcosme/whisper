@@ -13,12 +13,14 @@ thumbs.db
 .cache/
 cache/
 weights/
+.huggingface/
 *.pt
 *.pth
 *.ckpt
 *.safetensors
 *.onnx
 *.gguf
+*.ggml
 .env
 .env.*
 

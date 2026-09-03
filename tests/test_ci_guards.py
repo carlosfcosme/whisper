@@ -35,6 +35,11 @@ def test_no_hub_checker_passes_on_this_repo():
     assert checker.main() == 0
 
 
+def test_no_weights_checker_passes_on_this_repo():
+    checker = _load_script("check_no_weights.py")
+    assert checker.main() == 0
+
+
 def test_bind_module_refuses_all_interfaces_without_package_import():
     checker = _load_script("check_bind_localhost.py")
     bind = checker.load_bind_module()

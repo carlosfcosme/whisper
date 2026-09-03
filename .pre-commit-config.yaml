@@ -38,3 +38,8 @@ repos:
         entry: python3 scripts/check_no_hub.py
         language: system
         pass_filenames: false
+      - id: check-no-weights
+        name: no committed weights or caches
+        entry: python3 scripts/check_no_weights.py
+        language: system
+        pass_filenames: false

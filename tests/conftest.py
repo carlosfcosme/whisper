@@ -1,7 +1,6 @@
 import os
 import random as rand
 
-import numpy
 import pytest
 
 # CI / Cloud Agent path: CPU-only, no Hub download, bind 127.0.0.1.
@@ -53,5 +52,7 @@ def _no_hf_hub_pull(monkeypatch):
 
 @pytest.fixture
 def random():
+    import numpy
+
     rand.seed(42)
     numpy.random.seed(42)
