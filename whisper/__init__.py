@@ -11,6 +11,15 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .offline import (
+    assert_loopback,
+    bind_host,
+    bind_localhost,
+    default_device,
+    guard_download_url,
+    listen_localhost,
+    require_local_path,
+)
 from .transcribe import transcribe
 from .version import __version__
 
@@ -70,6 +79,9 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
+    # Cache miss: Hub is never allowed. Remote pulls are off by default.
+    guard_download_url(url)
+
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
@@ -115,7 +127,8 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU
+        (``WHISPER_DEVICE`` or ``"cpu"``). Pass ``"cuda"`` for GPU.
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
@@ -128,7 +141,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = default_device()
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Test fixtures (sample audio and tokenizer assets) live in the checkout.
+See [tests/README.md](tests/README.md). Do not download sample audio.
+
 
 ## Available models and languages
 
