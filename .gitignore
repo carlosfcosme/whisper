@@ -9,3 +9,19 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and local caches must stay untracked.
+.cache/
+cache/
+weights/
+.huggingface/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+*.ggml
+*.bin
+.env
+.env.*
+

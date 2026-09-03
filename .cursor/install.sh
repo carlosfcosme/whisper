@@ -23,5 +23,14 @@ pip install --break-system-packages \
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
 pip install --break-system-packages -e ".[dev]"
 
+# Import-only readiness check. Isolated cache so install cannot leave checkpoints.
+_install_cache="$(mktemp -d)"
+trap 'rm -rf "${_install_cache}"' EXIT
 echo "whisper environment ready:"
-python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+XDG_CACHE_HOME="${_install_cache}" python3 -c \
+  "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__, '| device', whisper.DEFAULT_DEVICE)"
+
+if find "${_install_cache}" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.safetensors' \) | grep -q .; then
+  echo "install.sh must not download model weights" >&2
+  exit 1
+fi

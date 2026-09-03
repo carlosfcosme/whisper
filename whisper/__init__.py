@@ -2,6 +2,7 @@ import hashlib
 import io
 import os
 import urllib
+import urllib.parse
 import warnings
 from typing import List, Optional, Union
 
@@ -13,6 +14,46 @@ from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
+
+# CPU is the default device unless the caller passes device= explicitly.
+# default_device() never consults torch.cuda.is_available().
+DEFAULT_DEVICE = "cpu"
+
+_HF_HUB_HOSTS = {"huggingface.co", "hf.co"}
+_HF_HUB_SUFFIXES = (".huggingface.co", ".hf.co")
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def default_device() -> str:
+    """Return the default PyTorch device: CPU, never CUDA auto-select.
+
+    ``WHISPER_DEVICE`` may override. CUDA availability is ignored.
+    """
+    explicit = os.environ.get("WHISPER_DEVICE", "").strip()
+    return explicit or DEFAULT_DEVICE
+
+
+class WeightDownloadError(RuntimeError):
+    """Raised when an automatic model-weight pull is refused."""
+
+
+def is_blocked_hub_host(url: str) -> bool:
+    """True for Hugging Face Hub hosts (never fetched on the default path)."""
+    host = (urllib.parse.urlparse(url).hostname or "").lower().rstrip(".")
+    if not host:
+        return False
+    return host in _HF_HUB_HOSTS or host.endswith(_HF_HUB_SUFFIXES)
+
+
+def weight_auto_download_allowed() -> bool:
+    """False by default. Hub fetches are never allowed.
+
+    Opt in to the official Azure CDN only with ``WHISPER_ALLOW_WEIGHT_DOWNLOAD=1``.
+    """
+    if os.environ.get("WHISPER_ALLOW_WEIGHT_DOWNLOAD", "").strip().lower() in _TRUTHY:
+        return True
+    return False
+
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -70,6 +111,18 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
+    if is_blocked_hub_host(url):
+        host = (urllib.parse.urlparse(url).hostname or "<unknown>").lower().rstrip(".")
+        raise WeightDownloadError(
+            f"Refusing Hugging Face Hub weight pull from host {host!r}. "
+            "Pass a local checkpoint path to load_model()."
+        )
+    if not weight_auto_download_allowed():
+        raise WeightDownloadError(
+            "Weight auto-download is disabled by default. "
+            "Pass a local checkpoint path to load_model()."
+        )
+
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
@@ -115,7 +168,8 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU
+        (`DEFAULT_DEVICE`). Pass `device="cuda"` to use a GPU.
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
@@ -128,7 +182,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = default_device()
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
