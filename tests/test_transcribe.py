@@ -1,16 +1,17 @@
 import os
 
 import pytest
-import torch
 
 import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+@pytest.mark.requires_hub
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
+    # Opt-in only: downloads official checkpoints. Default/CI suites skip this
+    # via `-m 'not requires_hub'`. Always run on CPU when enabled.
+    model = whisper.load_model(model_name, device=whisper.DEFAULT_DEVICE)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None

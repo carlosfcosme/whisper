@@ -9,3 +9,17 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights / checkpoints must not be committed (CI enforces this).
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.ggml
+*.gguf
+*.h5
+*.tflite
+*.pb
+*.mlmodel
+*.weights
+
