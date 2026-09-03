@@ -9,3 +9,16 @@ thumbs.db
 .DS_Store
 .idea
 
+# Whisper writes checkpoints to $XDG_CACHE_HOME/whisper when that env var is
+# set, otherwise ~/.cache/whisper. CLI --model_dir / load_model(download_root=)
+# can also point at a directory inside this checkout. Keep those files out of git.
+.cache/
+cache/
+weights/
+*.pt
+*.pth
+
+# Local secrets — never commit credentials or API keys
+.env
+.env.*
+
