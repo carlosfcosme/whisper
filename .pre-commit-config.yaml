@@ -34,3 +34,9 @@ repos:
         entry: bash scripts/check_cache_weights.sh
         pass_filenames: false
         always_run: true
+      - id: check-no-weights
+        name: fail if model weights or large binaries are committed
+        language: system
+        entry: python3 scripts/check_no_weights.py
+        pass_filenames: false
+        always_run: true
