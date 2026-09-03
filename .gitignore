@@ -27,11 +27,15 @@ thumbs.db
 *.params
 *.weights
 *.mlmodel
+weights/
+checkpoints/
 
 # Local caches and virtualenvs
 .venv/
 venv/
 .cache/
+.huggingface/
+huggingface/
 build/
 dist/
 
