@@ -9,3 +9,15 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and Hub/cache trees must not be committed. CI fails if they are tracked.
+.cache/
+cache/
+weights/
+.huggingface/
+hub/
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+
