@@ -34,6 +34,12 @@ repos:
         entry: bash scripts/check_cache_weights.sh
         pass_filenames: false
         always_run: true
+      - id: check-no-hub
+        name: fail if Hub-online CI or Hub client imports appear
+        language: system
+        entry: python3 scripts/check_no_hub.py
+        pass_filenames: false
+        always_run: true
       - id: check-no-weights
         name: fail if model weights or large binaries are committed
         language: system

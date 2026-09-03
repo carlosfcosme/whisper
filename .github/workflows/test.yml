@@ -48,6 +48,12 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  no-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if CI can contact the Hub or pull weights
+        run: python3 scripts/check_no_hub.py
   bind-guard:
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +63,7 @@ jobs:
       - name: Fail if bind policy accepts a non-loopback host
         run: python3 scripts/check_loopback_bind.py
   whisper-test:
-    needs: [pre-commit, cache-weights, no-committed-weights, bind-guard]
+    needs: [pre-commit, cache-weights, no-committed-weights, no-hub, bind-guard]
     runs-on: ubuntu-latest
     env:
       CUDA_VISIBLE_DEVICES: ""

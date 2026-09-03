@@ -18,6 +18,8 @@ thumbs.db
 cache/
 cache/whisper/
 **/.cache/whisper/
+.huggingface/
+hf_cache/
 weights/
 *.pt
 *.pth
