@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+`whisper.DEFAULT_DEVICE` is **`cpu`** (sovereign code default, not a CUDA
+fallback). Cloud Agent and CI install CPU `torch` wheels. See [CPU.md](CPU.md).
+
 
 ## Available models and languages
 
@@ -85,6 +88,10 @@ The following command will transcribe speech in audio files, using the `turbo` m
 
     whisper audio.flac audio.mp3 audio.wav --model turbo
 
+`--device` defaults to `cpu` (`whisper.DEFAULT_DEVICE`). See [CPU.md](CPU.md).
+The `turbo` samples above download model weights on a cache miss; `--help`
+does not. Tests must not download from the Hugging Face Hub.
+
 The default setting (which selects the `turbo` model) works well for transcribing English. To transcribe an audio file containing non-English speech, you can specify the language using the `--language` option:
 
     whisper japanese.wav --language Japanese
@@ -111,6 +118,9 @@ model = whisper.load_model("turbo")
 result = model.transcribe("audio.mp3")
 print(result["text"])
 ```
+
+`load_model()` defaults to CPU (`whisper.DEFAULT_DEVICE`). Pass
+`device="cuda"` to use a GPU. See [CPU.md](CPU.md).
 
 Internally, the `transcribe()` method reads the entire file and processes the audio with a sliding 30-second window, performing autoregressive sequence-to-sequence predictions on each window.
 

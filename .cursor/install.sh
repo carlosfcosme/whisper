@@ -13,8 +13,9 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
 fi
 
 # CPU-only PyTorch (no CUDA in the Cloud Agent VM), pinned to the version CI
-# uses for Python 3.12. --break-system-packages installs into the user site so
-# the `whisper`, `pytest`, and lint entrypoints land on ~/.local/bin (on PATH).
+# uses for Python 3.12. whisper.DEFAULT_DEVICE is cpu (see CPU.md).
+# --break-system-packages installs into the user site so the `whisper`,
+# `pytest`, and lint entrypoints land on ~/.local/bin (on PATH).
 pip install --break-system-packages \
   "numpy" torch==2.5.1+cpu \
   --index-url https://download.pytorch.org/whl/cpu \
