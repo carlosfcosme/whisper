@@ -4,7 +4,14 @@ import random as rand
 import numpy
 import pytest
 
-# Ticket 4: CPU-only, offline/no-store. No GPU, no weight downloads.
+from tests.netguard import (
+    NetworkBlocked,
+    hostname_from_address,
+    hostname_from_urlopen_target,
+    is_loopback_host,
+)
+
+# CPU-only, no-store, no-fetch. No GPU, no weight downloads.
 os.environ.setdefault("WHISPER_CPU_ONLY", "1")
 os.environ.setdefault("WHISPER_NO_STORE", "1")
 os.environ.setdefault("WHISPER_OFFLINE", "1")
@@ -19,18 +26,53 @@ def pytest_configure(config):
 
 @pytest.fixture(autouse=True)
 def _bind_127_0_0_1_only(monkeypatch):
-    """No 0.0.0.0 in unit tests."""
+    """Unit tests may bind loopback only (not 0.0.0.0 / public)."""
     import socket
 
     original_bind = socket.socket.bind
 
     def guarded(self, address):
-        host = address[0] if isinstance(address, tuple) and address else address
-        if host in ("", "0.0.0.0", "::", "::0"):
+        host = hostname_from_address(address)
+        if host in ("", "0.0.0.0", "::", "::0") or (
+            isinstance(host, str) and host and not is_loopback_host(host)
+        ):
             raise OSError("unit tests must bind 127.0.0.1, not a wildcard")
         return original_bind(self, address)
 
     monkeypatch.setattr(socket.socket, "bind", guarded)
+
+
+@pytest.fixture(autouse=True)
+def _block_non_loopback_network(monkeypatch):
+    """No-fetch: block WAN urlopen/connect. Loopback is allowed for bind checks."""
+    import socket
+    import urllib.request
+
+    original_urlopen = urllib.request.urlopen
+    original_connect = socket.socket.connect
+    original_connect_ex = socket.socket.connect_ex
+
+    def guarded_urlopen(url, *args, **kwargs):
+        host = hostname_from_urlopen_target(url)
+        if not is_loopback_host(host):
+            raise NetworkBlocked(f"network blocked: urlopen to {host!r}")
+        return original_urlopen(url, *args, **kwargs)
+
+    def guarded_connect(self, address):
+        host = hostname_from_address(address)
+        if isinstance(host, str) and not is_loopback_host(host):
+            raise NetworkBlocked(f"network blocked: connect to {host!r}")
+        return original_connect(self, address)
+
+    def guarded_connect_ex(self, address):
+        host = hostname_from_address(address)
+        if isinstance(host, str) and not is_loopback_host(host):
+            raise NetworkBlocked(f"network blocked: connect_ex to {host!r}")
+        return original_connect_ex(self, address)
+
+    monkeypatch.setattr(urllib.request, "urlopen", guarded_urlopen)
+    monkeypatch.setattr(socket.socket, "connect", guarded_connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", guarded_connect_ex)
 
 
 @pytest.fixture(autouse=True)
