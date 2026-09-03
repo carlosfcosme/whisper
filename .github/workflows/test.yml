@@ -8,6 +8,15 @@ on:
       - main
 
 jobs:
+  reject-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fail if model weight files are committed
+        run: python whisper/committed_weights.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +46,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, reject-committed-weights]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

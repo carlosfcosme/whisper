@@ -11,6 +11,7 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .sources import default_device, is_hub_source, reject_hub_source
 from .transcribe import transcribe
 from .version import __version__
 
@@ -115,9 +116,10 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into; defaults to CPU
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to download the model files; by default, it uses "~/.cache/whisper".
+        Hugging Face Hub locations are rejected.
     in_memory: bool
         whether to preload the model weights into host memory
 
@@ -127,8 +129,11 @@ def load_model(
         The Whisper ASR model instance
     """
 
+    reject_hub_source(name)
+    reject_hub_source(download_root)
+
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = default_device()
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
