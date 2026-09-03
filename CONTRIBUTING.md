@@ -17,6 +17,7 @@ inference only. It does not install the test extras.
 - git
 - Python 3.8–3.13 (the CI matrix in `.github/workflows/test.yml`)
 - [`ffmpeg`](https://ffmpeg.org/) on `PATH` (runtime audio decoder)
+- `python3-venv` on Debian/Ubuntu (`python3 -m venv` needs it)
 
 A CPU is enough. Tests marked `requires_cuda` are skipped without a GPU.
 
@@ -28,7 +29,7 @@ cd whisper
 
 # Debian/Ubuntu. Other OS ffmpeg commands are in README.md.
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends ffmpeg
+sudo apt-get install -y --no-install-recommends ffmpeg python3-venv
 
 python3 -m venv .venv
 source .venv/bin/activate
