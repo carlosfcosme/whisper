@@ -9,3 +9,22 @@ thumbs.db
 .DS_Store
 .idea
 
+# Project-local cache and weight directories stay untracked.
+# load_model() writes to ~/.cache/whisper or $XDG_CACHE_HOME/whisper
+# (whisper/__init__.py). --model_dir / download_root can point inside
+# this checkout. A local weights/ directory is also ignored so dumped
+# checkpoints stay untracked.
+.cache/
+cache/
+weights/
+.huggingface/
+hub/
+*.pt
+*.pth
+*.safetensors
+*.bin
+
+# Local secrets — never commit credentials or API keys
+.env
+.env.*
+
