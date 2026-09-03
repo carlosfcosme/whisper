@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
-# Idempotent Cloud Agent setup for whisper.
+# Idempotent Cloud Agent setup for whisper (sovereign).
 # Installs ffmpeg and the package (with dev extras) using a CPU build of
 # PyTorch so tests and the `whisper` CLI run without a GPU.
 # Do not download or commit model checkpoints (.pt). Install is deps only.
+# Do not install or call Hugging Face Hub / huggingface_hub / from_pretrained.
 set -euo pipefail
+
+# Offline for any transitive Hub client. Whisper itself does not use the Hub.
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
 
 cd "$(dirname "$0")/.."
 
