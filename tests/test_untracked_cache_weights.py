@@ -88,15 +88,39 @@ def test_tracked_assets_are_not_gitignored():
 
 
 def test_dummy_checkpoints_are_refused_by_git_add():
-    for path in IGNORE_EXAMPLES:
-        added = _git("add", "-n", "--", path)
-        assert added.returncode == 0, added.stderr
-        assert path not in added.stdout, added.stdout
+    created = []
+    try:
+        for rel in IGNORE_EXAMPLES:
+            path = REPO_ROOT / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"not-a-real-checkpoint")
+            created.append(path)
+        status = _git("status", "--porcelain", "--", *IGNORE_EXAMPLES)
+        assert status.returncode == 0, status.stderr
+        assert status.stdout.strip() == "", status.stdout
+        added = _git("add", "-n", "--", *IGNORE_EXAMPLES)
+        assert added.returncode != 0, added.stdout
+        assert added.stdout.strip() == "", added.stdout
+        assert "ignored" in added.stderr
+    finally:
+        for path in created:
+            path.unlink()
+            parent = path.parent
+            while parent != REPO_ROOT and parent.exists() and not any(parent.iterdir()):
+                parent.rmdir()
+                parent = parent.parent
 
 
 def test_environment_is_localhost_only():
     env = json.loads((REPO_ROOT / ".cursor/environment.json").read_text())
     assert "ports" not in env
     assert "start" not in env
-    assert "0.0.0.0" not in (REPO_ROOT / ".cursor/install.sh").read_text()
-    assert "0.0.0.0" not in (REPO_ROOT / ".github/workflows/test.yml").read_text()
+    install = (REPO_ROOT / ".cursor/install.sh").read_text()
+    assert "0.0.0.0" not in install
+    bind_tokens = ("--host", " bind", "listen")
+    bind_hits = [
+        line
+        for line in (REPO_ROOT / ".github/workflows/test.yml").read_text().splitlines()
+        if "0.0.0.0" in line and any(token in line for token in bind_tokens)
+    ]
+    assert bind_hits == [], "CI must not bind 0.0.0.0: {0}".format(bind_hits)

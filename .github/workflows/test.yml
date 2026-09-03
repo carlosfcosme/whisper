@@ -40,11 +40,9 @@ jobs:
 
           env = json.loads(Path(".cursor/environment.json").read_text())
           assert "ports" not in env, env
-          install = Path(".cursor/install.sh").read_text()
-          assert "0.0.0.0" not in install
-          workflow = Path(".github/workflows/test.yml").read_text()
-          assert "0.0.0.0" not in workflow
-          print("127.0.0.1 only: environment publishes no ports; install/CI bind nothing")
+          assert "start" not in env, env
+          assert "0.0.0.0" not in Path(".cursor/install.sh").read_text()
+          print("127.0.0.1 only: environment publishes no ports; install binds nothing")
           PY
   pre-commit:
     runs-on: ubuntu-latest
