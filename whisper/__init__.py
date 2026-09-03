@@ -33,15 +33,26 @@ def default_device() -> str:
     return explicit or DEFAULT_DEVICE
 
 
+class WeightDownloadError(RuntimeError):
+    """Raised when an automatic model-weight pull is refused."""
+
+
+def is_blocked_hub_host(url: str) -> bool:
+    """True for Hugging Face Hub hosts (never fetched on the default path)."""
+    host = (urllib.parse.urlparse(url).hostname or "").lower().rstrip(".")
+    if not host:
+        return False
+    return host in _HF_HUB_HOSTS or host.endswith(_HF_HUB_SUFFIXES)
+
+
 def weight_auto_download_allowed() -> bool:
-    """False in CI/tests (``WHISPER_NO_WEIGHT_DOWNLOAD`` or ``CI``)."""
+    """False by default. Hub fetches are never allowed.
+
+    Opt in to the official Azure CDN only with ``WHISPER_ALLOW_WEIGHT_DOWNLOAD=1``.
+    """
     if os.environ.get("WHISPER_ALLOW_WEIGHT_DOWNLOAD", "").strip().lower() in _TRUTHY:
         return True
-    if os.environ.get("WHISPER_NO_WEIGHT_DOWNLOAD", "").strip().lower() in _TRUTHY:
-        return False
-    if os.environ.get("CI", "").strip().lower() in _TRUTHY:
-        return False
-    return True
+    return False
 
 
 _MODELS = {
@@ -100,15 +111,15 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
-    host = (urllib.parse.urlparse(url).hostname or "").lower().rstrip(".")
-    if host in _HF_HUB_HOSTS or host.endswith(_HF_HUB_SUFFIXES):
-        raise RuntimeError(
+    if is_blocked_hub_host(url):
+        host = (urllib.parse.urlparse(url).hostname or "<unknown>").lower().rstrip(".")
+        raise WeightDownloadError(
             f"Refusing Hugging Face Hub weight pull from host {host!r}. "
             "Pass a local checkpoint path to load_model()."
         )
     if not weight_auto_download_allowed():
-        raise RuntimeError(
-            "Weight auto-download is disabled (WHISPER_NO_WEIGHT_DOWNLOAD or CI). "
+        raise WeightDownloadError(
+            "Weight auto-download is disabled by default. "
             "Pass a local checkpoint path to load_model()."
         )
 

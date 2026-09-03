@@ -38,3 +38,8 @@ repos:
         entry: python3 scripts/check_no_weights.py
         language: system
         pass_filenames: false
+      - id: check-no-hub
+        name: download helpers unused (no Hub)
+        entry: python3 scripts/check_no_hub.py
+        language: system
+        pass_filenames: false

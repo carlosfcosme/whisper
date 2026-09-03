@@ -58,7 +58,7 @@ def test_load_model_omitted_device_is_cpu_even_if_cuda_claims_available(
 
 
 def test_download_refuses_huggingface_hub(tmp_path):
-    with pytest.raises(RuntimeError, match="Hugging Face Hub"):
+    with pytest.raises(whisper.WeightDownloadError, match="Hugging Face Hub"):
         whisper._download(
             "https://huggingface.co/openai/whisper/resolve/main/tiny.pt",
             str(tmp_path),
@@ -66,12 +66,23 @@ def test_download_refuses_huggingface_hub(tmp_path):
         )
 
 
-def test_download_refuses_cdn_when_weight_pull_disabled(tmp_path):
-    assert not whisper.weight_auto_download_allowed()
-    with pytest.raises(RuntimeError, match="Weight auto-download is disabled"):
+def test_download_denied_by_default_even_without_ci_env(monkeypatch, tmp_path):
+    monkeypatch.delenv("WHISPER_NO_WEIGHT_DOWNLOAD", raising=False)
+    monkeypatch.delenv("WHISPER_ALLOW_WEIGHT_DOWNLOAD", raising=False)
+    monkeypatch.delenv("CI", raising=False)
+    assert whisper.weight_auto_download_allowed() is False
+    with pytest.raises(whisper.WeightDownloadError, match="disabled by default"):
         whisper._download(
             "https://openaipublic.azureedge.net/main/whisper/models/"
             "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
             str(tmp_path),
             False,
         )
+
+
+def test_load_model_named_checkpoint_is_offline(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    monkeypatch.delenv("WHISPER_ALLOW_WEIGHT_DOWNLOAD", raising=False)
+    with pytest.raises(whisper.WeightDownloadError):
+        whisper.load_model("tiny")
+    assert list(tmp_path.rglob("*.pt")) == []
