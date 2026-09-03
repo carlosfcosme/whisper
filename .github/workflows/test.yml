@@ -65,6 +65,25 @@ jobs:
           pip install pytest
           pytest -vv tests/test_gitignore_weights.py
 
+  offline-venv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU package into the runner site
+        run: |
+          pip install "numpy" torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+          pip install -e ".[dev]"
+      - name: Offline suite inside an isolated venv
+        run: bash scripts/run_offline_venv_tests.sh
+        env:
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
