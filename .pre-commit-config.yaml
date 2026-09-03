@@ -34,3 +34,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: check-bind-localhost
+        name: bind 127.0.0.1 only
+        entry: python3 scripts/check_bind_localhost.py
+        language: system
+        pass_filenames: false
+        always_run: true
