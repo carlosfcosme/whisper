@@ -22,12 +22,18 @@ class RemoteFixtureError(ValueError):
     """Raised when a fixture path is an HTTP(S) or Hub URL."""
 
 
+def is_hub_url(path: PathLike) -> bool:
+    """True for Hugging Face Hub / hf.co addresses."""
+    text = str(path).strip().lower()
+    return any(marker in text for marker in HUB_MARKERS)
+
+
 def is_remote_fixture_url(path: PathLike) -> bool:
     """True for http(s) URLs and Hugging Face Hub / hf.co addresses."""
     text = str(path).strip().lower()
     if text.startswith(REMOTE_SCHEMES):
         return True
-    return any(marker in text for marker in HUB_MARKERS)
+    return is_hub_url(text)
 
 
 def is_weight_download_url(path: PathLike) -> bool:

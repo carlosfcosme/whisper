@@ -16,6 +16,7 @@ _spec = importlib.util.spec_from_file_location("whisper_fixtures", _FIXTURES_PAT
 _fixtures = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_fixtures)
 assert_local_fixture = _fixtures.assert_local_fixture
+is_hub_url = _fixtures.is_hub_url
 is_remote_fixture_url = _fixtures.is_remote_fixture_url
 is_weight_download_url = _fixtures.is_weight_download_url
 write_tiny_wav = _fixtures.write_tiny_wav
@@ -131,7 +132,7 @@ def block_hub_and_weight_downloads(monkeypatch, request):
 
     def guarded(url, *args, **kwargs):
         target = _request_target(url)
-        if is_remote_fixture_url(target) and "127.0.0.1" not in target:
+        if is_hub_url(target):
             raise RuntimeError("tests must not contact the Hub: {}".format(target))
         if not allow_cached_weights and is_weight_download_url(target):
             raise RuntimeError("tests must not download weights: {}".format(target))
