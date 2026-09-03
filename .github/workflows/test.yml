@@ -36,8 +36,23 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  bind-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if 0.0.0.0 or empty-host bind appears under whisper/ or .cursor/
+        run: bash scripts/check_no_all_interfaces.sh
+      - name: Fail if bind policy accepts a non-loopback host
+        run: python3 scripts/check_loopback_bind.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Loopback bind pytest (no torch, no Hub)
+        run: |
+          python -m pip install pytest numpy
+          pytest tests/test_bind.py tests/test_loopback_ci.py -vv
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, bind-guard]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
