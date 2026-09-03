@@ -21,10 +21,11 @@ HUB_TOKENS = (
 
 
 def _python_test_files():
+    skip = {"test_no_hub.py", "test_local_fixtures.py"}
     return sorted(
         path
         for path in TESTS_DIR.glob("test_*.py")
-        if path.is_file() and path.name != "test_no_hub.py"
+        if path.is_file() and path.name not in skip
     )
 
 
@@ -53,6 +54,8 @@ def test_ci_does_not_download_weights():
         "-k 'not test_transcribe'" in workflow or '-k "not test_transcribe"' in workflow
     )
     assert "Fail if CI downloaded weights" in workflow
+    assert "local-fixtures" in workflow
+    assert "python3 tests/local_fixtures.py" in workflow
 
 
 def test_test_sources_do_not_reference_the_hub():

@@ -30,6 +30,12 @@ jobs:
           do
             git check-ignore -q -- "$path"
           done
+  local-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if tests use remote fixture URLs
+        run: python3 tests/local_fixtures.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:

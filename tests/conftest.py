@@ -1,9 +1,16 @@
 import os
 import random as rand
 import socket
+from pathlib import Path
 
 import numpy
 import pytest
+
+from tests.local_fixtures import (
+    SAMPLE_AUDIO_PATH,
+    assert_local_fixture_path,
+    write_tiny_wav,
+)
 
 # No Hub fetch and no checkpoint download for the entire test process.
 os.environ["WHISPER_OFFLINE"] = "1"
@@ -63,3 +70,16 @@ def _block_huggingface_hub(monkeypatch):
 def random():
     rand.seed(42)
     numpy.random.seed(42)
+
+
+@pytest.fixture
+def sample_audio_path():
+    """Local JFK clip checked into tests/. Never a URL."""
+    return str(assert_local_fixture_path(SAMPLE_AUDIO_PATH))
+
+
+@pytest.fixture
+def tiny_audio_path(tmp_path):
+    """Tiny locally generated WAV. No WAN, no Hub, no keys."""
+    dest = Path(tmp_path) / "tiny_sine.wav"
+    return str(write_tiny_wav(dest))
