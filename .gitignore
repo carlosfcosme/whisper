@@ -9,3 +9,13 @@ thumbs.db
 .DS_Store
 .idea
 
+# Downloaded / local checkpoints — do not commit weights
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.gguf
+.cache/
+cache/
+
