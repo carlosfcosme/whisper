@@ -106,3 +106,31 @@ def tiny_fixture_path(*, generate: bool = True) -> Path:
 def sample_audio_path() -> Path:
     """In-repo JFK sample used by audio/transcribe tests. Local file only."""
     return require_local_fixture(JFK_FIXTURE_PATH)
+
+
+def require_local_cached_model(
+    name: str, download_root: Optional[Union[str, Path]] = None
+) -> Path:
+    """Return an existing local checkpoint. Never fetches over WAN.
+
+    ``name`` is a filesystem path, or a known model basename already on disk
+    under ``download_root``. Remote URLs are refused.
+    """
+    raw = (name or "").strip()
+    if is_remote_asset_url(raw):
+        raise RemoteFixtureError(
+            f"refusing remote model URL {raw!r}; use a local cached fixture"
+        )
+    candidate = Path(raw)
+    if candidate.is_file():
+        return candidate.resolve()
+    if download_root is not None:
+        cached = Path(download_root) / Path(raw).name
+        if cached.is_file():
+            return cached.resolve()
+        with_pt = Path(download_root) / f"{raw}.pt"
+        if with_pt.is_file():
+            return with_pt.resolve()
+    raise FileNotFoundError(
+        f"local cached model fixture missing for {name!r}; WAN fetch is disabled"
+    )

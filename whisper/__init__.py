@@ -22,6 +22,7 @@ from .runtime import (
     DEFAULT_DEVICE,
     WeightDownloadError,
     default_device,
+    is_remote_model_url,
     refuse_weight_auto_download,
     weight_auto_download_allowed,
 )
@@ -136,7 +137,8 @@ def load_model(
         ``default_device()`` (``cpu``, not CUDA).
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper".
-        Hugging Face Hub URLs are refused. Auto-download is refused on CI.
+        Hugging Face Hub and WAN model URLs are refused. A local cached
+        fixture or checkpoint path is required.
     in_memory: bool
         whether to preload the model weights into host memory
 

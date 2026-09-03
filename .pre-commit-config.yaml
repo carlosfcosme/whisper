@@ -48,3 +48,8 @@ repos:
         entry: python3 scripts/check_no_wan_fixtures.py
         language: system
         pass_filenames: false
+      - id: check-no-wan-coverage
+        name: no-WAN coverage (fixtures, no fetch, 127.0.0.1)
+        entry: python3 scripts/check_no_wan_coverage.py
+        language: system
+        pass_filenames: false

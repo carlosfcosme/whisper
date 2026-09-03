@@ -51,6 +51,43 @@ def _no_hf_hub_pull(monkeypatch):
         )
 
 
+@pytest.fixture(autouse=True)
+def _fail_any_wan_model_fetch(monkeypatch):
+    """Fail any non-loopback http(s) fetch (models, Hub, CDN, fixtures)."""
+    import urllib.request
+    from urllib.parse import urlparse
+
+    original = urllib.request.urlopen
+
+    def _target(url):
+        if isinstance(url, str):
+            return url
+        full_url = getattr(url, "full_url", None)
+        if full_url:
+            return str(full_url)
+        get_full_url = getattr(url, "get_full_url", None)
+        if callable(get_full_url):
+            return str(get_full_url())
+        return str(url)
+
+    def guarded(url, *args, **kwargs):
+        target = _target(url)
+        parsed = urlparse(target)
+        host = (parsed.hostname or "").lower().rstrip(".")
+        if parsed.scheme in {"http", "https", "ftp"} and host not in {
+            "127.0.0.1",
+            "localhost",
+            "::1",
+        }:
+            raise RuntimeError(
+                "tests must not fetch over WAN (local fixtures + 127.0.0.1 only): "
+                + target
+            )
+        return original(url, *args, **kwargs)
+
+    monkeypatch.setattr(urllib.request, "urlopen", guarded)
+
+
 @pytest.fixture
 def sample_audio_path():
     """Absolute path to tests/jfk.flac (in-repo). Never a network URL."""

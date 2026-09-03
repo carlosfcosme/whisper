@@ -6,6 +6,7 @@ import whisper
 from whisper.runtime import (
     WeightDownloadError,
     is_hf_hub_url,
+    is_remote_model_url,
     refuse_weight_auto_download,
 )
 
@@ -27,6 +28,8 @@ def _forbid_network(monkeypatch):
 def test_hf_hub_url_is_detected():
     assert is_hf_hub_url(HF_HUB_URL)
     assert not is_hf_hub_url(whisper._MODELS["tiny"])
+    assert is_remote_model_url(whisper._MODELS["tiny"])
+    assert is_remote_model_url(HF_HUB_URL)
 
 
 def test_refuse_hf_hub_and_ci_auto_download(monkeypatch, tmp_path):

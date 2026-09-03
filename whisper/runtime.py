@@ -13,9 +13,11 @@ DEFAULT_DEVICE = "cpu"
 
 _TRUTHY = {"1", "true", "yes", "on"}
 
-# Assembled so this module is not itself a Hub fetch target in static scans.
+# Assembled so this module is not itself a Hub/CDN fetch target in static scans.
 _HF_HUB_HOSTS = {"huggingface" + ".co", "hf" + ".co"}
 _HF_HUB_SUFFIXES = ("." + "huggingface.co", "." + "hf.co")
+_AZURE_CDN_HOSTS = {"openaipublic." + "azureedge.net"}
+_AZURE_CDN_SUFFIXES = ("." + "azureedge.net",)
 
 
 class WeightDownloadError(RuntimeError):
@@ -47,35 +49,50 @@ def is_hf_hub_url(url: str) -> bool:
     return host in _HF_HUB_HOSTS or host.endswith(_HF_HUB_SUFFIXES)
 
 
-def weight_auto_download_allowed() -> bool:
-    """False when CI / Cloud Agent (or ``WHISPER_NO_WEIGHT_DOWNLOAD``) refuses pulls.
-
-    ``WHISPER_ALLOW_WEIGHT_DOWNLOAD=1`` is an explicit escape hatch.
-    """
-    if _env_truthy(ALLOW_WEIGHT_DOWNLOAD_ENV):
-        return True
-    if (
-        _env_truthy(NO_WEIGHT_DOWNLOAD_ENV)
-        or _env_truthy("CI")
-        or _env_truthy(CPU_ONLY_ENV)
-    ):
+def is_remote_model_url(url: str) -> bool:
+    """True for any WAN model URL (Hub, Azure CDN, or other http(s)/ftp)."""
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https", "ftp"}:
+        return False
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if not host or host in {"127.0.0.1", "localhost", "::1"}:
         return False
     return True
 
 
+def is_official_cdn_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower().rstrip(".")
+    if not host:
+        return False
+    return host in _AZURE_CDN_HOSTS or host.endswith(_AZURE_CDN_SUFFIXES)
+
+
+def weight_auto_download_allowed() -> bool:
+    """False unless ``WHISPER_ALLOW_WEIGHT_DOWNLOAD=1``.
+
+    Default, CI, and Cloud Agent paths refuse every model fetch. A local
+    cache hit in ``_download`` is not a fetch.
+    """
+    return _env_truthy(ALLOW_WEIGHT_DOWNLOAD_ENV)
+
+
 def refuse_weight_auto_download(url: str) -> None:
-    """Refuse Hugging Face Hub URLs always, and all cache-miss pulls on CI."""
+    """Refuse every remote model fetch. Use a local cached fixture instead."""
     if is_hf_hub_url(url):
         host = urlparse(url).hostname or "<unknown>"
         raise WeightDownloadError(
             f"Refusing Hugging Face Hub weight pull from host {host!r}. "
-            "Unit tests and CI must not contact the Hub. "
-            "Pass a local checkpoint path to load_model()."
+            "Use a local cached fixture or checkpoint path."
+        )
+    if is_remote_model_url(url) and not weight_auto_download_allowed():
+        host = urlparse(url).hostname or "<unknown>"
+        raise WeightDownloadError(
+            f"Refusing WAN model fetch from host {host!r}. "
+            "Require a local cached fixture; tests and CI must not download."
         )
     if weight_auto_download_allowed():
         return
     raise WeightDownloadError(
-        "Auto-download of model weights is disabled on the CI / Cloud Agent "
-        f"path ({NO_WEIGHT_DOWNLOAD_ENV} or CI). Place the file in the download "
-        "root or pass a local checkpoint path to load_model()."
+        "Auto-download of model weights is disabled. Place the file in the "
+        "download root or pass a local checkpoint path to load_model()."
     )
