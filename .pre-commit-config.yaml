@@ -26,3 +26,38 @@ repos:
       - id: flake8
         types: [python]
         args: ["--max-line-length", "88", "--ignore", "E203,E501,W503,W504"]
+  - repo: local
+    hooks:
+      - id: no-install-weight-fetch
+        name: install.sh must not fetch model weights
+        language: pygrep
+        entry: 'load_model|_download|azureedge\.net'
+        files: '^\.cursor/install\.sh$'
+      - id: no-bind-all-interfaces
+        name: application code must not bind 0.0.0.0
+        language: pygrep
+        entry: '0\.0\.0\.0'
+        files: '^whisper/.*\.py$'
+      - id: no-hub-fetch
+        name: package code must not fetch from Hugging Face Hub
+        language: pygrep
+        entry: 'hf_hub_download|snapshot_download|from huggingface_hub|import huggingface_hub'
+        files: '^whisper/.*\.py$'
+      - id: no-remote-fixture-urls
+        name: tests must not assign remote audio fixture URLs
+        language: python
+        entry: python3 .github/scripts/fail-remote-fixture-urls.py
+        pass_filenames: false
+        always_run: true
+      - id: verify-gitignore
+        name: verify gitignore covers cache/weights/secrets
+        language: python
+        entry: python3 .github/scripts/verify-gitignore.py
+        pass_filenames: false
+        always_run: true
+      - id: fail-bind-wildcard
+        name: package must bind 127.0.0.1 only
+        language: python
+        entry: python3 .github/scripts/fail-bind-wildcard.py
+        pass_filenames: false
+        always_run: true

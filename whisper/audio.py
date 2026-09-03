@@ -39,6 +39,15 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     A NumPy array containing the audio waveform, in float32 dtype.
     """
 
+    if isinstance(file, str) and (
+        file.startswith(("http://", "https://"))
+        or "huggingface" in file.lower()
+        or "hf.co/" in file.lower()
+    ):
+        raise ValueError(
+            "load_audio refuses remote fixture URLs; use an in-repo or temp path"
+        )
+
     # This launches a subprocess to decode audio while down-mixing
     # and resampling as necessary.  Requires the ffmpeg CLI in PATH.
     # fmt: off
