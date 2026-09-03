@@ -20,7 +20,7 @@ Wheels from the install script land in the user site
 | Signal | In this tree / image? |
 | --- | --- |
 | `venv/`, `.venv/`, or `pyvenv.cfg` | No |
-| `python3 -m venv` in [`.cursor/install.sh`](.cursor/install.sh) | No |
+| `python3 -m venv` invoked by [`.cursor/install.sh`](.cursor/install.sh) | No (comment only) |
 | `Pipfile`, Conda `environment.yml` | No |
 | `VIRTUAL_ENV` | Unset |
 | `python3-venv` / `python3.12-venv` (apt) | Not installed |
