@@ -26,3 +26,17 @@ repos:
       - id: flake8
         types: [python]
         args: ["--max-line-length", "88", "--ignore", "E203,E501,W503,W504"]
+  - repo: local
+    hooks:
+      - id: offline-default
+        name: fail if default load path can pull weights
+        entry: python scripts/check_offline_default.py
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: localhost-only
+        name: fail if 0.0.0.0 bind is present
+        entry: python scripts/check_no_wildcard_bind.py
+        language: system
+        pass_filenames: false
+        always_run: true

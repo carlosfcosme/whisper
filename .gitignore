@@ -9,3 +9,11 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and local caches — never commit these
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.gguf
+.cache/whisper/
+
