@@ -50,21 +50,22 @@ def require_bind_127_0_0_1(host: Optional[str]) -> str:
 
 
 def resolve_device(device: Optional[str] = None) -> str:
-    """Return the inference device. Default path is CPU when forced.
+    """Return the inference device. Default path is CPU.
 
-    ``WHISPER_DEVICE=cpu`` (environment default) always selects CPU.
-    An explicit ``device`` argument wins.
+    Unset ``WHISPER_DEVICE`` and ``WHISPER_DEVICE=cpu`` both select CPU, so
+    the policy survives after ``install.sh`` exits. ``WHISPER_DEVICE=cuda``
+    or an explicit ``device`` argument opts into GPU when it is available.
     """
     import torch
 
     if device:
         return device
-    forced = os.environ.get(DEVICE_ENV, "").strip().lower()
+    forced = os.environ.get(DEVICE_ENV, "cpu").strip().lower() or "cpu"
     if forced == "cpu":
         return "cpu"
     if forced == "cuda":
         return "cuda" if torch.cuda.is_available() else "cpu"
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    return "cpu"
 
 
 def weight_fetch_allowed() -> bool:

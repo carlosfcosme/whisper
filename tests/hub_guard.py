@@ -149,6 +149,42 @@ def install_offline_network_block() -> None:
         guarded_cc._whisper_offline_guard = True
         socket.create_connection = guarded_cc
 
+    original_connect = socket.socket.connect
+    if not getattr(original_connect, "_whisper_offline_guard", False):
+
+        def guarded_connect(self, address):
+            if getattr(self, "family", None) == socket.AF_UNIX:
+                return original_connect(self, address)
+            if isinstance(address, str):
+                return original_connect(self, address)
+            host = (
+                address[0] if isinstance(address, (tuple, list)) and address else None
+            )
+            if host is not None:
+                refuse_wan_host(host)
+            return original_connect(self, address)
+
+        guarded_connect._whisper_offline_guard = True
+        socket.socket.connect = guarded_connect
+
+    original_connect_ex = socket.socket.connect_ex
+    if not getattr(original_connect_ex, "_whisper_offline_guard", False):
+
+        def guarded_connect_ex(self, address):
+            if getattr(self, "family", None) == socket.AF_UNIX:
+                return original_connect_ex(self, address)
+            if isinstance(address, str):
+                return original_connect_ex(self, address)
+            host = (
+                address[0] if isinstance(address, (tuple, list)) and address else None
+            )
+            if host is not None:
+                refuse_wan_host(host)
+            return original_connect_ex(self, address)
+
+        guarded_connect_ex._whisper_offline_guard = True
+        socket.socket.connect_ex = guarded_connect_ex
+
 
 def iter_test_sources(root: Optional[Path] = None) -> Iterable[Path]:
     base = TESTS_DIR if root is None else root
