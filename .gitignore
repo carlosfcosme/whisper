@@ -9,3 +9,17 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights — never commit checkpoints
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+pytorch_model.bin
+model.bin
+model.safetensors
+
+# Whisper / Hugging Face Hub / torch.hub caches (in-tree copies)
+.cache/
+.huggingface/
+hub/
+
