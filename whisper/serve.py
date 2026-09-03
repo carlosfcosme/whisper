@@ -1,8 +1,8 @@
 """Weights-free health server bound to 127.0.0.1 only.
 
 CLI: ``whisper serve``, ``whisper-serve``, or ``python3 -m whisper.serve``.
-Does not call ``load_model``, does not download checkpoints, and
-does not accept ``--live``. Binding an all-interface host is refused.
+Does not download checkpoints and does not accept ``--live``.
+Binding an all-interface host is refused.
 """
 
 from __future__ import annotations

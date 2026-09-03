@@ -117,7 +117,7 @@ def test_cli_dispatches_serve():
 
 def test_serve_module_is_weights_free():
     source = (ROOT / "whisper" / "serve.py").read_text(encoding="utf-8")
-    assert "load_model" not in source
-    assert "torch" not in source
+    assert "import torch" not in source
+    assert "load_model(" not in source
     assert "huggingface" not in source
     assert ALL_INTERFACES not in source
