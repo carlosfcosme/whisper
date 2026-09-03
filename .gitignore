@@ -9,3 +9,10 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model cache / checkpoints must not be committed. CI fails if they are tracked.
+.cache/
+cache/
+weights/
+*.pt
+*.pth
+
