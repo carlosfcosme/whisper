@@ -41,6 +41,7 @@ def pytest_configure(config):
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
     os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+    os.environ.setdefault("WHISPER_BIND_HOST", "127.0.0.1")
 
 
 def pytest_collection_modifyitems(config, items):
