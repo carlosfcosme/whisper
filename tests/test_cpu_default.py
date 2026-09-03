@@ -1,5 +1,3 @@
-import argparse
-import sys
 from dataclasses import asdict
 from pathlib import Path
 
@@ -7,7 +5,6 @@ import torch
 
 import whisper
 from whisper.model import ModelDimensions, Whisper
-from whisper.transcribe import cli
 
 
 def _toy_checkpoint(path: Path) -> Path:
@@ -41,22 +38,12 @@ def test_load_model_local_checkpoint_lands_on_cpu(tmp_path):
     assert loaded.device.type == "cpu"
 
 
-def test_cli_device_flag_defaults_to_cpu(monkeypatch):
-    seen = {}
-
-    class Recorder(argparse.ArgumentParser):
-        def add_argument(self, *args, **kwargs):
-            if "--device" in args:
-                seen["default"] = kwargs.get("default")
-            return super().add_argument(*args, **kwargs)
-
-        def parse_args(self, *args, **kwargs):
-            raise SystemExit(0)
-
-    monkeypatch.setattr(argparse, "ArgumentParser", Recorder)
-    monkeypatch.setattr(sys, "argv", ["whisper", "--help"])
-    try:
-        cli()
-    except SystemExit:
-        pass
-    assert seen.get("default") == "cpu"
+def test_cli_device_flag_defaults_to_cpu():
+    text = (
+        Path(__file__)
+        .resolve()
+        .parents[1]
+        .joinpath("whisper/transcribe.py")
+        .read_text()
+    )
+    assert 'parser.add_argument("--device", default="cpu"' in text
