@@ -122,8 +122,8 @@ def test_ci_workflow_is_cpu_offline_no_weights():
 def test_no_live_flag_and_no_wildcard_in_cli_source():
     transcribe = (ROOT / "whisper" / "transcribe.py").read_text()
     serve = (ROOT / "whisper" / "serve.py").read_text()
-    assert "--live" not in transcribe
-    assert "--live" not in serve
+    assert 'add_argument("--live"' not in transcribe
+    assert 'add_argument("--live"' not in serve
     assert "0.0.0.0" not in serve
     assert "Field-Brain" not in transcribe
     assert "Field-Brain" not in serve

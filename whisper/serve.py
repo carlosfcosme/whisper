@@ -1,4 +1,4 @@
-"""Loopback health helper. Binds 127.0.0.1. Cache-Control: no-store. No --live."""
+"""Loopback health helper. Binds 127.0.0.1. Cache-Control: no-store."""
 
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
