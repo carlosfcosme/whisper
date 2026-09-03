@@ -47,6 +47,23 @@ def _is_loopback_url(url):
 
 
 @pytest.fixture(autouse=True)
+def _forbid_non_loopback_bind(monkeypatch):
+    """Executable tests must not bind a wildcard or public interface."""
+    import socket
+
+    original_bind = socket.socket.bind
+    wildcards = {"", ".".join(("0", "0", "0", "0")), "::", "::0", "*"}
+
+    def guarded(self, address):
+        host = address[0] if isinstance(address, tuple) and address else address
+        if isinstance(host, str) and host in wildcards:
+            raise OSError("unit tests must bind 127.0.0.1, not a wildcard")
+        return original_bind(self, address)
+
+    monkeypatch.setattr(socket.socket, "bind", guarded)
+
+
+@pytest.fixture(autouse=True)
 def _forbid_hub_and_remote_downloads(monkeypatch):
     """Block Hub / remote weight downloads; 127.0.0.1 stays allowed."""
 

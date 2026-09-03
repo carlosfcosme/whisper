@@ -43,3 +43,8 @@ repos:
         entry: python3 scripts/check_no_hub.py
         language: system
         pass_filenames: false
+      - id: check-gitignore-caches
+        name: gitignore covers weights and caches
+        entry: python3 scripts/check_gitignore_caches.py
+        language: system
+        pass_filenames: false
