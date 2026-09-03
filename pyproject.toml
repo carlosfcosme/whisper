@@ -52,3 +52,9 @@ profile = "black"
 include_trailing_comma = true
 line_length = 88
 multi_line_output = 3
+
+[tool.pytest.ini_options]
+markers = [
+  "requires_cuda: test needs a CUDA device",
+  "requires_weights: test needs a local Whisper checkpoint (never download)",
+]

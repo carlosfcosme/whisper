@@ -8,6 +8,66 @@ on:
       - main
 
 jobs:
+  offline-no-hub:
+    runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gitignore covers weight and cache paths
+        run: python3 scripts/check_gitignore_caches.py
+      - name: Fail if model weights are committed
+        run: python3 scripts/check_no_weights.py
+      - name: Loopback-only bind (127.0.0.1)
+        run: python3 scripts/check_loopback_bind.py
+      - name: Tests intercept sockets (no BPF)
+        run: python3 scripts/check_network_intercept.py
+      - name: CI workflow stays offline (no Hub)
+        run: python3 scripts/check_ci_offline.py
+      - name: Fail if Hub tokens are set or Hub cache is populated
+        run: python3 scripts/assert_no_hub_fetch.py --require-offline-env
+      - name: gitignore matches cache/weight examples
+        run: |
+          set -euo pipefail
+          for path in \
+            .cache/whisper/tiny.pt \
+            .cache/huggingface/hub/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            hf_cache/tiny.safetensors \
+            whisper_cache/tiny.pt \
+            checkpoints/tiny.pt \
+            tiny.pt \
+            model.pth \
+            model.safetensors \
+            .env \
+            .env.local \
+            secrets.pem \
+            id_rsa.key
+          do
+            git check-ignore -q -- "$path"
+          done
+          tracked="$(git ls-files -- \
+            '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' \
+            '.huggingface' '.huggingface/**' 'hf_cache' 'hf_cache/**' \
+            'whisper_cache' 'whisper_cache/**' 'checkpoints' 'checkpoints/**' \
+            '*.pt' '*.pth' '*.safetensors' \
+            '.env' '.env.*')"
+          if [ -n "$tracked" ]; then
+            echo "These cache/weight/secret paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+      - name: Refuse Hub token env names
+        run: |
+          if [ -n "${HF_TOKEN:-}" ] || [ -n "${HUGGING_FACE_HUB_TOKEN:-}" ] || [ -n "${HUGGINGFACE_HUB_TOKEN:-}" ]; then
+            echo "ERROR: Hub token environment variables must not be set in CI"
+            exit 1
+          fi
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +97,15 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, offline-no-hub]
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
     strategy:
       fail-fast: false
       matrix:
@@ -75,5 +142,34 @@ jobs:
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
+      - name: Refuse Hub tokens in CI
+        run: |
+          if [ -n "${HF_TOKEN:-}" ] || [ -n "${HUGGING_FACE_HUB_TOKEN:-}" ] || [ -n "${HUGGINGFACE_HUB_TOKEN:-}" ]; then
+            echo "ERROR: Hub token environment variables must not be set in CI"
+            exit 1
+          fi
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Fail if install downloaded model weights
+        run: python3 scripts/assert_no_weight_cache.py
+      - name: Fail if install fetched from the Hub
+        run: python3 scripts/assert_no_hub_fetch.py --require-offline-env
+      - name: Offline pytest (no named-model / Hub download)
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+          HF_HOME: ${{ runner.temp }}/hf-empty-home
+          HF_HUB_CACHE: ${{ runner.temp }}/hf-empty-home/hub
+        run: pytest --durations=0 -vv -m 'not requires_cuda and not requires_weights'
+      - name: Fail if tests downloaded model weights
+        if: always()
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+          HF_HOME: ${{ runner.temp }}/hf-empty-home
+          HF_HUB_CACHE: ${{ runner.temp }}/hf-empty-home/hub
+        run: python3 scripts/assert_no_weight_cache.py
+      - name: Fail if tests fetched from the Hub
+        if: always()
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+          HF_HOME: ${{ runner.temp }}/hf-empty-home
+          HF_HUB_CACHE: ${{ runner.temp }}/hf-empty-home/hub
+        run: python3 scripts/assert_no_hub_fetch.py --require-offline-env

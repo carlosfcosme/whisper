@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import pytest
 import torch
@@ -7,8 +8,20 @@ import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+def _cached_model_path(model_name: str) -> Optional[str]:
+    url = whisper._MODELS[model_name]
+    default = os.path.join(os.path.expanduser("~"), ".cache")
+    root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+    target = os.path.join(root, os.path.basename(url))
+    return target if os.path.isfile(target) else None
+
+
+@pytest.mark.requires_weights
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
+    if _cached_model_path(model_name) is None:
+        pytest.skip("local weights required; tests must not download from the Hub")
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = whisper.load_model(model_name).to(device)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")

@@ -6,6 +6,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Offline by default: install must not fetch Whisper/Hub weights or use tokens.
+export WHISPER_OFFLINE="${WHISPER_OFFLINE:-1}"
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
+export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
+export HF_HUB_DISABLE_TELEMETRY=1
+export HF_HUB_ENABLE_HF_TRANSFER=0
+unset HF_TOKEN HUGGING_FACE_HUB_TOKEN HUGGINGFACE_HUB_TOKEN || true
+
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get update -qq
@@ -21,6 +30,7 @@ pip install --break-system-packages \
   --extra-index-url https://pypi.org/simple
 
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
+# Setup imports the package only; it does not download checkpoints or set credentials.
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
