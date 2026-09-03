@@ -42,9 +42,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fail if model weights are committed
         run: bash .github/scripts/fail_if_weights_committed.sh
+      - name: Fail if Hugging Face Hub is a project dependency
+        run: |
+          if grep -qi 'huggingface' pyproject.toml requirements.txt; then
+            echo "error: Hugging Face Hub must not be a project dependency" >&2
+            exit 1
+          fi
   whisper-test:
     needs: [pre-commit, no-committed-weights]
     runs-on: ubuntu-latest
+    env:
+      XDG_CACHE_HOME: ${{ runner.temp }}/whisper-xdg
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -82,4 +92,9 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Weight-free tests (no Hub, no checkpoint download)
+        run: |
+          mkdir -p "$XDG_CACHE_HOME"
+          pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+      - name: Fail if weights were downloaded
+        run: bash .github/scripts/fail_if_weights_downloaded.sh

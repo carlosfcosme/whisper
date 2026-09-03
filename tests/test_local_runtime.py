@@ -158,6 +158,37 @@ def test_committed_weight_paths_and_ci_script(tmp_path):
     assert "model.pt" in result.stderr
 
 
+def test_ci_does_not_download_hub_or_weights():
+    yml = (ROOT / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
+    assert "-k 'not test_transcribe'" in yml
+    assert "test_transcribe[tiny]" not in yml
+    assert "HF_HUB_OFFLINE" in yml
+    assert "fail_if_weights_downloaded.sh" in yml
+    assert "Hugging Face Hub must not be a project dependency" in yml
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+    assert "huggingface" not in pyproject.lower()
+    assert "huggingface" not in requirements.lower()
+
+
+def test_gitignore_covers_cache_and_weights():
+    def ignored(path: str) -> bool:
+        return (
+            subprocess.call(
+                ["git", "check-ignore", "-q", path],
+                cwd=str(ROOT),
+            )
+            == 0
+        )
+
+    assert ignored(".cache/whisper/tiny.pt")
+    assert ignored("cache/whisper/base.pt")
+    assert ignored("model.pt")
+    assert ignored("weights/model.safetensors")
+    assert not ignored("tests/jfk.flac")
+    assert not ignored("whisper/assets/multilingual.tiktoken")
+
+
 def test_package_does_not_import_huggingface_hub():
     for path in (ROOT / "whisper").rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
