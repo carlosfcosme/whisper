@@ -21,7 +21,12 @@ pip install --break-system-packages \
   --extra-index-url https://pypi.org/simple
 
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
+# Offline flags keep install from pulling Hub assets or Whisper checkpoints.
+export WHISPER_OFFLINE=1
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
 pip install --break-system-packages -e ".[dev]"
 
-echo "whisper environment ready:"
-python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+echo "whisper environment ready (CPU default, no weight pulls):"
+python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__, '| device', whisper.DEFAULT_DEVICE)"
