@@ -59,9 +59,9 @@ pip install setuptools-rust
 
 Cloud Agents working in this repository must follow these constraints:
 
-- **No weights in the repo.** Do not commit model checkpoints (`.pt` files). Official weights are not stored in git. `whisper.load_model()` writes them to `$XDG_CACHE_HOME/whisper` when `XDG_CACHE_HOME` is set, otherwise `~/.cache/whisper`.
+- **No weights in the repo.** Do not commit model checkpoints (`.pt` files). Official weights are not stored in git. `whisper.load_model()` writes them to `$XDG_CACHE_HOME/whisper` when `XDG_CACHE_HOME` is set, otherwise `~/.cache/whisper`. `.gitignore` excludes `.cache/`, `cache/`, `weights/`, `*.pt`, and `*.pth`. CI job `untracked-cache-weights` fails if those paths become tracked.
 - **No WAN pull.** Do not download weights over the network during a Cloud Agent session. A cache miss on a named model (`tiny`, `turbo`, and the rest) fetches from `openaipublic.azureedge.net`. Load only an already-cached file or an explicit local checkpoint path. The CLI default is `turbo`, which will WAN-pull unless that checkpoint is already cached.
-- **Localhost only.** Bind any notebooks, demos, or helper servers to `127.0.0.1`. Do not listen on `0.0.0.0`.
+- **Localhost only.** Bind any notebooks, demos, or helper servers to `127.0.0.1`. Do not listen on `0.0.0.0`. `.cursor/environment.json` publishes no ports.
 
 Do not commit secrets, credentials, or API keys.
 

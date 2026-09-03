@@ -8,6 +8,44 @@ on:
       - main
 
 jobs:
+  untracked-cache-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache and weight paths stay untracked
+        run: |
+          set -euo pipefail
+          # Checkout-only: no WAN pull, no weight download, no sockets.
+          # Helpers must bind 127.0.0.1 only; this job opens none.
+          tracked="$(git ls-files -- '.cache' '.cache/**' 'cache' 'cache/**' 'weights' 'weights/**' '*.pt' '*.pth')"
+          if [ -n "$tracked" ]; then
+            echo "These cache/weight paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+          for path in \
+            .cache/whisper/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            tiny.pt \
+            model.pth
+          do
+            git check-ignore -q -- "$path"
+          done
+      - name: Localhost only (no published ports)
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          env = json.loads(Path(".cursor/environment.json").read_text())
+          assert "ports" not in env, env
+          install = Path(".cursor/install.sh").read_text()
+          assert "0.0.0.0" not in install
+          workflow = Path(".github/workflows/test.yml").read_text()
+          assert "0.0.0.0" not in workflow
+          print("127.0.0.1 only: environment publishes no ports; install/CI bind nothing")
+          PY
   pre-commit:
     runs-on: ubuntu-latest
     steps:
