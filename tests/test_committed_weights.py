@@ -33,6 +33,25 @@ def test_check_script_passes_on_this_repo():
     subprocess.run(["bash", str(CHECK)], cwd=REPO_ROOT, check=True)
 
 
+def test_check_script_fails_when_pt_is_staged():
+    dummy = REPO_ROOT / "._ci_fail_weight.pt"
+    try:
+        dummy.write_bytes(b"dummy-not-a-real-checkpoint")
+        subprocess.run(["git", "add", str(dummy)], cwd=REPO_ROOT, check=True)
+        result = subprocess.run(
+            ["bash", str(CHECK)], cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        assert result.returncode != 0
+        assert "._ci_fail_weight.pt" in result.stdout
+    finally:
+        subprocess.run(
+            ["git", "reset", "-q", "HEAD", "--", str(dummy)],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+        dummy.unlink(missing_ok=True)
+
+
 def test_ci_job_fails_on_committed_weights():
     text = WORKFLOW.read_text()
     block = _job_block(text, "no-committed-weights")
