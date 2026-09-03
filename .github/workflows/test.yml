@@ -36,8 +36,14 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights are committed
+        run: bash .github/scripts/fail_if_weights_committed.sh
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-committed-weights]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

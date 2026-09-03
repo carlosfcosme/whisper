@@ -1,0 +1,41 @@
+"""Runtime defaults: CPU device, loopback bind, no Hugging Face Hub."""
+
+from typing import Iterable, List
+
+DEFAULT_DEVICE = "cpu"
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 8765
+
+WEIGHT_SUFFIXES = (".pt", ".pth", ".ckpt", ".safetensors")
+
+_HUB_MARKERS = (
+    "huggingface.co",
+    "hf.co/",
+    "cdn-lfs.huggingface.co",
+    "hf-mirror.com",
+)
+
+
+def is_huggingface_hub_source(value: str) -> bool:
+    text = value.lower().replace("\\", "/")
+    return any(marker in text for marker in _HUB_MARKERS)
+
+
+def reject_huggingface_hub(value: str) -> None:
+    if is_huggingface_hub_source(value):
+        raise ValueError("Hugging Face Hub is not supported; use a local checkpoint")
+
+
+def require_loopback_host(host: str) -> str:
+    if host != DEFAULT_HOST:
+        raise ValueError("server must bind 127.0.0.1")
+    return host
+
+
+def committed_weight_paths(paths: Iterable[str]) -> List[str]:
+    found = []
+    for path in paths:
+        lowered = path.lower()
+        if lowered.endswith(WEIGHT_SUFFIXES):
+            found.append(path)
+    return found
