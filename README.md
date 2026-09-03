@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Python packages in this checkout are installed with **pip**, not **uv**. See
+[INSTALLER.md](INSTALLER.md) for the commands the Cloud Agent environment uses.
+
 
 ## Available models and languages
 

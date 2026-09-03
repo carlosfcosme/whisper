@@ -12,6 +12,8 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get install -y --no-install-recommends ffmpeg
 fi
 
+# Installer: system pip (not uv). There is no uv.lock and uv is not on PATH.
+# See INSTALLER.md.
 # CPU-only PyTorch (no CUDA in the Cloud Agent VM), pinned to the version CI
 # uses for Python 3.12. --break-system-packages installs into the user site so
 # the `whisper`, `pytest`, and lint entrypoints land on ~/.local/bin (on PATH).
