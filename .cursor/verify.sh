@@ -21,7 +21,7 @@ echo "  WHISPER_LOCALHOST_ONLY=${WHISPER_LOCALHOST_ONLY}"
 echo "  XDG_CACHE_HOME=${XDG_CACHE_HOME} (disposable; must stay empty of weights)"
 echo "  allowed hosts: localhost, 127.0.0.0/8, ::1"
 echo "  refused: remote/WAN pulls (CDN, public DNS, LAN, public IPs)"
-echo "  serve/bind: 127.0.0.1 only"
+echo "  serve/bind: 127.0.0.1 only (integration: CLI + start.sh; wildcard exits 2)"
 echo "  pytest: -m localhost_only (no transcription tests, no weight download)"
 
 echo "== Guard tests (no network, no weights) =="

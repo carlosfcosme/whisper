@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 
-from .bind import BIND_HOST, require_bind_127_0_0_1
+from .bind import BIND_HOST, BindError, require_bind_127_0_0_1
 
 DEFAULT_PORT = 8765
 
@@ -51,7 +52,11 @@ def main(argv: Optional[list] = None) -> None:
         help=f"bind port (default {DEFAULT_PORT})",
     )
     args = parser.parse_args(argv)
-    server = make_server(args.host, args.port)
+    try:
+        server = make_server(args.host, args.port)
+    except BindError as exc:
+        print(f"FAIL: {exc}", file=sys.stderr, flush=True)
+        raise SystemExit(2)
     bound_host, bound_port = server.server_address
     print(f"whisper serve bound to {bound_host}:{bound_port}", flush=True)
     try:

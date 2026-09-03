@@ -56,4 +56,9 @@ bash .cursor/start.sh
 `tests/test_bind_localhost.py` fails if `0.0.0.0` appears in start scripts
 (`.cursor/*.sh`, `start*.sh`, `serve*.sh`, `.cursor/environment.json`).
 
+`tests/test_bind_integration.py` starts the real CLI and `.cursor/start.sh`
+as subprocesses: they must print `bound to 127.0.0.1` and serve a no-weight
+health response. `python -m whisper.serve --host` with a wildcard exits 2
+and never binds.
+
 No secrets are stored in this repository.
