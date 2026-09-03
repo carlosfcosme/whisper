@@ -59,7 +59,7 @@ def test_huggingface_hub_is_not_a_dependency():
 def test_load_model_does_not_pull_weights(monkeypatch, tmp_path):
     monkeypatch.setenv("WHISPER_OFFLINE", "1")
     monkeypatch.setenv("HF_HUB_OFFLINE", "1")
-    with pytest.raises(RuntimeError, match="offline|no Hub"):
+    with pytest.raises(RuntimeError, match="offline|no Hub|no-store"):
         whisper.load_model("tiny", device="cpu", download_root=str(tmp_path))
     assert list(tmp_path.glob("*.pt")) == []
 
@@ -71,4 +71,5 @@ def test_ci_pytest_excludes_transcribe():
     assert "-k 'not test_transcribe'" in workflow
     assert "test_transcribe[tiny]" not in workflow
     assert "HF_HUB_OFFLINE" in workflow
+    assert "WHISPER_NO_STORE" in workflow
     assert "assert_no_weight_download.py" in workflow

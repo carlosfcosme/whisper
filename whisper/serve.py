@@ -8,7 +8,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import BaseServer
 from typing import List, Optional, Tuple
 
-from .runtime import BIND_HOST, BIND_PORT, DEFAULT_DEVICE
+from .runtime import (
+    BIND_HOST,
+    BIND_PORT,
+    DEFAULT_DEVICE,
+    DEFAULT_NO_STORE,
+    DEFAULT_OFFLINE,
+)
 
 DEFAULT_HOST = BIND_HOST
 DEFAULT_PORT = BIND_PORT
@@ -62,10 +68,13 @@ class _HealthHandler(BaseHTTPRequestHandler):
                 "device": DEFAULT_DEVICE,
                 "hub": False,
                 "weights": False,
+                "offline": DEFAULT_OFFLINE,
+                "store": not DEFAULT_NO_STORE,
             }
         ).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)

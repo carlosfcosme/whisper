@@ -48,6 +48,7 @@ jobs:
     env:
       CUDA_VISIBLE_DEVICES: ""
       WHISPER_OFFLINE: "1"
+      WHISPER_NO_STORE: "1"
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"

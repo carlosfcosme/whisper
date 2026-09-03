@@ -70,6 +70,9 @@ def test_create_server_binds_127_0_0_1():
         assert body["device"] == "cpu"
         assert body["hub"] is False
         assert body["weights"] is False
+        assert body["offline"] is True
+        assert body["store"] is False
+        assert resp.headers.get("Cache-Control") == "no-store"
     finally:
         httpd.shutdown()
         httpd.server_close()

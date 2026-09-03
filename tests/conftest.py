@@ -10,6 +10,7 @@ import pytest
 # setdefault keeps an explicit caller override (e.g. CUDA_VISIBLE_DEVICES=0).
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 os.environ.setdefault("WHISPER_OFFLINE", "1")
+os.environ.setdefault("WHISPER_NO_STORE", "1")
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("HF_DATASETS_OFFLINE", "1")

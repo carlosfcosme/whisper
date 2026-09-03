@@ -2,13 +2,15 @@ import pytest
 import torch
 
 import whisper
-from whisper.runtime import DEFAULT_DEVICE
+from whisper.runtime import DEFAULT_DEVICE, DEFAULT_NO_STORE, DEFAULT_OFFLINE
 from whisper.transcribe import cli
 
 
 def test_default_device_is_cpu():
     assert DEFAULT_DEVICE == "cpu"
     assert whisper.DEFAULT_DEVICE == "cpu"
+    assert DEFAULT_OFFLINE is True
+    assert DEFAULT_NO_STORE is True
 
 
 def test_default_device_ignores_cuda_availability(monkeypatch):
