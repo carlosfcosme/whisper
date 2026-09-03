@@ -9,3 +9,14 @@ thumbs.db
 .DS_Store
 .idea
 
+# Downloaded model checkpoints (never commit weights)
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.ggml
+*.gguf
+*.weights
+.cache/
+

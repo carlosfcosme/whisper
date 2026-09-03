@@ -10,9 +10,21 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .localhost import BIND_HOST
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
+
+# Sovereign default: CPU unless the caller passes device= explicitly.
+DEFAULT_DEVICE = "cpu"
+
+
+def resolve_device(device: Optional[Union[str, torch.device]] = None):
+    """Return ``device``, or CPU when omitted. Does not consult CUDA."""
+    if device is None:
+        return DEFAULT_DEVICE
+    return device
+
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -115,7 +127,8 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU
+        (`DEFAULT_DEVICE`). Pass `device="cuda"` to use a GPU.
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
@@ -127,8 +140,7 @@ def load_model(
         The Whisper ASR model instance
     """
 
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = resolve_device(device)
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
