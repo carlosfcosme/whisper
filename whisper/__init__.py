@@ -51,7 +51,46 @@ _ALIGNMENT_HEADS = {
 }
 
 
-def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
+class OfflineDownloadError(RuntimeError):
+    """Raised when a checkpoint is missing and network download is disabled."""
+
+
+def default_device() -> str:
+    """Return the default inference device.
+
+    CPU is the default. Set ``WHISPER_DEVICE`` or pass ``device=`` to override.
+    CUDA is never selected implicitly.
+    """
+    configured = os.getenv("WHISPER_DEVICE")
+    if configured:
+        return configured
+    return "cpu"
+
+
+def allow_download(explicit: Optional[bool] = None) -> bool:
+    """Whether ``load_model`` may open a WAN URL for official weights.
+
+    Download is off by default. Pass ``download=True`` or set
+    ``WHISPER_ALLOW_DOWNLOAD=1`` to fetch a missing checkpoint. There is no
+    ``--live`` CLI flag.
+    """
+    if explicit is not None:
+        return bool(explicit)
+    return os.getenv("WHISPER_ALLOW_DOWNLOAD", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
+def default_download_root() -> str:
+    default = os.path.join(os.path.expanduser("~"), ".cache")
+    return os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+
+
+def _download(
+    url: str, root: str, in_memory: bool, download: bool = False
+) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
@@ -65,10 +104,22 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
+        elif not download:
+            raise OfflineDownloadError(
+                f"{download_target} exists, but the SHA256 checksum does not match; "
+                "offline load will not re-download. Pass download=True to fetch again."
+            )
         else:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if not download:
+        raise OfflineDownloadError(
+            f"Offline load refused to download {os.path.basename(url)}. "
+            f"Place the checkpoint at {download_target}, pass download=True, "
+            "or set WHISPER_ALLOW_DOWNLOAD=1."
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -105,6 +156,7 @@ def load_model(
     device: Optional[Union[str, torch.device]] = None,
     download_root: str = None,
     in_memory: bool = False,
+    download: Optional[bool] = None,
 ) -> Whisper:
     """
     Load a Whisper ASR model
@@ -115,11 +167,16 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU (see
+        ``default_device``). CUDA is never selected implicitly.
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
         whether to preload the model weights into host memory
+    download: bool
+        whether to fetch official weights over the network when the checkpoint
+        is missing. Defaults to False (offline). Pass True or set
+        ``WHISPER_ALLOW_DOWNLOAD=1`` to enable.
 
     Returns
     -------
@@ -128,13 +185,14 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = default_device()
     if download_root is None:
-        default = os.path.join(os.path.expanduser("~"), ".cache")
-        download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+        download_root = default_download_root()
 
     if name in _MODELS:
-        checkpoint_file = _download(_MODELS[name], download_root, in_memory)
+        checkpoint_file = _download(
+            _MODELS[name], download_root, in_memory, download=allow_download(download)
+        )
         alignment_heads = _ALIGNMENT_HEADS[name]
     elif os.path.isfile(name):
         checkpoint_file = open(name, "rb").read() if in_memory else name

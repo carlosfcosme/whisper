@@ -126,8 +126,6 @@ def transcribe(
     """
     dtype = torch.float16 if decode_options.get("fp16", True) else torch.float32
     if model.device == torch.device("cpu"):
-        if torch.cuda.is_available():
-            warnings.warn("Performing inference on CPU when CUDA is available")
         if dtype == torch.float16:
             warnings.warn("FP16 is not supported on CPU; using FP32 instead")
             dtype = torch.float32
@@ -515,7 +513,7 @@ def transcribe(
 
 
 def cli():
-    from . import available_models
+    from . import available_models, default_device, load_model
 
     def valid_model_name(name):
         if name in available_models() or os.path.exists(name):
@@ -529,7 +527,7 @@ def cli():
     parser.add_argument("audio", nargs="+", type=str, help="audio file(s) to transcribe")
     parser.add_argument("--model", default="turbo", type=valid_model_name, help="name of the Whisper model to use")
     parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
+    parser.add_argument("--device", default=default_device(), help="device to use for PyTorch inference (CPU by default; pass cuda explicitly for GPU)")
     parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
     parser.add_argument("--output_format", "-f", type=str, default="all", choices=["txt", "vtt", "srt", "tsv", "json", "all"], help="format of the output file; if not specified, all available formats will be produced")
     parser.add_argument("--verbose", type=str2bool, default=True, help="whether to print out the progress and debug messages")
@@ -589,8 +587,6 @@ def cli():
 
     if (threads := args.pop("threads")) > 0:
         torch.set_num_threads(threads)
-
-    from . import load_model
 
     model = load_model(model_name, device=device, download_root=model_dir)
 
