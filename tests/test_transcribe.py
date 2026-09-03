@@ -1,16 +1,20 @@
 import os
 
 import pytest
-import torch
 
 import whisper
+from whisper.defaults import DEFAULT_DEVICE, no_store_enabled, offline_enabled
 from whisper.tokenizer import get_tokenizer
 
 
+@pytest.mark.requires_local_weights
+@pytest.mark.skipif(
+    offline_enabled() or no_store_enabled(),
+    reason="offline/no-store defaults refuse named checkpoint downloads",
+)
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
+    model = whisper.load_model(model_name, device=DEFAULT_DEVICE)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None
