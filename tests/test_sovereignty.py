@@ -88,6 +88,8 @@ def test_ci_keeps_cpu_and_no_weights_and_skips_transcribe():
     assert "no-committed-weights" in workflow
     assert "scripts/check_no_weights.py" in workflow
     assert "scripts/check_loopback_bind.py" in workflow
+    assert "loopback-bind" in workflow
+    assert "git grep -nF '0.0.0.0'" in workflow
     assert "HF_HUB_OFFLINE" in workflow
     assert "CUDA_VISIBLE_DEVICES" in workflow
     assert "not test_transcribe" in workflow
