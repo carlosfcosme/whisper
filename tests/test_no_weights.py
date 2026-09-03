@@ -86,6 +86,32 @@ def test_ci_workflow_runs_the_weight_guard():
     assert "scripts/check_no_weights.py" in workflow
 
 
+def test_assert_no_weight_cache_passes():
+    path = REPO_ROOT / "scripts" / "assert_no_weight_cache.py"
+    result = subprocess.run(
+        [sys.executable, str(path)],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK:" in result.stdout
+
+
+def test_assert_no_weight_cache_flags_planted_checkpoint(tmp_path):
+    path = REPO_ROOT / "scripts" / "assert_no_weight_cache.py"
+    spec = importlib.util.spec_from_file_location("assert_no_weight_cache", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    planted = tmp_path / "whisper"
+    planted.mkdir()
+    (planted / "tiny.pt").write_bytes(b"not-weights")
+    found = module.find_cached_weights([planted])
+    assert found == [planted / "tiny.pt"]
+
+
 def test_script_is_executable():
     path = REPO_ROOT / "scripts" / "check_no_weights.py"
     assert path.is_file()

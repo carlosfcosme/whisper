@@ -89,6 +89,7 @@ class _HealthHandler(BaseHTTPRequestHandler):
                 "status": "ok",
                 "bind": self.server.server_address[0],
                 "device": "cpu",
+                "hub": False,
                 "weights": False,
             }
         ).encode("utf-8")

@@ -79,6 +79,7 @@ def test_serve_listens_on_127_0_0_1():
         assert body["status"] == "ok"
         assert body["bind"] == "127.0.0.1"
         assert body["device"] == "cpu"
+        assert body["hub"] is False
         assert body["weights"] is False
     finally:
         httpd.shutdown()
