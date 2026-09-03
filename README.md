@@ -81,7 +81,7 @@ Whisper's performance varies widely depending on the language. The figure below 
 
 ## Command-line usage
 
-The following command will transcribe speech in audio files, using the `turbo` model:
+The following command will transcribe speech in audio files, using the `turbo` model on CPU (the default device). Pass `--device cuda` to run on a GPU. `load_model` does not download weights unless you pass `download=True` in Python or set `WHISPER_ALLOW_DOWNLOAD=1`. There is no `--live` flag.
 
     whisper audio.flac audio.mp3 audio.wav --model turbo
 
@@ -107,7 +107,7 @@ Transcription can also be performed within Python:
 ```python
 import whisper
 
-model = whisper.load_model("turbo")
+model = whisper.load_model("turbo")  # CPU, local checkpoint; download=True to fetch
 result = model.transcribe("audio.mp3")
 print(result["text"])
 ```
@@ -119,7 +119,7 @@ Below is an example usage of `whisper.detect_language()` and `whisper.decode()` 
 ```python
 import whisper
 
-model = whisper.load_model("turbo")
+model = whisper.load_model("turbo")  # CPU, local checkpoint
 
 # load audio and pad/trim it to fit 30 seconds
 audio = whisper.load_audio("audio.mp3")
@@ -147,19 +147,14 @@ Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussion
 
 ## Testing
 
-The suite under [`tests/`](tests/) is collected by [pytest](https://docs.pytest.org/) (not `unittest`). `pytest` is listed in the `dev` extra in [`pyproject.toml`](pyproject.toml). After installing ffmpeg (see Setup) and the package from this checkout:
+The suite under [`tests/`](tests/) is collected by [pytest](https://docs.pytest.org/) (not `unittest`). The default path is CPU-only and offline: tests refuse WAN/IP sockets, and `load_model` will not download checkpoints. `pytest` is listed in the `dev` extra in [`pyproject.toml`](pyproject.toml). After installing ffmpeg (see Setup) and the package from this checkout:
 
 ```bash
 pip install -e ".[dev]"
+pytest --durations=0 -vv -m 'not requires_cuda and not requires_weights'
 ```
 
-The CPU runner used in CI is the `pytest` invocation in [`.github/workflows/test.yml`](.github/workflows/test.yml):
-
-```bash
-pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
-```
-
-The `-k` expression runs only the `tiny` and `tiny.en` cases of `test_transcribe` (other sizes download additional weights). The `-m` filter skips tests marked `requires_cuda` (registered in [`tests/conftest.py`](tests/conftest.py)). No API tokens or other secrets are required.
+That is the runner in [`.github/workflows/test.yml`](.github/workflows/test.yml). `requires_weights` (pretrained `test_transcribe` cases) run only against a local cache and never download. CUDA cases are marked `requires_cuda`. No API tokens or other secrets are required.
 
 ## License
 
