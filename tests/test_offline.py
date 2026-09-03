@@ -104,3 +104,36 @@ def test_load_model_fetch_blocked(tmp_path):
         with pytest.raises(offline.OfflineNetworkError, match="blocked"):
             whisper.load_model("tiny", download_root=str(tmp_path))
     assert list(tmp_path.glob("*.pt")) == []
+
+
+def test_weight_fetch_without_guards_is_still_refused_by_download_hook(tmp_path, monkeypatch):
+    """Fail the test if whisper._download would pull a checkpoint."""
+    import whisper
+
+    def _boom(url, root, in_memory=False):
+        raise offline.OfflineNetworkError(f"offline: blocked model fetch {url!r}")
+
+    monkeypatch.setattr(whisper, "_download", _boom)
+    with pytest.raises(offline.OfflineNetworkError, match="blocked model fetch"):
+        whisper.load_model("tiny", download_root=str(tmp_path))
+    assert list(tmp_path.glob("*.pt")) == []
+
+
+@pytest.mark.parametrize(
+    "relpath",
+    [
+        "tiny.pt",
+        "model.pth",
+        "weights/tiny.pt",
+        ".cache/whisper/tiny.pt",
+    ],
+)
+def test_weight_and_cache_paths_are_gitignored(relpath):
+    import subprocess
+
+    repo = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", "--", relpath],
+        cwd=repo,
+    )
+    assert result.returncode == 0, f"{relpath} must be gitignored"

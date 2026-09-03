@@ -9,3 +9,10 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model checkpoints and local weight caches. Do not commit or fetch these
+# during offline bootstrap; tests fail if a download is attempted.
+*.pt
+*.pth
+weights/
+.cache/
+
