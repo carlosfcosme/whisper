@@ -24,12 +24,22 @@ whisper = whisper.transcribe:cli
 
 After `pip install` (or the editable install in `.cursor/install.sh`), pip
 writes a `whisper` executable into the active interpreter's scripts
-directory:
+directory. **`--break-system-packages` is not a user-site flag.** It only
+allows modifying an externally-managed (PEP 668) install. `--user` is the
+option that selects the user directory (typically `~/.local`). Without
+`--user`, the destination follows the interpreter scheme and may be
+`/usr/local/bin` or another prefix.
 
 | Install | Scripts directory |
 | --- | --- |
-| Cloud Agent / `--break-system-packages` | `~/.local/bin` |
+| This Cloud Agent VM (observed) | `~/.local/bin` (`site.USER_BASE`) |
+| `pip install --user` | typically `~/.local/bin` |
 | virtualenv | `$VIRTUAL_ENV/bin` |
+| interpreter prefix (no `--user`) | `sysconfig.get_path("scripts")` (often `/usr/local/bin`) |
+
+On this image the wrapper is `/home/ubuntu/.local/bin/whisper` after
+`.cursor/install.sh`, even though that script does not pass `--user`.
+Find the wrapper with `command -v whisper` rather than assuming a path.
 
 The wrapper imported on this image is:
 

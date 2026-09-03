@@ -45,7 +45,7 @@ def test_main_module_calls_cli():
 
 
 def test_readme_and_install_point_at_cli_md():
-    assert "[CLI.md](CLI.md)" in README
+    assert "https://github.com/carlosfcosme/whisper/blob/main/CLI.md" in README
     assert "whisper.transcribe:cli" in README
     assert "python3 -m whisper" in README
     assert "CLI.md" in INSTALL_SH
@@ -63,6 +63,9 @@ def test_cli_md_documents_working_invocations():
     assert "load_model" in CLI_MD
     assert "attempted relative import" in CLI_MD
     assert "Do not download or commit checkpoints" in CLI_MD
+    assert "--user" in CLI_MD
+    assert "--break-system-packages" in CLI_MD
+    assert "command -v whisper" in CLI_MD
 
 
 def test_help_exits_zero_without_weights(tmp_path):
