@@ -21,6 +21,14 @@ HUB_NETLOCS = frozenset(
     }
 )
 
+# Official Whisper checkpoints are hosted here; tests must not fetch them.
+WEIGHT_FETCH_NETLOCS = frozenset(
+    {
+        "openaipublic.azureedge.net",
+        "openaipublic.blob.core.windows.net",
+    }
+)
+
 _original_urlopen = urllib.request.urlopen
 
 
@@ -44,6 +52,10 @@ def is_huggingface_hub_host(host: str) -> bool:
     )
 
 
+def is_weight_fetch_host(host: str) -> bool:
+    return host in WEIGHT_FETCH_NETLOCS or host.endswith(".azureedge.net")
+
+
 def refuse_hub_download(*args, **kwargs):
     raise RuntimeError("unit tests must not contact the Hugging Face Hub")
 
@@ -54,6 +66,8 @@ def urlopen_without_hub(url, *args, **kwargs):
         raise RuntimeError(
             "unit tests must not contact the Hugging Face Hub ({})".format(host)
         )
+    if is_weight_fetch_host(host):
+        raise RuntimeError("unit tests must not fetch model weights ({})".format(host))
     return _original_urlopen(url, *args, **kwargs)
 
 

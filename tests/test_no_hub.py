@@ -5,6 +5,7 @@ import pytest
 from hub_offline import (
     HUB_OFFLINE_ENV,
     is_huggingface_hub_host,
+    is_weight_fetch_host,
     refuse_hub_download,
     urlopen_without_hub,
 )
@@ -37,6 +38,14 @@ def test_hub_offline_env_is_set():
 def test_urlopen_refuses_huggingface_hub():
     with pytest.raises(RuntimeError, match="Hugging Face Hub"):
         urlopen_without_hub("https://huggingface.co/openai/whisper-tiny")
+
+
+def test_urlopen_refuses_whisper_weight_cdn():
+    assert is_weight_fetch_host("openaipublic.azureedge.net")
+    with pytest.raises(RuntimeError, match="model weights"):
+        urlopen_without_hub(
+            "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt"
+        )
 
 
 def test_hub_client_guard_raises():

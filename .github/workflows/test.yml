@@ -97,3 +97,31 @@ jobs:
         run: |
           python3 scripts/check_no_weights.py
           bash scripts/check_cache_weights.sh
+  offline-runtime:
+    needs: policy
+    runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      CUDA_VISIBLE_DEVICES: ""
+      XDG_CACHE_HOME: ${{ github.workspace }}/.cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU package without pulling weights
+        run: |
+          pip install -e ".[dev]" torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+      - name: Offline runtime tests (127.0.0.1, no Hub, no model fetch)
+        run: pytest tests/test_offline_runtime.py -vv --durations=0 -m offline_runtime
+      - name: Verify ignored weights after runtime
+        run: |
+          python3 scripts/check_no_weights.py
+          bash scripts/check_cache_weights.sh
+          test ! -e .cache/whisper/tiny.pt
+          git ls-files | grep -E '\.(pt|bin|onnx)$' && exit 1 || true

@@ -50,6 +50,7 @@ namespaces = false
 markers = [
   "requires_cuda: needs a CUDA GPU",
   "requires_weights: needs a local Whisper checkpoint",
+  "offline_runtime: no-hub runtime (127.0.0.1, no model fetch)",
 ]
 
 [tool.black]
