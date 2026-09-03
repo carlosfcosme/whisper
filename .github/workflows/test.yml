@@ -64,6 +64,8 @@ jobs:
         with:
           python-version: "3.12"
           architecture: x64
+      - name: Grep guard for non-loopback bind hosts
+        run: bash scripts/grep_loopback_bind.sh
       - name: Fail if start/serve binds all interfaces
         run: |
           python -m pip install --upgrade pip

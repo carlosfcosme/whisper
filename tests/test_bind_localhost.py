@@ -36,6 +36,24 @@ def test_require_bind_rejects_non_127(host):
         require_bind_127_0_0_1(host)
 
 
+def test_bind_fails_when_host_is_not_loopback():
+    """Ticket 1: non-loopback bind host must fail before listen()."""
+    with pytest.raises(BindError, match="127.0.0.1"):
+        require_bind_127_0_0_1(WILDCARD)
+    with pytest.raises(BindError, match="127.0.0.1"):
+        require_bind_127_0_0_1("10.0.0.1")
+    with pytest.raises(BindError, match="127.0.0.1"):
+        make_server(WILDCARD, 0)
+
+
+def test_make_server_default_bind_is_loopback():
+    server = make_server(port=0)
+    try:
+        assert server.server_address[0] == BIND_HOST
+    finally:
+        server.server_close()
+
+
 def test_make_server_rejects_wildcard_before_bind():
     with pytest.raises(BindError, match="127.0.0.1"):
         make_server(WILDCARD, 0)

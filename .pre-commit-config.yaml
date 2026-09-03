@@ -40,3 +40,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: grep-loopback-bind
+        name: grep guard non-loopback bind
+        entry: bash scripts/grep_loopback_bind.sh
+        language: system
+        pass_filenames: false
+        always_run: true
