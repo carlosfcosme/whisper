@@ -1,4 +1,8 @@
-"""Offline / Cloud Agent defaults: CPU inference, no Hub, loopback bind."""
+"""Sovereign defaults: offline weight path, no Hugging Face Hub, CPU, loopback.
+
+Weight pulls are offline by default. Hugging Face Hub URLs are always
+refused. There is no --live flag, Field-Brain door, or API-key path.
+"""
 
 from __future__ import annotations
 
@@ -16,11 +20,16 @@ HUB_HOST_MARKERS = (
     "huggingface.com",
 )
 
+# Reinforced by CI. Library import also setdefaults these so a bare
+# interpreter is Hub-offline without a workflow file.
 OFFLINE_ENV_VARS = (
     "WHISPER_OFFLINE",
     "HF_HUB_OFFLINE",
     "TRANSFORMERS_OFFLINE",
 )
+
+# The only documented opt-in for a non-Hub CDN pull. Not a --live door.
+ALLOW_WEIGHT_DOWNLOAD_ENV = "WHISPER_ALLOW_WEIGHT_DOWNLOAD"
 
 _TRUTHY = {"1", "true", "yes", "on"}
 
@@ -29,8 +38,26 @@ def env_flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in _TRUTHY
 
 
+def _apply_default_offline_env() -> None:
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+    os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+
+
+_apply_default_offline_env()
+
+
 def offline_enabled() -> bool:
-    return any(env_flag(key) for key in OFFLINE_ENV_VARS)
+    """Return True unless an explicit non-Hub weight-download opt-in is set.
+
+    Offline is the default. Unsetting HF_HUB_OFFLINE / WHISPER_OFFLINE does
+    not open a download path. ``WHISPER_ALLOW_WEIGHT_DOWNLOAD=1`` is the
+    only opt-in, and it never authorizes Hugging Face Hub.
+    """
+    if env_flag(ALLOW_WEIGHT_DOWNLOAD_ENV):
+        return False
+    return True
 
 
 def is_hub_host(host: Optional[str]) -> bool:
@@ -47,16 +74,15 @@ def is_hub_url(url: str) -> bool:
     parsed = urlparse(url or "")
     if is_hub_host(parsed.hostname):
         return True
-    # Hugging Face Hub also uses path-style / hf-mirror hosts in some setups.
     lowered = (url or "").lower()
     return any(marker in lowered for marker in HUB_HOST_MARKERS)
 
 
 def refuse_remote_download(url: str, dest: str) -> None:
-    """Raise if a Hub or offline remote weight pull is forbidden.
+    """Refuse Hub always. Refuse other remote weight pulls when offline.
 
-    Hub URLs are always refused. When WHISPER_OFFLINE / HF_HUB_OFFLINE is
-    set, any remaining remote pull is also refused (use a local checkpoint).
+    Cache hits never call this. A missing local file is not fetched from
+    Hugging Face Hub or, by default, from any other host.
     """
     if is_hub_url(url):
         raise RuntimeError(

@@ -7,12 +7,15 @@ from pathlib import Path
 
 import pytest
 import torch
+from conftest import DownloadHelperInvoked
 
 import whisper
 from whisper.model import ModelDimensions, Whisper
 from whisper.offline import (
+    ALLOW_WEIGHT_DOWNLOAD_ENV,
     BIND_HOST,
     DEFAULT_DEVICE,
+    OFFLINE_ENV_VARS,
     is_hub_url,
     offline_enabled,
     refuse_remote_download,
@@ -51,10 +54,30 @@ def test_load_model_defaults_to_cpu(tmp_path):
 
 
 def test_offline_and_hub_env_is_set():
-    assert os.environ.get("WHISPER_OFFLINE") == "1"
     assert os.environ.get("HF_HUB_OFFLINE") == "1"
     assert os.environ.get("TRANSFORMERS_OFFLINE") == "1"
     assert offline_enabled()
+
+
+def test_offline_is_default_without_env_vars(monkeypatch, tmp_path):
+    monkeypatch.delenv(ALLOW_WEIGHT_DOWNLOAD_ENV, raising=False)
+    for key in OFFLINE_ENV_VARS:
+        monkeypatch.delenv(key, raising=False)
+    assert offline_enabled()
+    dest = str(tmp_path / "missing.pt")
+    with pytest.raises(RuntimeError, match="no weight pulls"):
+        refuse_remote_download(
+            "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt", dest
+        )
+
+
+def test_hub_refused_even_when_weight_download_allowed(monkeypatch):
+    monkeypatch.setenv(ALLOW_WEIGHT_DOWNLOAD_ENV, "1")
+    assert not offline_enabled()
+    with pytest.raises(RuntimeError, match="no Hub"):
+        refuse_remote_download(
+            "https://huggingface.co/foo/bar/resolve/model.pt", "/tmp/missing.pt"
+        )
 
 
 def test_is_hub_url_detects_huggingface():
@@ -83,20 +106,40 @@ def test_refuse_offline_weight_pull(tmp_path):
 
 def test_download_named_model_stays_offline(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
-    with pytest.raises(RuntimeError, match="offline|no weight pulls|no Hub|forbidden"):
+    with pytest.raises(RuntimeError, match="offline|no weight pulls|no Hub"):
         whisper.load_model("tiny")
 
 
+def test_download_helper_not_reached_on_cache_miss(monkeypatch, tmp_path):
+    called = []
+
+    def boom(*args, **kwargs):
+        called.append(True)
+        raise DownloadHelperInvoked("urlopen download helper invoked")
+
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    with pytest.raises(RuntimeError, match="offline|no weight pulls|no Hub"):
+        whisper._download(whisper._MODELS["tiny.en"], str(tmp_path), False)
+    assert called == []
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_remote_urlopen_is_blocked():
-    with pytest.raises(RuntimeError, match="forbidden"):
+    with pytest.raises(DownloadHelperInvoked, match="download helper"):
         urllib.request.urlopen("https://huggingface.co")
 
 
 def test_azure_weight_urlopen_is_blocked():
-    with pytest.raises(RuntimeError, match="forbidden"):
+    with pytest.raises(DownloadHelperInvoked, match="download helper"):
         urllib.request.urlopen(
             "https://openaipublic.azureedge.net/main/whisper/models/tiny.pt"
         )
+
+
+def test_hf_hub_download_helper_fails_if_invoked():
+    huggingface_hub = pytest.importorskip("huggingface_hub")
+    with pytest.raises(DownloadHelperInvoked, match="download helper"):
+        huggingface_hub.hf_hub_download("openai/whisper-tiny", "config.json")
 
 
 def test_whisper_package_does_not_import_huggingface_hub():
@@ -158,6 +201,7 @@ def test_ci_has_no_weights_job():
     assert "no-weights:" in workflow
     assert "scripts/check_no_weights.py" in workflow
     assert "HF_HUB_OFFLINE" in workflow
+    assert "TRANSFORMERS_OFFLINE" in workflow
     assert "WHISPER_OFFLINE" in workflow
     assert "-k 'not test_transcribe'" in workflow
     assert "test_transcribe[tiny]" not in workflow
@@ -191,3 +235,21 @@ def test_git_check_ignore_cache_and_weights(tmp_path):
     ignored = {line.split()[-1] for line in result.stdout.splitlines() if line}
     for path in planted:
         assert path in ignored, (path, result.stdout)
+
+
+def test_no_live_or_commercial_doors():
+    forbidden = (
+        "--live",
+        "Field-Brain",
+        "FIELD_BRAIN",
+        "OPENAI_API_KEY",
+        "HUGGING_FACE_HUB_TOKEN",
+        "HF_TOKEN",
+    )
+    for path in (REPO_ROOT / "whisper").rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for token in forbidden:
+            assert token not in text, (path, token)
+    workflow = (REPO_ROOT / ".github" / "workflows" / "test.yml").read_text()
+    for token in forbidden:
+        assert token not in workflow, token
