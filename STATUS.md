@@ -2,8 +2,10 @@
 
 Commercial / development environment notes for offline work.
 
-This environment is **commercial offline**, **localhost-only**, and performs
-**no weight pulls**.
+These notes state the intended policy: **commercial offline**,
+**localhost-only**, and **no weight pulls**. That is a user policy for
+offline work, not a guarantee that an unseeded Cloud Agent already has
+cached checkpoints.
 
 ## Commercial offline
 
@@ -21,21 +23,26 @@ and do not fetch weights while working offline.
 
 ## No weight pulls
 
-The commercial/dev environment performs **no weight pulls**:
+**No weight pulls** is policy for commercial/dev offline work, not a
+property of a fresh install:
 
+- `.cursor/install.sh` on this branch installs ffmpeg, CPU PyTorch, and
+  the package. It does not download or cache model checkpoints.
+- `whisper` without `--model` defaults to `turbo`. `load_model()` downloads
+  any named checkpoint that is not already on disk.
 - Do not download model checkpoints during offline work.
 - Do not commit model files (`.pt`, `.pth`, `.bin`, `.onnx`) to this
   repository.
 - Use weights already on disk. The cache directory is
   `$XDG_CACHE_HOME/whisper` when `XDG_CACHE_HOME` is set, otherwise
   `~/.cache/whisper`.
-- The `whisper` CLI defaults to `turbo`. If that checkpoint is not already
-  cached, the CLI will attempt a download. For offline work, pass an
-  already-cached model such as `--model tiny` or `--model tiny.en`.
+- For offline work, pass an already-cached model such as `--model tiny`
+  or `--model tiny.en`. Do not use the `turbo` default unless that file
+  is already cached.
 
 A separate Cloud Agent install change can pre-cache `tiny` / `tiny.en` at
 setup time. That is install-time caching only. After those files exist
-locally, runtime must perform no weight pulls.
+locally, runtime must follow no weight pulls.
 
 ## Localhost-only
 
