@@ -1,5 +1,6 @@
 import importlib.util
 import socket
+import sys
 from ipaddress import IPv4Address
 from pathlib import Path
 
@@ -9,9 +10,13 @@ _BIND_PATH = Path(__file__).resolve().parents[1] / "whisper" / "bind.py"
 
 
 def _load_bind():
+    existing = sys.modules.get("whisper_bind_guard")
+    if existing is not None:
+        return existing
     spec = importlib.util.spec_from_file_location("whisper_bind_guard", _BIND_PATH)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
+    sys.modules["whisper_bind_guard"] = module
     spec.loader.exec_module(module)
     return module
 
