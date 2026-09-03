@@ -47,6 +47,19 @@ def test_fails_closed_without_local_weights(tmp_path):
     assert not any(p.suffix == ".pt" for p in tmp_path.iterdir())
 
 
+def test_fails_closed_with_network_disabled(tmp_path, monkeypatch):
+    # Fully disable the network (even loopback): any socket connect fails. With no
+    # local weights, loading must raise and store nothing (fail closed).
+    def _network_disabled(*args, **kwargs):
+        raise OSError("network disabled")
+
+    monkeypatch.setattr(socket.socket, "connect", _network_disabled)
+    monkeypatch.setattr(socket.socket, "connect_ex", _network_disabled)
+    with pytest.raises(Exception):
+        whisper.load_model(_MODEL, device="cpu", download_root=str(tmp_path))
+    assert not any(p.suffix == ".pt" for p in tmp_path.iterdir())
+
+
 def test_runtime_never_downloads_when_cached(monkeypatch):
     if not os.path.isfile(_cached_weight_path()):
         pytest.skip("weights not pre-cached locally")
