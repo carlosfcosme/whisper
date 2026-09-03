@@ -1,6 +1,7 @@
 # Status
 
-This repository is **commercial** and **offline-safe**.
+This repository is **commercial**. This Cloud Agent environment is
+**localhost-only** and does **not** pull model weights.
 
 ## Commercial
 
@@ -13,18 +14,16 @@ is provided "as is", without warranty).
 This is a plain informational note only. It does not modify the license or
 grant any additional rights.
 
-## Offline-safe
+## Localhost-only, no weight pulls
 
-Cloud Agent setup pre-caches `tiny` and `tiny.en` during install (see
-`.cursor/install.sh`; override with `WHISPER_PRECACHE_MODELS`). After that,
-those models and `.cursor/verify.sh` run from the local cache with no
-network required.
+`.cursor/install.sh` installs ffmpeg, CPU PyTorch, and the package with dev
+extras. It does not call `whisper.load_model()` and does not download
+checkpoints.
 
-The cache directory is `$XDG_CACHE_HOME/whisper` when `XDG_CACHE_HOME` is
-set, otherwise `~/.cache/whisper`.
+`.cursor/verify.sh` runs tool/import checks and the CPU tests that do not
+load models. It skips `test_transcribe` and the `whisper` CLI so a missing
+cache cannot trigger a weight pull. The CLI defaults to `turbo`; invoking it
+without a local checkpoint would attempt a download and is out of scope here.
 
-Offline use applies only to the pre-cached models. The `whisper` CLI
-defaults to `turbo`, which is not pre-cached and will attempt a download
-unless `--model tiny` or `--model tiny.en` is passed.
-
-No secrets are stored in this repository.
+No remote inference service is started. No secrets are stored in this
+repository.
