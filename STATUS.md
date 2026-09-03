@@ -25,5 +25,11 @@ load models. It skips `test_transcribe` and the `whisper` CLI so a missing
 cache cannot trigger a weight pull. The CLI defaults to `turbo`; invoking it
 without a local checkpoint would attempt a download and is out of scope here.
 
-No remote inference service is started. No secrets are stored in this
-repository.
+Any HTTP serve path binds **127.0.0.1** only (`whisper.localhost.serve_bind_host`;
+`0.0.0.0` is rejected). `load_model` and the CLI default to **CPU**.
+
+CI job `no-committed-weights` runs `scripts/check_committed_artifacts.sh` and
+fails if model weights (`.pt`, `.onnx`, …) or large binaries are committed.
+
+No remote inference service is started on a public interface. No secrets are
+stored in this repository.

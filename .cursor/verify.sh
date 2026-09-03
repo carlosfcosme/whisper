@@ -6,6 +6,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+echo "== Committed artifact guard =="
+bash scripts/check_committed_artifacts.sh
+
 echo "== Tool + import check =="
 command -v ffmpeg >/dev/null || { echo "FAIL: ffmpeg not found on PATH"; exit 1; }
 command -v whisper >/dev/null || { echo "FAIL: whisper CLI not found on PATH"; exit 1; }
