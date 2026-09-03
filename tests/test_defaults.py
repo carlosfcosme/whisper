@@ -1,3 +1,4 @@
+import importlib
 from dataclasses import asdict
 from pathlib import Path
 
@@ -44,5 +45,6 @@ def test_load_model_defaults_to_cpu(tmp_path):
 
 
 def test_cli_device_default_is_cpu():
-    source = Path(whisper.transcribe.__file__).read_text(encoding="utf-8")
+    transcribe_mod = importlib.import_module("whisper.transcribe")
+    source = Path(transcribe_mod.__file__).read_text(encoding="utf-8")
     assert '--device", default="cpu"' in source
