@@ -11,6 +11,14 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .runtime import (
+    BindError,
+    WeightDownloadError,
+    bind_localhost,
+    default_bind_host,
+    default_device,
+    refuse_weight_auto_download,
+)
 from .transcribe import transcribe
 from .version import __version__
 
@@ -52,8 +60,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -69,6 +75,11 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    # Cache miss: refuse HF Hub always, and refuse all auto-downloads on
+    # the Cloud Agent / CI path. A valid cache hit above is not a pull.
+    refuse_weight_auto_download(url)
+    os.makedirs(root, exist_ok=True)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -115,9 +126,11 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. When omitted, uses
+        ``default_device()`` (``cpu``, not CUDA).
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to download the model files; by default, it uses "~/.cache/whisper".
+        Auto-download is refused on the Cloud Agent / CI path.
     in_memory: bool
         whether to preload the model weights into host memory
 
@@ -128,7 +141,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = default_device()
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

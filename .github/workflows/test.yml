@@ -36,9 +36,65 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  no-tracked-weights:
+    runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest only (no torch, no Hub)
+        run: pip install pytest
+      - name: git ls-files must not list weight blobs
+        run: |
+          python3 scripts/check_tracked_weights.py
+          bash scripts/check_tracked_weights.sh
+      - name: Ignore-rule coverage
+        run: python3 -m pytest --durations=0 -vv tests/test_gitignore_weights.py
+
+  sovereign:
+    needs: pre-commit
+    runs-on: ubuntu-latest
+    env:
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_LOCALHOST_ONLY: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU torch and package (no Hub, no weights)
+        run: |
+          pip install "numpy" torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+          pip install .["dev"]
+      - name: Fail if bind is not 127.0.0.1, Hub is contacted, or weights are pulled
+        run: pytest --durations=0 -vv tests/test_sovereign.py tests/test_cpu_default.py
+      - name: Refuse all-interface bind on the module entrypoint
+        run: |
+          set +e
+          python3 -m whisper.serve --host 0.0.0.0 --port 0
+          code=$?
+          set -e
+          test "$code" -eq 2
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_LOCALHOST_ONLY: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +132,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # No Hub, no weight pull: skip test_transcribe (load_model would fetch).
+      - run: pytest --durations=0 -vv -k 'not test_transcribe'

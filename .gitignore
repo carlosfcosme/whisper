@@ -9,3 +9,24 @@ thumbs.db
 .DS_Store
 .idea
 
+# In-repo cache dirs (XDG_CACHE_HOME, vendor caches). Never commit these.
+.cache/
+cache/
+.huggingface/
+.torch/
+
+# Weight / checkpoint directories
+weights/
+checkpoints/
+
+# Serialized model artifacts — never commit (dummy bytes still count)
+*.pt
+*.pth
+*.pth.tar
+*.safetensors
+*.ckpt
+*.onnx
+*.gguf
+*.ggml
+*.bin
+
