@@ -40,7 +40,9 @@ def bind_address(host: Optional[str] = None) -> str:
     else:
         raw = host
     if raw is None or not str(raw).strip():
-        raise NonLocalhostBindError("empty bind host refused; use 127.0.0.1")
+        raise NonLocalhostBindError(
+            "empty bind host refused; localhost only (use 127.0.0.1)"
+        )
 
     candidate = str(raw).strip()
     normalized = _normalize(candidate)
