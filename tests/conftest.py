@@ -10,6 +10,8 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+# Tests must not fetch Whisper checkpoints (Azure CDN or otherwise).
+os.environ["WHISPER_NO_DOWNLOAD"] = "1"
 
 _REAL_URLOPEN = urllib.request.urlopen
 _HUB_MARKERS = ("huggingface.co", "hf.co/", "huggingface_hub")
