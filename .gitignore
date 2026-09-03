@@ -9,3 +9,29 @@ thumbs.db
 .DS_Store
 .idea
 
+# Weight checkpoints — never commit these blobs.
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+*.ckpt
+*.h5
+*.tflite
+*.gguf
+*.ggml
+
+# Local cache / dump directories (Whisper, HF Hub, ad-hoc).
+.cache/
+cache/
+weights/
+checkpoints/
+.huggingface/
+huggingface/hub/
+
+# Coverage reports — ignore-coverage (never commit).
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+coverage/
