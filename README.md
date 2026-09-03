@@ -54,6 +54,8 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+The repository does not ship a virtualenv. Supported and CI Python versions, and the Cloud Agent default (`3.12`), are listed in [PYTHON.md](PYTHON.md).
+
 
 ## Available models and languages
 
