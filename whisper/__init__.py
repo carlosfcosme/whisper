@@ -10,6 +10,12 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .defaults import (
+    DEFAULT_DEVICE,
+    WEIGHT_SUFFIXES,
+    downloads_blocked,
+    reject_huggingface_hub,
+)
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -52,6 +58,7 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
+    reject_huggingface_hub(url)
     os.makedirs(root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
@@ -69,6 +76,9 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if downloads_blocked():
+        raise RuntimeError("offline: model download blocked")
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -100,11 +110,37 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
+def _default_download_root() -> str:
+    default = os.path.join(os.path.expanduser("~"), ".cache")
+    return os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+
+
+def resolve_local_checkpoint(name: str, download_root: str = None) -> str:
+    """Return a local checkpoint path. Never downloads. Rejects Hugging Face Hub."""
+    reject_huggingface_hub(name)
+    if download_root is None:
+        download_root = _default_download_root()
+    if os.path.isfile(name):
+        return name
+    if name in _MODELS:
+        reject_huggingface_hub(_MODELS[name])
+        path = os.path.join(download_root, os.path.basename(_MODELS[name]))
+        if os.path.isfile(path):
+            return path
+        raise FileNotFoundError(f"local checkpoint not found: {path}")
+    if name.lower().endswith(WEIGHT_SUFFIXES) or os.sep in name or "/" in name:
+        raise FileNotFoundError(f"local checkpoint not found: {name}")
+    raise RuntimeError(
+        f"Model {name} not found; available models = {available_models()}"
+    )
+
+
 def load_model(
     name: str,
     device: Optional[Union[str, torch.device]] = None,
     download_root: str = None,
     in_memory: bool = False,
+    local_only: bool = False,
 ) -> Whisper:
     """
     Load a Whisper ASR model
@@ -115,11 +151,13 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into; defaults to CPU
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
         whether to preload the model weights into host memory
+    local_only: bool
+        if True, load only an existing local file and never download
 
     Returns
     -------
@@ -127,13 +165,20 @@ def load_model(
         The Whisper ASR model instance
     """
 
+    reject_huggingface_hub(name)
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
-        default = os.path.join(os.path.expanduser("~"), ".cache")
-        download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+        download_root = _default_download_root()
 
-    if name in _MODELS:
+    if local_only:
+        checkpoint_path = resolve_local_checkpoint(name, download_root)
+        checkpoint_file = (
+            open(checkpoint_path, "rb").read() if in_memory else checkpoint_path
+        )
+        alignment_heads = _ALIGNMENT_HEADS.get(name)
+    elif name in _MODELS:
+        reject_huggingface_hub(_MODELS[name])
         checkpoint_file = _download(_MODELS[name], download_root, in_memory)
         alignment_heads = _ALIGNMENT_HEADS[name]
     elif os.path.isfile(name):
