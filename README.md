@@ -147,7 +147,7 @@ Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussion
 
 ## Testing
 
-The suite under [`tests/`](tests/) is collected by [pytest](https://docs.pytest.org/) (not `unittest`). The default path is CPU-only and offline: tests refuse WAN/IP sockets, and `load_model` will not download checkpoints. `pytest` is listed in the `dev` extra in [`pyproject.toml`](pyproject.toml). After installing ffmpeg (see Setup) and the package from this checkout:
+The suite under [`tests/`](tests/) is collected by [pytest](https://docs.pytest.org/) (not `unittest`). A session guard (`tests/offline_guard.py`) isolates weight caches, fails model/WAN fetches, and refuses non-loopback bind/connect (loopback is allowed). `load_model` will not download checkpoints. `pytest` is listed in the `dev` extra in [`pyproject.toml`](pyproject.toml). After installing ffmpeg (see Setup) and the package from this checkout:
 
 ```bash
 pip install -e ".[dev]"

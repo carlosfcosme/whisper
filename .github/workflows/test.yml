@@ -84,4 +84,7 @@ jobs:
           HF_HUB_DISABLE_TELEMETRY: "1"
           TRANSFORMERS_OFFLINE: "1"
           HF_DATASETS_OFFLINE: "1"
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-offline-cache
+          HF_HOME: ${{ runner.temp }}/whisper-offline-cache/huggingface
+          TORCH_HOME: ${{ runner.temp }}/whisper-offline-cache/torch
         run: pytest --durations=0 -vv -m 'not requires_cuda and not requires_weights'
