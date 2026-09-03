@@ -2,6 +2,7 @@
 
 import hashlib
 import importlib.util
+import os
 import subprocess
 import sys
 import urllib.request
@@ -89,6 +90,47 @@ def test_azure_weight_urlopen_fails_the_test():
         )
 
 
+def _conftest_module():
+    spec = importlib.util.spec_from_file_location(
+        "offline_conftest", REPO_ROOT / "tests" / "conftest.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://localhost.evil.example/weights.pt",
+        "http://localhost@evil.example/weights.pt",
+        "https://localhost.huggingface.co/tiny.pt",
+        "http://127.0.0.1.nip.io/tiny.pt",
+        "http://[::1].evil.example/",
+    ],
+)
+def test_loopback_prefix_cannot_bypass_hub_block(url):
+    helper = _conftest_module()
+    assert helper._is_loopback_url(url) is False
+    with pytest.raises(RuntimeError, match="forbidden"):
+        urllib.request.urlopen(url)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://127.0.0.1/health",
+        "http://localhost/health",
+        "http://LOCALHOST/health",
+        "http://[::1]/health",
+    ],
+)
+def test_parsed_loopback_host_is_allowed(url):
+    helper = _conftest_module()
+    assert helper._is_loopback_url(url) is True
+
+
 def test_zero_addr_is_not_a_loopback_bind():
     """Localhost-only constraint: all-interfaces is never an allowed bind."""
     assert "0.0.0.0" != "127.0.0.1"
@@ -156,14 +198,32 @@ def test_check_offline_default_script_passes():
     assert "offline" in result.stdout
 
 
-def test_assert_no_weight_cache_passes():
+def test_assert_no_weight_cache_passes(tmp_path):
+    """Do not scan the developer's real ~/.cache/whisper.
+
+    A legitimate local checkpoint must not fail this unit test. CI still
+    inspects the runner cache after install/pytest.
+    """
     script = REPO_ROOT / "scripts" / "assert_no_weight_cache.py"
+    home = tmp_path / "home"
+    xdg = tmp_path / "xdg"
+    real_home = tmp_path / "real-home"
+    (real_home / ".cache" / "whisper").mkdir(parents=True)
+    (real_home / ".cache" / "whisper" / "tiny.pt").write_bytes(b"local-ok")
+    home.mkdir()
+    xdg.mkdir()
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["XDG_CACHE_HOME"] = str(xdg)
+    env.pop("HF_HOME", None)
+    env.pop("HF_HUB_CACHE", None)
     result = subprocess.run(
         [sys.executable, str(script)],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
     assert result.returncode == 0, result.stderr
     assert "OK:" in result.stdout

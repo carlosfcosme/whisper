@@ -1,6 +1,8 @@
+import ipaddress
 import os
 import random as rand
 import urllib.request
+from urllib.parse import urlparse
 
 import numpy
 import pytest
@@ -41,12 +43,27 @@ def _request_url(url):
 
 
 def _is_loopback_url(url):
+    """True only when the *parsed hostname* is loopback.
+
+    Prefix matching is not enough: ``http://localhost.evil.example/`` and
+    ``http://localhost@evil.example/`` must stay blocked.
+    """
     target = _request_url(url)
-    return (
-        target.startswith("http://127.0.0.1")
-        or target.startswith("http://localhost")
-        or target.startswith("http://[::1]")
-    )
+    try:
+        parsed = urlparse(target)
+    except ValueError:
+        return False
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    host = parsed.hostname
+    if not host:
+        return False
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.split("%", 1)[0]).is_loopback
+    except ValueError:
+        return False
 
 
 @pytest.fixture(autouse=True)
