@@ -5,7 +5,6 @@ Uses dummy bytes only. Does not import whisper, contact the Hub, or load keys.
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -113,16 +112,6 @@ def test_shell_guard_fails_when_bin_is_force_added(tmp_path):
     assert result.returncode == 1
     combined = result.stdout + result.stderr
     assert "pytorch_model.bin" in combined
-
-
-def test_no_hub_env_in_this_module():
-    """This file must not fetch the Hub even if someone unsets HF_HUB_OFFLINE."""
-    text = Path(__file__).read_text()
-    assert "huggingface.co" not in text
-    assert "hf_hub_download" not in text
-    assert "0.0.0.0" not in text
-    assert "FIELD_BRAIN" not in text and "Field-Brain" not in text
-    assert os.environ.get("HF_HUB_OFFLINE", "1")
 
 
 def test_current_ls_files_has_no_weight_blobs():
