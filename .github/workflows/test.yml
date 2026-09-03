@@ -46,14 +46,20 @@ jobs:
         run: |
           set -euo pipefail
           tracked="$(git ls-files -- \
-            '*.pt' '*.pth' '*.bin' '*.onnx' '*.safetensors' \
-            '*.ckpt' '*.h5' '*.tflite' '*.gguf' '*.ggml' \
-            '.cache' '.cache/**' 'cache' 'cache/**' \
-            'weights' 'weights/**' 'checkpoints' 'checkpoints/**' \
-            '.huggingface' '.huggingface/**' \
-            'huggingface/hub' 'huggingface/hub/**' \
-            '.coverage' '.coverage.*' 'htmlcov' 'htmlcov/**' \
-            'coverage.xml' 'coverage' 'coverage/**')"
+            ':(glob)**/*.pt' ':(glob)**/*.pth' ':(glob)**/*.bin' \
+            ':(glob)**/*.onnx' ':(glob)**/*.safetensors' \
+            ':(glob)**/*.ckpt' ':(glob)**/*.h5' ':(glob)**/*.tflite' \
+            ':(glob)**/*.gguf' ':(glob)**/*.ggml' \
+            ':(glob)**/.cache' ':(glob)**/.cache/**' \
+            ':(glob)**/cache' ':(glob)**/cache/**' \
+            ':(glob)**/weights' ':(glob)**/weights/**' \
+            ':(glob)**/checkpoints' ':(glob)**/checkpoints/**' \
+            ':(glob)**/.huggingface' ':(glob)**/.huggingface/**' \
+            ':(glob)**/huggingface/hub' ':(glob)**/huggingface/hub/**' \
+            ':(glob)**/.coverage' ':(glob)**/.coverage.*' \
+            ':(glob)**/htmlcov' ':(glob)**/htmlcov/**' \
+            ':(glob)**/coverage.xml' ':(glob)**/coverage' \
+            ':(glob)**/coverage/**')"
           if [ -n "$tracked" ]; then
             echo "Tracked weight/cache/coverage artifacts are not allowed:"
             echo "$tracked"

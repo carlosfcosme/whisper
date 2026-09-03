@@ -24,6 +24,7 @@ MUST_IGNORE = (
     "checkpoints/epoch0.ckpt",
     ".huggingface/hub/models--x/snapshots/y/model.safetensors",
     "huggingface/hub/models--openai--whisper/snapshots/z/model.safetensors",
+    "src/cache/model-dump",
     ".coverage",
     "htmlcov/index.html",
     "coverage.xml",
@@ -82,8 +83,7 @@ def test_git_ls_files_guard_clean_on_this_repo():
     assert ns["main"]() == 0
 
 
-def test_git_ls_files_guard_fails_when_pt_tracked(tmp_path):
-    ns = _mod()
+def _init_git(tmp_path):
     subprocess.run(["git", "init"], cwd=str(tmp_path), check=True)
     subprocess.run(
         ["git", "config", "user.email", "ci@example.test"],
@@ -95,11 +95,33 @@ def test_git_ls_files_guard_fails_when_pt_tracked(tmp_path):
         cwd=str(tmp_path),
         check=True,
     )
+
+
+def test_git_ls_files_guard_fails_when_pt_tracked(tmp_path):
+    ns = _mod()
+    _init_git(tmp_path)
     (tmp_path / "ok.py").write_text("x\n")
     (tmp_path / "evil.pt").write_bytes(b"not-a-real-checkpoint")
     subprocess.run(["git", "add", "ok.py", "evil.pt"], cwd=str(tmp_path), check=True)
     tracked = ns["git_ls_files"](ns["PATHSPECS"], cwd=str(tmp_path))
     assert "evil.pt" in tracked
+    assert "ok.py" not in tracked
+
+
+def test_git_ls_files_guard_fails_on_nested_cache_dir(tmp_path):
+    ns = _mod()
+    _init_git(tmp_path)
+    nested = tmp_path / "src" / "cache"
+    nested.mkdir(parents=True)
+    (nested / "model-dump").write_text("blob\n")
+    (tmp_path / "ok.py").write_text("x\n")
+    subprocess.run(
+        ["git", "add", "ok.py", "src/cache/model-dump"],
+        cwd=str(tmp_path),
+        check=True,
+    )
+    tracked = ns["git_ls_files"](ns["PATHSPECS"], cwd=str(tmp_path))
+    assert "src/cache/model-dump" in tracked
     assert "ok.py" not in tracked
 
 

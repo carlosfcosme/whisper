@@ -8,42 +8,43 @@ torch, no Hub, no network, no keys.
 import subprocess
 import sys
 
+# :(glob)**/… matches at any depth. A bare `cache/**` only covers ./cache/.
 WEIGHT_PATHSPECS = (
-    "*.pt",
-    "*.pth",
-    "*.bin",
-    "*.onnx",
-    "*.safetensors",
-    "*.ckpt",
-    "*.h5",
-    "*.tflite",
-    "*.gguf",
-    "*.ggml",
+    ":(glob)**/*.pt",
+    ":(glob)**/*.pth",
+    ":(glob)**/*.bin",
+    ":(glob)**/*.onnx",
+    ":(glob)**/*.safetensors",
+    ":(glob)**/*.ckpt",
+    ":(glob)**/*.h5",
+    ":(glob)**/*.tflite",
+    ":(glob)**/*.gguf",
+    ":(glob)**/*.ggml",
 )
 
 CACHE_PATHSPECS = (
-    ".cache",
-    ".cache/**",
-    "cache",
-    "cache/**",
-    "weights",
-    "weights/**",
-    "checkpoints",
-    "checkpoints/**",
-    ".huggingface",
-    ".huggingface/**",
-    "huggingface/hub",
-    "huggingface/hub/**",
+    ":(glob)**/.cache",
+    ":(glob)**/.cache/**",
+    ":(glob)**/cache",
+    ":(glob)**/cache/**",
+    ":(glob)**/weights",
+    ":(glob)**/weights/**",
+    ":(glob)**/checkpoints",
+    ":(glob)**/checkpoints/**",
+    ":(glob)**/.huggingface",
+    ":(glob)**/.huggingface/**",
+    ":(glob)**/huggingface/hub",
+    ":(glob)**/huggingface/hub/**",
 )
 
 COVERAGE_PATHSPECS = (
-    ".coverage",
-    ".coverage.*",
-    "htmlcov",
-    "htmlcov/**",
-    "coverage.xml",
-    "coverage",
-    "coverage/**",
+    ":(glob)**/.coverage",
+    ":(glob)**/.coverage.*",
+    ":(glob)**/htmlcov",
+    ":(glob)**/htmlcov/**",
+    ":(glob)**/coverage.xml",
+    ":(glob)**/coverage",
+    ":(glob)**/coverage/**",
 )
 
 PATHSPECS = WEIGHT_PATHSPECS + CACHE_PATHSPECS + COVERAGE_PATHSPECS
