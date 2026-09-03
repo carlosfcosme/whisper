@@ -54,6 +54,14 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+The package defines one optional pip extra, `dev`, for running tests and the formatting tools used in CI (`black`, `flake8`, `isort`, `pytest`, and `scipy`). Install it from PyPI with:
+
+    pip install -U "openai-whisper[dev]"
+
+From a local checkout of this repository:
+
+    pip install ".[dev]"
+
 
 ## Available models and languages
 
