@@ -54,6 +54,8 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Named models are not stored in this repository. `whisper.load_model()` writes checkpoints to `$XDG_CACHE_HOME/whisper` when `XDG_CACHE_HOME` is set, otherwise `~/.cache/whisper`. If you point that env var, `--model_dir`, or `download_root` at a directory inside this checkout (for example `.cache`), `.gitignore` excludes `.cache/`, `cache/`, and `*.pt` so those weights stay untracked. Do not commit checkpoints or secrets.
+
 
 ## Available models and languages
 
