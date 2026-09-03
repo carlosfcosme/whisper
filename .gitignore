@@ -9,3 +9,15 @@ thumbs.db
 .DS_Store
 .idea
 
+# Local cache / weight dumps (CI fails if these are tracked)
+.cache/
+.cache/whisper/
+cache/
+cache/whisper/
+weights/
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+
