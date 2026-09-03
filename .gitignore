@@ -9,3 +9,18 @@ thumbs.db
 .DS_Store
 .idea
 
+# Whisper checkpoint cache. Directory name is always "whisper".
+# Default: ~/.cache/whisper
+# If XDG_CACHE_HOME is set: $XDG_CACHE_HOME/whisper
+# Project-local names when that env, --model_dir, or download_root is in-repo:
+.cache/
+cache/
+
+# Downloaded model weights — never commit checkpoints
+*.pt
+*.pth
+
+# Local secrets — never commit credentials or API keys
+.env
+.env.*
+

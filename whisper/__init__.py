@@ -100,6 +100,22 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
+def default_download_root() -> str:
+    """Return the default directory for downloaded model checkpoints.
+
+    The cache directory name is always ``whisper``. The parent is the implicit
+    ``XDG_CACHE_HOME`` environment variable when set, otherwise ``~/.cache``.
+
+    Returns
+    -------
+    str
+        ``$XDG_CACHE_HOME/whisper`` if ``XDG_CACHE_HOME`` is set, otherwise
+        ``~/.cache/whisper``.
+    """
+    default_home = os.path.join(os.path.expanduser("~"), ".cache")
+    return os.path.join(os.getenv("XDG_CACHE_HOME", default_home), "whisper")
+
+
 def load_model(
     name: str,
     device: Optional[Union[str, torch.device]] = None,
@@ -117,7 +133,9 @@ def load_model(
     device : Union[str, torch.device]
         the PyTorch device to put the model into
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to download the model files; by default
+        ``$XDG_CACHE_HOME/whisper`` if ``XDG_CACHE_HOME`` is set, otherwise
+        ``~/.cache/whisper``
     in_memory: bool
         whether to preload the model weights into host memory
 
@@ -130,8 +148,7 @@ def load_model(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     if download_root is None:
-        default = os.path.join(os.path.expanduser("~"), ".cache")
-        download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+        download_root = default_download_root()
 
     if name in _MODELS:
         checkpoint_file = _download(_MODELS[name], download_root, in_memory)
