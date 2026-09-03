@@ -64,9 +64,8 @@ Cache hits stay local. The cache directory is `$XDG_CACHE_HOME/whisper`
 when `XDG_CACHE_HOME` is set, otherwise `~/.cache/whisper`.
 
 `tests/test_transcribe.py` calls `load_model` for official models and is a
-weight pull unless those files are already cached. The CI matrix job that
-runs `tiny` / `tiny.en` must set `WHISPER_ALLOW_WEIGHT_FETCH=1`. Verify
-and install must not.
+weight pull. CI and verify skip it (`-k 'not test_transcribe'`). Do not
+set `WHISPER_ALLOW_WEIGHT_FETCH=1` in default CI.
 
 ## Localhost-only
 

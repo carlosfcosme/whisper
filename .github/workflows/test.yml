@@ -8,6 +8,12 @@ on:
       - main
 
 jobs:
+  offline-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if Hub APIs, committed weights, or default weight pull
+        run: python3 tests/offline_ci.py
   environment-verify:
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +60,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, offline-guards]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -93,6 +99,10 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Offline CPU tests (no Hub, no weight pull)
+        run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
         env:
-          WHISPER_ALLOW_WEIGHT_FETCH: "1"
+          WHISPER_ALLOW_WEIGHT_FETCH: "0"
+          WHISPER_BIND_HOST: "127.0.0.1"
+          CUDA_VISIBLE_DEVICES: ""
+          HF_HUB_OFFLINE: "1"
