@@ -104,5 +104,6 @@ jobs:
         env:
           WHISPER_ALLOW_WEIGHT_FETCH: "0"
           WHISPER_BIND_HOST: "127.0.0.1"
+          WHISPER_DEVICE: "cpu"
           CUDA_VISIBLE_DEVICES: ""
           HF_HUB_OFFLINE: "1"

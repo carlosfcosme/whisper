@@ -47,6 +47,7 @@ assert wildcard not in env_sh
 assert "--host 127.0.0.1" in start
 assert "WHISPER_BIND_HOST=127.0.0.1" in env_sh
 assert "WHISPER_ALLOW_WEIGHT_FETCH=0" in env_sh
+assert "WHISPER_DEVICE=cpu" in env_sh
 assert "ports" not in env, env
 assert env.get("install") == "bash .cursor/install.sh"
 assert "## Install" in doc and "## No-weight-pull" in doc and "## Localhost-only" in doc

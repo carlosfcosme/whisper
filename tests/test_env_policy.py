@@ -214,6 +214,7 @@ def test_env_files_force_localhost_and_no_fetch():
 
     assert "WHISPER_BIND_HOST=127.0.0.1" in env_sh
     assert "WHISPER_ALLOW_WEIGHT_FETCH=0" in env_sh
+    assert "WHISPER_DEVICE=cpu" in env_sh
     assert "--host 127.0.0.1" in start
     assert WILDCARD not in start
     assert WILDCARD not in install

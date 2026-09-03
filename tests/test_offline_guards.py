@@ -9,9 +9,12 @@ from hub_guard import (
     FORBIDDEN_HUB_APIS,
     HubImportError,
     HubNetworkError,
+    WanNetworkError,
     forbidden_hub_api_hits,
     is_hub_url,
     refuse_hub_url,
+    refuse_wan_host,
+    refuse_wan_url,
 )
 from offline_ci import (
     IGNORE_EXAMPLES,
@@ -62,6 +65,8 @@ def test_hub_urls_are_refused(url):
 def test_non_hub_urls_are_not_blocked_as_hub(url):
     assert not is_hub_url(url)
     refuse_hub_url(url)
+    if url.startswith("http://127.0.0.1") or url.startswith("file:"):
+        refuse_wan_url(url)
 
 
 def test_urlopen_to_hub_is_blocked():
@@ -71,11 +76,49 @@ def test_urlopen_to_hub_is_blocked():
         urllib.request.urlopen("https://huggingface.co/api/models")
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://openaipublic.azureedge.net/main/whisper/models/abc/tiny.pt",
+        "https://example.com/tiny.pt",
+        "http://8.8.8.8/tiny.pt",
+        "http://10.0.0.1/tiny.pt",
+    ],
+)
+def test_wan_urls_are_refused(url):
+    with pytest.raises(WanNetworkError, match="WAN"):
+        refuse_wan_url(url)
+
+
+def test_urlopen_to_wan_is_blocked():
+    import urllib.request
+
+    with pytest.raises(WanNetworkError, match="WAN"):
+        urllib.request.urlopen(
+            "https://openaipublic.azureedge.net/main/whisper/models/abc/tiny.pt"
+        )
+
+
+def test_socket_to_wan_is_blocked():
+    import socket
+
+    with pytest.raises(WanNetworkError, match="WAN"):
+        socket.create_connection(("8.8.8.8", 53), timeout=0.2)
+    with pytest.raises(WanNetworkError, match="WAN"):
+        refuse_wan_host("openaipublic.azureedge.net")
+    refuse_wan_host("127.0.0.1")
+
+
 def test_cpu_is_the_default():
     assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    assert os.environ.get("WHISPER_DEVICE") == "cpu"
     import torch
 
+    from whisper.env_policy import resolve_device
+
     assert torch.cuda.is_available() is False
+    assert resolve_device() == "cpu"
+    assert resolve_device(None) == "cpu"
 
 
 def test_no_weight_fetch_is_the_default():

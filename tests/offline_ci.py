@@ -116,6 +116,11 @@ def check_ci_has_no_default_weight_pull() -> None:
         )
     if "test_transcribe[tiny]" in workflow:
         raise SystemExit("CI must not run test_transcribe (offline fixtures only)")
+    if 'WHISPER_DEVICE: "cpu"' not in workflow:
+        raise SystemExit("CI must force WHISPER_DEVICE=cpu")
+    env_sh = (REPO_ROOT / ".cursor" / "env.sh").read_text(encoding="utf-8")
+    if "WHISPER_DEVICE=cpu" not in env_sh:
+        raise SystemExit("env.sh must force WHISPER_DEVICE=cpu")
 
 
 def main() -> int:

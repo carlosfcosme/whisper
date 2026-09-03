@@ -1,9 +1,10 @@
-"""Runtime and static guards: no Hugging Face Hub, offline fixtures only."""
+"""Runtime and static guards: no WAN in tests, offline fixtures only."""
 
 from __future__ import annotations
 
 import re
 import sys
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Iterable, List, Optional
 from urllib.parse import urlparse
@@ -30,7 +31,11 @@ class HubImportError(ImportError):
     """Raised when a test tries to import huggingface_hub."""
 
 
-class HubNetworkError(RuntimeError):
+class WanNetworkError(RuntimeError):
+    """Raised when a test tries to use WAN."""
+
+
+class HubNetworkError(WanNetworkError):
     """Raised when a test tries to reach the Hugging Face Hub."""
 
 
@@ -50,6 +55,23 @@ def install_hub_import_block() -> None:
     sys.meta_path.insert(0, _ForbidHuggingFaceHub())
 
 
+def hostname_is_loopback(host) -> bool:
+    """True for localhost / loopback IPs. Hostnames are not resolved."""
+    if not host:
+        return False
+    if isinstance(host, bytes):
+        host = host.decode("utf-8", "replace")
+    normalized = str(host).strip().lower().rstrip(".")
+    if normalized.startswith("[") and normalized.endswith("]"):
+        normalized = normalized[1:-1]
+    if normalized == "localhost":
+        return True
+    try:
+        return ip_address(normalized).is_loopback
+    except ValueError:
+        return False
+
+
 def url_host(url) -> str:
     if not isinstance(url, str):
         url = getattr(url, "full_url", None) or str(url)
@@ -65,25 +87,67 @@ def is_hub_url(url) -> bool:
     return any(host.endswith(suffix) for suffix in HUB_SUFFIXES)
 
 
+def is_loopback_url(url) -> bool:
+    if not isinstance(url, str):
+        url = getattr(url, "full_url", None) or str(url)
+    parsed = urlparse(url)
+    if parsed.scheme == "file":
+        return True
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    return hostname_is_loopback(parsed.hostname)
+
+
 def refuse_hub_url(url) -> None:
     if is_hub_url(url):
         raise HubNetworkError(f"tests must not hit the Hugging Face Hub: {url!r}")
 
 
+def refuse_wan_url(url) -> None:
+    refuse_hub_url(url)
+    if is_loopback_url(url):
+        return
+    raise WanNetworkError(f"tests must not use WAN: {url!r}")
+
+
+def refuse_wan_host(host) -> None:
+    if hostname_is_loopback(host):
+        return
+    raise WanNetworkError(f"tests must not use WAN host: {host!r}")
+
+
 def install_hub_urlopen_block() -> None:
+    install_offline_network_block()
+
+
+def install_offline_network_block() -> None:
+    import socket
     import urllib.request
 
-    original = urllib.request.urlopen
+    original_urlopen = urllib.request.urlopen
+    if not getattr(original_urlopen, "_whisper_offline_guard", False):
 
-    if getattr(original, "_whisper_hub_guard", False):
-        return
+        def guarded_urlopen(url, *args, **kwargs):
+            refuse_wan_url(url)
+            return original_urlopen(url, *args, **kwargs)
 
-    def guarded(url, *args, **kwargs):
-        refuse_hub_url(url)
-        return original(url, *args, **kwargs)
+        guarded_urlopen._whisper_offline_guard = True
+        urllib.request.urlopen = guarded_urlopen
 
-    guarded._whisper_hub_guard = True
-    urllib.request.urlopen = guarded
+    original_cc = socket.create_connection
+    if not getattr(original_cc, "_whisper_offline_guard", False):
+
+        def guarded_cc(address, *args, **kwargs):
+            host = (
+                address[0]
+                if isinstance(address, (tuple, list)) and address
+                else address
+            )
+            refuse_wan_host(host)
+            return original_cc(address, *args, **kwargs)
+
+        guarded_cc._whisper_offline_guard = True
+        socket.create_connection = guarded_cc
 
 
 def iter_test_sources(root: Optional[Path] = None) -> Iterable[Path]:

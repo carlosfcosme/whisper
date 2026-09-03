@@ -7,9 +7,7 @@ Cloud Agent / local-dev setup sources ``.cursor/env.sh``, which exports
 When weight fetch is denied (the default: unset or ``0``),
 ``whisper._download`` refuses remote/WAN URLs — including the official
 Azure CDN — before opening a socket. Cache hits and ``file:`` / loopback
-URLs are not fetches. The existing CI matrix sets
-``WHISPER_ALLOW_WEIGHT_FETCH=1`` so ``tiny`` / ``tiny.en`` can still be
-fetched there.
+URLs are not fetches. Default compute is CPU when ``WHISPER_DEVICE=cpu``.
 """
 
 from __future__ import annotations
@@ -24,6 +22,7 @@ from urllib.parse import urlparse
 BIND_HOST = "127.0.0.1"
 BIND_HOST_ENV = "WHISPER_BIND_HOST"
 ALLOW_WEIGHT_FETCH_ENV = "WHISPER_ALLOW_WEIGHT_FETCH"
+DEVICE_ENV = "WHISPER_DEVICE"
 _TRUTHY = {"1", "true", "yes", "on"}
 
 
@@ -48,6 +47,24 @@ def require_bind_127_0_0_1(host: Optional[str]) -> str:
         f"bind must be {BIND_HOST} only, got {host!r}. "
         "Do not listen on 0.0.0.0 or any other interface."
     )
+
+
+def resolve_device(device: Optional[str] = None) -> str:
+    """Return the inference device. Default path is CPU when forced.
+
+    ``WHISPER_DEVICE=cpu`` (environment default) always selects CPU.
+    An explicit ``device`` argument wins.
+    """
+    import torch
+
+    if device:
+        return device
+    forced = os.environ.get(DEVICE_ENV, "").strip().lower()
+    if forced == "cpu":
+        return "cpu"
+    if forced == "cuda":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def weight_fetch_allowed() -> bool:
