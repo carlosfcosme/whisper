@@ -6,6 +6,13 @@ import urllib.request
 import numpy
 import pytest
 
+from whisper.fixtures import (
+    IN_REPO_SAMPLE_AUDIO,
+    require_local_fixture,
+    tiny_wav_bytes,
+    write_tiny_wav,
+)
+
 _ALL_INTERFACES = frozenset(("", "0.0.0.0", "::", "[::]"))
 _LOOPBACK = frozenset(("127.0.0.1", "::1", "localhost"))
 _HUB_MARKERS = (
@@ -20,6 +27,7 @@ _WEIGHT_HOST_MARKERS = (
     "whisper/models",
 )
 _WEIGHT_SUFFIXES = (".pt", ".pth", ".safetensors")
+_AUDIO_SUFFIXES = (".flac", ".wav", ".mp3", ".ogg", ".m4a")
 
 
 def _offline_requested():
@@ -51,8 +59,15 @@ def _is_weight_fetch(url):
     return any(marker in lowered for marker in _WEIGHT_HOST_MARKERS)
 
 
+def _is_remote_audio_fixture(url):
+    lowered = _url_text(url).lower()
+    if not lowered.startswith(("http://", "https://")):
+        return False
+    return any(lowered.split("?", 1)[0].endswith(suffix) for suffix in _AUDIO_SUFFIXES)
+
+
 def _is_forbidden_fetch(url):
-    return _is_hub_fetch(url) or _is_weight_fetch(url)
+    return _is_hub_fetch(url) or _is_weight_fetch(url) or _is_remote_audio_fixture(url)
 
 
 def pytest_configure(config):
@@ -66,6 +81,26 @@ def pytest_configure(config):
 def random():
     rand.seed(42)
     numpy.random.seed(42)
+
+
+@pytest.fixture
+def sample_audio_path():
+    """In-repo tests/jfk.flac. Never a network URL."""
+    return require_local_fixture(IN_REPO_SAMPLE_AUDIO)
+
+
+@pytest.fixture
+def tiny_wav_path(tmp_path):
+    """Temp 10 ms silence WAV. Never a network URL."""
+    return write_tiny_wav(tmp_path / "tiny.wav")
+
+
+@pytest.fixture
+def tiny_audio_bytes():
+    """Tiny WAV bytes generated in process. No Hub, no keys."""
+    payload = tiny_wav_bytes()
+    assert payload[:4] == b"RIFF"
+    return payload
 
 
 @pytest.fixture(autouse=True)

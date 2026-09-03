@@ -43,3 +43,9 @@ repos:
         language: pygrep
         entry: 'hf_hub_download|snapshot_download|from huggingface_hub|import huggingface_hub'
         files: '^whisper/.*\.py$'
+      - id: no-remote-fixture-urls
+        name: tests must not assign remote audio fixture URLs
+        language: python
+        entry: python3 .github/scripts/fail-remote-fixture-urls.py
+        pass_filenames: false
+        always_run: true
