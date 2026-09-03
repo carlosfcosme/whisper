@@ -54,6 +54,10 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Sovereign Cloud Agent path (see [AGENTS.md](AGENTS.md)): **CPU default**,
+**no Hugging Face Hub download in tests**, and helper listeners **bind
+`127.0.0.1`** (never `0.0.0.0`).
+
 
 ## Available models and languages
 
