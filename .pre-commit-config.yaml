@@ -33,6 +33,11 @@ repos:
         language: system
         entry: bash scripts/check_no_all_interfaces.sh
         pass_filenames: false
+      - id: loopback-listen
+        name: refuse non-loopback listen
+        language: system
+        entry: python3 scripts/check_loopback_listen.py
+        pass_filenames: false
       - id: no-committed-weights
         name: forbid committed model weights
         language: system
