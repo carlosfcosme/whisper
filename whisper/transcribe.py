@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import traceback
 import warnings
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
@@ -515,7 +516,13 @@ def transcribe(
 
 
 def cli():
+    if len(sys.argv) >= 2 and sys.argv[1] == "serve":
+        from .serve import main as serve_main
+
+        raise SystemExit(serve_main(sys.argv[2:]))
+
     from . import available_models
+    from .defaults import DEFAULT_DEVICE
 
     def valid_model_name(name):
         if name in available_models() or os.path.exists(name):
@@ -529,7 +536,7 @@ def cli():
     parser.add_argument("audio", nargs="+", type=str, help="audio file(s) to transcribe")
     parser.add_argument("--model", default="turbo", type=valid_model_name, help="name of the Whisper model to use")
     parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
+    parser.add_argument("--device", default=DEFAULT_DEVICE, help="device to use for PyTorch inference")
     parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
     parser.add_argument("--output_format", "-f", type=str, default="all", choices=["txt", "vtt", "srt", "tsv", "json", "all"], help="format of the output file; if not specified, all available formats will be produced")
     parser.add_argument("--verbose", type=str2bool, default=True, help="whether to print out the progress and debug messages")
