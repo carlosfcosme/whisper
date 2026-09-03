@@ -34,3 +34,9 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-gitignore
+        name: fail if .gitignore omits cache or weight patterns
+        language: system
+        entry: python3 scripts/check_gitignore.py
+        pass_filenames: false
+        always_run: true

@@ -65,6 +65,25 @@ def test_gitignore_covers_cache_and_weights():
         ".huggingface/",
     ):
         assert pattern in text
+    result = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "check_gitignore.py")],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "OK:" in result.stdout
+
+
+def test_check_gitignore_detects_missing_patterns(tmp_path, monkeypatch):
+    spec_path = REPO / "scripts" / "check_gitignore.py"
+    spec = importlib.util.spec_from_file_location("check_gitignore", spec_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    assert "*.pt" in module.missing_patterns("")
+    assert module.missing_patterns((REPO / ".gitignore").read_text()) == []
 
 
 def test_assert_no_weight_download_clean(monkeypatch, tmp_path):

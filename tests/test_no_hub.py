@@ -73,3 +73,5 @@ def test_ci_pytest_excludes_transcribe():
     assert "HF_HUB_OFFLINE" in workflow
     assert "WHISPER_NO_STORE" in workflow
     assert "assert_no_weight_download.py" in workflow
+    assert "check_gitignore.py" in workflow
+    assert "offline-guards" in workflow

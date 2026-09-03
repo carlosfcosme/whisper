@@ -1,13 +1,6 @@
 import os
-import random as rand
-import urllib.request
 
-import numpy
-import pytest
-
-# Deterministic, offline-friendly test defaults. conftest is imported before
-# any test module (and thus before torch), so these apply to the whole session.
-# setdefault keeps an explicit caller override (e.g. CUDA_VISIBLE_DEVICES=0).
+# Must run before torch / whisper imports so CI stays CPU and offline.
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 os.environ.setdefault("WHISPER_OFFLINE", "1")
 os.environ.setdefault("WHISPER_NO_STORE", "1")
@@ -16,7 +9,19 @@ os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
+import random as rand  # noqa: E402
+import socket  # noqa: E402
+import urllib.request  # noqa: E402
+
+import numpy  # noqa: E402
+import pytest  # noqa: E402
+
+from whisper.netguard import is_loopback_connect, refuse_non_loopback  # noqa: E402
+
 _REAL_URLOPEN = urllib.request.urlopen
+_REAL_CONNECT = socket.socket.connect
+_REAL_CONNECT_EX = socket.socket.connect_ex
+_REAL_CREATE_CONNECTION = socket.create_connection
 
 
 def pytest_configure(config):
@@ -48,9 +53,9 @@ def _is_loopback_url(url):
 
 @pytest.fixture(autouse=True)
 def _forbid_hub_and_remote_downloads(monkeypatch):
-    """Block Hub / remote downloads; loopback (serve) stays allowed."""
+    """Block WAN / Hub; loopback (serve) stays allowed."""
 
-    def _blocked(url, *args, **kwargs):
+    def _blocked_urlopen(url, *args, **kwargs):
         if _is_loopback_url(url):
             return _REAL_URLOPEN(url, *args, **kwargs)
         raise RuntimeError(
@@ -58,7 +63,23 @@ def _forbid_hub_and_remote_downloads(monkeypatch):
             "Requested: {}".format(_request_url(url))
         )
 
-    monkeypatch.setattr(urllib.request, "urlopen", _blocked)
+    def _blocked_connect(self, address):
+        refuse_non_loopback(address)
+        return _REAL_CONNECT(self, address)
+
+    def _blocked_connect_ex(self, address):
+        if not is_loopback_connect(address):
+            refuse_non_loopback(address)
+        return _REAL_CONNECT_EX(self, address)
+
+    def _blocked_create_connection(address, *args, **kwargs):
+        refuse_non_loopback(address)
+        return _REAL_CREATE_CONNECTION(address, *args, **kwargs)
+
+    monkeypatch.setattr(urllib.request, "urlopen", _blocked_urlopen)
+    monkeypatch.setattr(socket.socket, "connect", _blocked_connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", _blocked_connect_ex)
+    monkeypatch.setattr(socket, "create_connection", _blocked_create_connection)
 
     try:
         import huggingface_hub
@@ -72,4 +93,4 @@ def _forbid_hub_and_remote_downloads(monkeypatch):
         "cached_download",
     ):
         if hasattr(huggingface_hub, name):
-            monkeypatch.setattr(huggingface_hub, name, _blocked, raising=False)
+            monkeypatch.setattr(huggingface_hub, name, _blocked_urlopen, raising=False)
