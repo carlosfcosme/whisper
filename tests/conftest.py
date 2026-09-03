@@ -36,6 +36,8 @@ def _url_is_hub(url) -> bool:
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_cuda")
     config.addinivalue_line("markers", "requires_hub")
+    config.addinivalue_line("markers", "commercial")
+    config.addinivalue_line("markers", "requires_local_weights")
 
 
 @pytest.fixture
