@@ -54,6 +54,8 @@ jobs:
             echo "Package code must bind 127.0.0.1 only" >&2
             exit 1
           fi
+      - name: Fail if CI workflows would pull Hub or model weights
+        run: python3 tests/test_ci_no_hub_pull.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
