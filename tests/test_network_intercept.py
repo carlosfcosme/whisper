@@ -1,11 +1,17 @@
 """Offline tests fail if the network interceptor lets a remote connect through."""
 
 import socket
+import sys
 import urllib.request
+from pathlib import Path
 
 import pytest
 
-from tests.network_intercept import (
+_TEST_DIR = Path(__file__).resolve().parent
+if str(_TEST_DIR) not in sys.path:
+    sys.path.insert(0, str(_TEST_DIR))
+
+from network_intercept import (  # noqa: E402
     NetworkIntercepted,
     deny_if_remote,
     installed,

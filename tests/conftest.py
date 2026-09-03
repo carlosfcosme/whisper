@@ -1,15 +1,19 @@
 import os
 import random as rand
+import sys
 import urllib.request
+from pathlib import Path
 
 import numpy
 import pytest
 
-from tests.network_intercept import (
-    NetworkIntercepted,
-)
-from tests.network_intercept import install as install_network_intercept
-from tests.network_intercept import is_loopback_peer
+_TEST_DIR = Path(__file__).resolve().parent
+if str(_TEST_DIR) not in sys.path:
+    sys.path.insert(0, str(_TEST_DIR))
+
+from network_intercept import NetworkIntercepted  # noqa: E402
+from network_intercept import is_loopback_peer  # noqa: E402
+from network_intercept import install as install_network_intercept  # noqa: E402
 
 # Offline, CPU-only test defaults. setdefault keeps an explicit override.
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
@@ -34,7 +38,7 @@ def pytest_configure(config):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    from tests.network_intercept import uninstall
+    from network_intercept import uninstall
 
     uninstall()
 
