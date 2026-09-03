@@ -1,6 +1,7 @@
 """Serve path binds 127.0.0.1 only. Does not load weights."""
 
-import socket
+import json
+import urllib.request
 from threading import Thread
 
 import pytest
@@ -17,12 +18,13 @@ def test_make_server_binds_loopback():
         assert host == "127.0.0.1"
         assert port > 0
         thread.start()
-        with socket.create_connection((host, port), timeout=2) as client:
-            client.sendall(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
-            body = client.recv(4096).decode("utf-8")
-        assert '"bind": "127.0.0.1"' in body
-        assert '"hub": false' in body
-        assert '"device": "cpu"' in body
+        with urllib.request.urlopen(
+            "http://127.0.0.1:{0}/".format(port), timeout=2
+        ) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        assert payload["bind"] == "127.0.0.1"
+        assert payload["hub"] is False
+        assert payload["device"] == "cpu"
     finally:
         server.server_close()
         thread.join(timeout=2)
