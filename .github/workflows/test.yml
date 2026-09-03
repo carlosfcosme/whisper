@@ -8,6 +8,12 @@ on:
       - main
 
 jobs:
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights or caches are committed
+        run: python3 scripts/check_no_weights.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +43,15 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-committed-weights]
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      CUDA_VISIBLE_DEVICES: ""
     strategy:
       fail-fast: false
       matrix:
