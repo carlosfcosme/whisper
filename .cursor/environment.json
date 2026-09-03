@@ -1,4 +1,4 @@
 {
-  "name": "openai-whisper",
+  "name": "whisper-offline-cpu-localhost",
   "install": "bash .cursor/install.sh"
 }

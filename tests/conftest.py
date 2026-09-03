@@ -10,6 +10,7 @@ import pytest
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["WHISPER_NO_HUB"] = "1"
+os.environ["WHISPER_OFFLINE"] = "1"
 
 _HUB_HOSTS = (
     "huggingface.co",
@@ -53,18 +54,3 @@ def _block_hub_downloads(monkeypatch):
         return real_urlopen(url, *args, **kwargs)
 
     monkeypatch.setattr(urllib.request, "urlopen", guarded_urlopen)
-    # whisper._download is the only first-party download path.
-    import whisper as whisper_mod
-
-    real_download = whisper_mod._download
-
-    def guarded_download(url, root, in_memory):
-        if _url_is_hub(url):
-            # Allow a cache hit (file already on disk); never fetch.
-            expected = os.path.join(root, os.path.basename(url))
-            if os.path.isfile(expected):
-                return real_download(url, root, in_memory)
-            raise RuntimeError(f"Hub/CDN download blocked in tests: {url}")
-        return real_download(url, root, in_memory)
-
-    monkeypatch.setattr(whisper_mod, "_download", guarded_download)

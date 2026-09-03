@@ -1,7 +1,6 @@
 """Localhost-only bind policy for any HTTP serve path."""
 
-BIND_HOST = "127.0.0.1"
-ALLOWED_BIND_HOSTS = frozenset({"127.0.0.1", "::1"})
+from .policy import ALLOWED_BIND_HOSTS, BIND_HOST
 
 
 def serve_bind_host(host=None) -> str:

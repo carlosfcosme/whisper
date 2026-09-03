@@ -11,10 +11,9 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .policy import DEFAULT_DEVICE, allow_remote_fetch, refuse_remote_fetch_message
 from .transcribe import transcribe
 from .version import __version__
-
-DEFAULT_DEVICE = "cpu"
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -71,6 +70,9 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if not allow_remote_fetch():
+        raise RuntimeError(refuse_remote_fetch_message(url))
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
