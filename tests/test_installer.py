@@ -15,6 +15,7 @@ PUBLISH_YML = (ROOT / ".github" / "workflows" / "python-publish.yml").read_text(
 )
 
 UV_LOCK_NAMES = ("uv.lock", "Pipfile", "poetry.lock")
+UV_COMMAND = re.compile(r"(?m)^\s*uv\b")
 SECRET_PATTERNS = (
     "API_KEY",
     "SECRET_KEY",
@@ -22,6 +23,10 @@ SECRET_PATTERNS = (
     "BEGIN RSA",
     "sk-",
 )
+
+
+def without_hash_comments(text):
+    return "\n".join(line.split("#", 1)[0] for line in text.splitlines())
 
 
 def test_repo_has_no_uv_or_alt_lockfiles():
@@ -35,12 +40,14 @@ def test_repo_has_no_uv_or_alt_lockfiles():
 def test_bootstrap_and_ci_call_pip_not_uv():
     assert "pip install --break-system-packages" in INSTALL_SH
     assert '-e ".[dev]"' in INSTALL_SH
-    assert not re.search(r"\buv\b", INSTALL_SH)
+    assert UV_COMMAND.search(without_hash_comments(INSTALL_SH)) is None
+    assert "uv pip" not in INSTALL_SH
+    assert "uv sync" not in INSTALL_SH
     assert "pip install --upgrade pre-commit" in TEST_YML
     assert "pip3 install" in TEST_YML
-    assert not re.search(r"\buv\b", TEST_YML)
+    assert UV_COMMAND.search(without_hash_comments(TEST_YML)) is None
     assert "python -m pip install --upgrade pip" in PUBLISH_YML
-    assert not re.search(r"\buv\b", PUBLISH_YML)
+    assert UV_COMMAND.search(without_hash_comments(PUBLISH_YML)) is None
 
 
 def test_docs_name_pip_and_reject_uv():
