@@ -130,8 +130,8 @@ def test_git_add_refuses_dummy_checkpoint():
     copied.write_bytes(b"not-a-real-weight")
     try:
         dry = _git(REPO_ROOT, "add", "-n", "--", copied.name)
-        assert dry.returncode == 0, dry.stderr
-        assert copied.name not in dry.stdout
+        assert dry.returncode != 0
+        assert "ignored" in dry.stderr.lower()
         listed = _git(REPO_ROOT, "ls-files", "--", copied.name)
         assert listed.stdout.strip() == ""
     finally:

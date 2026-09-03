@@ -8,11 +8,18 @@ for this suite.
 
 import ast
 import os
+import sys
+import types
 import urllib.request
 from pathlib import Path
 
 import pytest
-from hub_offline import HUB_OFFLINE_ENV, is_huggingface_hub_host
+from hub_offline import (
+    HUB_OFFLINE_ENV,
+    install_hub_client_guard,
+    is_huggingface_hub_host,
+    refuse_hub_download,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "whisper"
@@ -107,6 +114,23 @@ def test_is_huggingface_hub_host_matches_cdn_and_aliases():
     assert is_huggingface_hub_host("cas-bridge.xethub.hf.co")
     assert not is_huggingface_hub_host("openaipublic.azureedge.net")
     assert not is_huggingface_hub_host("127.0.0.1")
+
+
+def test_hub_client_guard_patches_download_helpers(monkeypatch):
+    fake = types.ModuleType("huggingface_hub")
+
+    def _should_not_run(*args, **kwargs):
+        raise AssertionError("Hub client must not download")
+
+    fake.hf_hub_download = _should_not_run
+    fake.snapshot_download = _should_not_run
+    monkeypatch.setitem(sys.modules, "huggingface_hub", fake)
+    install_hub_client_guard()
+    with pytest.raises(RuntimeError, match="Hugging Face Hub"):
+        fake.hf_hub_download(repo_id="openai/whisper-tiny", filename="config.json")
+    with pytest.raises(RuntimeError, match="Hugging Face Hub"):
+        fake.snapshot_download(repo_id="openai/whisper-tiny")
+    assert fake.hf_hub_download is refuse_hub_download
 
 
 def test_huggingface_hub_download_is_offline():
