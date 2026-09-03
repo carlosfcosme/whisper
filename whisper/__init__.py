@@ -11,6 +11,7 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .offline import OfflineFetchError, refuse_remote_fetch
 from .transcribe import transcribe
 from .version import __version__
 
@@ -65,10 +66,15 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
-        else:
-            warnings.warn(
-                f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
-            )
+        warnings.warn(
+            f"{download_target} exists, but the SHA256 checksum does not match; "
+            "remote re-download is disabled"
+        )
+        raise OfflineFetchError(
+            f"{download_target} checksum mismatch and remote fetch is disabled"
+        )
+
+    refuse_remote_fetch(url, download_target)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
