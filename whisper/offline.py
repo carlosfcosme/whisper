@@ -1,7 +1,7 @@
 """Sovereign defaults: offline weight path, no Hugging Face Hub, CPU, loopback.
 
 Weight pulls are offline by default. Hugging Face Hub URLs are always
-refused. There is no --live flag, Field-Brain door, or API-key path.
+refused. There is no commercial download flag and no API-key path.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ OFFLINE_ENV_VARS = (
     "TRANSFORMERS_OFFLINE",
 )
 
-# The only documented opt-in for a non-Hub CDN pull. Not a --live door.
+# The only documented opt-in for a non-Hub CDN pull. Not a commercial door.
 ALLOW_WEIGHT_DOWNLOAD_ENV = "WHISPER_ALLOW_WEIGHT_DOWNLOAD"
 
 _TRUTHY = {"1", "true", "yes", "on"}

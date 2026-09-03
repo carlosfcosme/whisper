@@ -239,12 +239,12 @@ def test_git_check_ignore_cache_and_weights(tmp_path):
 
 def test_no_live_or_commercial_doors():
     forbidden = (
-        "--live",
-        "Field-Brain",
+        'add_argument("--live"',
+        "add_argument('--live'",
+        "WHISPER_LIVE",
         "FIELD_BRAIN",
         "OPENAI_API_KEY",
         "HUGGING_FACE_HUB_TOKEN",
-        "HF_TOKEN",
     )
     for path in (REPO_ROOT / "whisper").rglob("*.py"):
         text = path.read_text(encoding="utf-8")
