@@ -6,6 +6,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Offline / no Hub / CPU: install must not fetch Whisper checkpoints.
+export WHISPER_OFFLINE="${WHISPER_OFFLINE:-1}"
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get update -qq
@@ -20,8 +24,10 @@ pip install --break-system-packages \
   --index-url https://download.pytorch.org/whl/cpu \
   --extra-index-url https://pypi.org/simple
 
+# Formatter: Black (via .[dev]). Ruff is not present. See FORMAT.md.
 # Editable install of the package plus dev tooling (pytest, black, isort, flake8, scipy).
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
 python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+python3 scripts/assert_sovereign.py --probe

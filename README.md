@@ -54,6 +54,9 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
+Python in this checkout is formatted with **Black** (not Ruff). See
+[FORMAT.md](FORMAT.md) for the commands the Cloud Agent environment installs.
+
 
 ## Available models and languages
 

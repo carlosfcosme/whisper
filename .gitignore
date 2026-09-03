@@ -5,6 +5,19 @@ __pycache__/
 .pytest_cache
 .ipynb_checkpoints
 
+# Checkpoints, Hub caches, and secrets must not be committed.
+*.pt
+*.pth
+*.safetensors
+.cache/
+cache/
+weights/
+.huggingface/
+.env
+.env.*
+*.pem
+*.key
+
 thumbs.db
 .DS_Store
 .idea

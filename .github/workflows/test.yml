@@ -36,6 +36,40 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  sovereign:
+    name: 127.0.0.1 / CPU / no Hub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Static sovereign guards
+        run: python3 scripts/assert_sovereign.py --all
+      - name: Install package (CPU torch; no Whisper checkpoints)
+        env:
+          WHISPER_OFFLINE: "1"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev] numpy torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+      - name: Bind / CPU / no-Hub tests
+        env:
+          WHISPER_OFFLINE: "1"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-sovereign-cache
+        run: |
+          python3 scripts/assert_sovereign.py --probe
+          pytest tests/test_bind.py tests/test_cpu_default.py tests/test_no_hub.py tests/test_serve_cli.py tests/test_sovereign_guards.py -vv
+          pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+          python3 scripts/assert_sovereign.py --cache "$XDG_CACHE_HOME"
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
@@ -76,4 +110,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+        env:
+          WHISPER_OFFLINE: "1"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          CUDA_VISIBLE_DEVICES: ""
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-offline-cache
