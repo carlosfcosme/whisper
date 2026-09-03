@@ -41,20 +41,24 @@ The README samples assume that scripts directory is on `PATH`. If it is
 not, `whisper: command not found` is an environment problem, not a missing
 source file.
 
-## Same function, three invocations
+## Same function, two invocations
 
-All of these call `whisper.transcribe.cli()`:
+Both of these call `whisper.transcribe.cli()`:
 
 | Invocation | How it is wired |
 | --- | --- |
 | `whisper …` | console script from `pyproject.toml` |
 | `python -m whisper …` | [`whisper/__main__.py`](whisper/__main__.py) |
-| `python whisper/transcribe.py …` | `if __name__ == "__main__"` in [`whisper/transcribe.py`](whisper/transcribe.py) |
 
 Prefer the console script or `python -m whisper`. The module form does not
 require the scripts directory on `PATH`, only that the package is
 importable. On this Cloud Agent image the interpreter is `python3` (there
 is no `python` on `PATH`), so the module form is `python3 -m whisper`.
+
+[`whisper/transcribe.py`](whisper/transcribe.py) defines `cli()` and has
+`if __name__ == "__main__"`, but `python whisper/transcribe.py` is not a
+working entrypoint: relative imports fail
+(`ImportError: attempted relative import with no known parent package`).
 
 ## Help without weights
 
