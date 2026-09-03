@@ -43,3 +43,8 @@ repos:
         language: system
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
+      - id: ignored-caches
+        name: require ignored weight and cache paths
+        language: system
+        entry: python3 scripts/check_ignored_caches.py
+        pass_filenames: false
