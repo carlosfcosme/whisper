@@ -8,6 +8,21 @@ on:
       - main
 
 jobs:
+  local-fixtures:
+    name: fail on remote fixture URLs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if fixtures require WAN
+        run: python3 .github/scripts/check_no_remote_fixtures.py
+      - name: Fail if bind is not 127.0.0.1
+        run: python3 .github/scripts/check_localhost_bind.py
+      - name: Confirm in-repo sample audio is tracked
+        run: |
+          set -euo pipefail
+          test -f tests/jfk.flac
+          git ls-files --error-unmatch tests/jfk.flac
+
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +52,13 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, local-fixtures]
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +96,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Executable no-WAN fixtures
+        run: python3 -m whisper.fixtures
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
