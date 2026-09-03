@@ -34,3 +34,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: offline-no-hub
+        name: refuse Hub and weight auto-download
+        entry: python3 scripts/check_offline_ci.py
+        language: system
+        pass_filenames: false
+        always_run: true
