@@ -9,3 +9,10 @@ thumbs.db
 .DS_Store
 .idea
 
+# Project-local cache / weight dirs and checkpoints
+.cache/
+cache/
+weights/
+*.pt
+*.pth
+

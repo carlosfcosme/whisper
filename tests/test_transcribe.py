@@ -1,16 +1,28 @@
 import os
 
 import pytest
-import torch
 
 import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+def _local_checkpoint(model_name: str):
+    url = whisper._MODELS[model_name]
+    default = os.path.join(os.path.expanduser("~"), ".cache")
+    root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+    path = os.path.join(root, os.path.basename(url))
+    if os.path.isfile(path):
+        return path
+    return None
+
+
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
+    checkpoint = _local_checkpoint(model_name)
+    if checkpoint is None:
+        pytest.skip("no local checkpoint; tests must not pull weights")
+
+    model = whisper.load_model(checkpoint)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None
