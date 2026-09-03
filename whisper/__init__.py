@@ -51,6 +51,16 @@ _ALIGNMENT_HEADS = {
 }
 
 
+def _offline_requested() -> bool:
+    """True when CI/offline must refuse a WAN model-weight fetch."""
+    return os.getenv("WHISPER_OFFLINE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
@@ -69,6 +79,11 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if _offline_requested():
+        raise RuntimeError(
+            "WHISPER_OFFLINE is set; refusing to fetch model weights from the network"
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
