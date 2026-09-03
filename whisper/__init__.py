@@ -50,6 +50,9 @@ _ALIGNMENT_HEADS = {
     "turbo": b"ABzY8j^C+e0{>%RARaKHP%t(lGR*)0g!tONPyhe`",
 }
 
+# Default inference device. Callers may still pass device="cuda" explicitly.
+DEFAULT_DEVICE = "cpu"
+
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
@@ -115,7 +118,7 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU.
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
@@ -128,7 +131,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
