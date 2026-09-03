@@ -11,7 +11,14 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .bind import require_loopback_host
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
-from .defaults import DEFAULT_BIND_HOST, DEFAULT_DEVICE
+from .defaults import (
+    DEFAULT_BIND_HOST,
+    DEFAULT_DEVICE,
+    DEFAULT_NO_STORE,
+    DEFAULT_OFFLINE,
+    no_store_enabled,
+    offline_enabled,
+)
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -54,8 +61,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -71,12 +76,23 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+            if offline_enabled() or no_store_enabled():
+                raise RuntimeError(
+                    f"offline/no-store: refusing to re-download weights from {url}"
+                )
 
-    if os.getenv("HF_HUB_OFFLINE") == "1" or os.getenv("WHISPER_OFFLINE") == "1":
+    if offline_enabled():
         raise RuntimeError(
             f"offline: refusing to download weights from {url} "
             f"(missing cache file {download_target})"
         )
+
+    if no_store_enabled():
+        raise RuntimeError(
+            f"no-store: refusing to persist weights from {url} to {download_target}"
+        )
+
+    os.makedirs(root, exist_ok=True)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(

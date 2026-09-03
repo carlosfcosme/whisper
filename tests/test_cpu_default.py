@@ -5,7 +5,7 @@ import sys
 import torch
 
 import whisper
-from whisper.defaults import DEFAULT_DEVICE
+from whisper.defaults import DEFAULT_DEVICE, DEFAULT_NO_STORE, DEFAULT_OFFLINE
 from whisper.model import ModelDimensions, Whisper
 
 
@@ -32,6 +32,8 @@ def _write_toy_checkpoint(path):
 def test_default_device_is_cpu_not_cuda():
     assert DEFAULT_DEVICE == "cpu"
     assert whisper.DEFAULT_DEVICE == "cpu"
+    assert DEFAULT_OFFLINE is True
+    assert DEFAULT_NO_STORE is True
     assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
     assert not torch.cuda.is_available()
 

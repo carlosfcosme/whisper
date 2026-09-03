@@ -50,10 +50,14 @@ def test_serve_binds_loopback_and_answers():
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/") as response:
             payload = json.loads(response.read().decode("utf-8"))
+            cache_control = response.headers.get("Cache-Control")
         assert payload["status"] == "ok"
         assert payload["bind"] == "127.0.0.1"
         assert payload["device"] == "cpu"
+        assert payload["offline"] is True
+        assert payload["no_store"] is True
         assert payload["weights"] is False
+        assert cache_control == "no-store"
         with socket.create_connection(("127.0.0.1", port), timeout=1):
             pass
     finally:
