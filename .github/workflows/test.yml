@@ -10,14 +10,26 @@ on:
 jobs:
   repo-guards:
     runs-on: ubuntu-latest
+    env:
+      WHISPER_NO_DOWNLOAD: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Fail if committed weights or caches
-        run: python3 scripts/check_no_committed_weights.py
-      - name: Fail unless bind is 127.0.0.1
+      - name: Install pytest for cache/weight gitignore tests
+        run: pip install pytest
+      - name: Cache/weights gitignore tests
+        run: |
+          python3 scripts/check_no_committed_weights.py
+          pytest tests/test_no_weights.py tests/test_gitignore_cache.py -vv
+      - name: Blocked model download
+        run: python3 scripts/check_no_model_download.py
+      - name: Loopback bind CI
         run: python3 scripts/check_bind_localhost.py
       - name: Fail if Hugging Face Hub is used
         run: python3 scripts/check_no_hub.py
@@ -53,6 +65,7 @@ jobs:
     needs: [pre-commit, repo-guards]
     runs-on: ubuntu-latest
     env:
+      WHISPER_NO_DOWNLOAD: "1"
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
@@ -94,4 +107,4 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'

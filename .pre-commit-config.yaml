@@ -46,3 +46,9 @@ repos:
         entry: python3 scripts/check_no_hub.py
         pass_filenames: false
         always_run: true
+      - id: no-model-download
+        name: fail unless model downloads are blocked
+        language: system
+        entry: python3 scripts/check_no_model_download.py
+        pass_filenames: false
+        always_run: true

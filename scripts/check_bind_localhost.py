@@ -5,8 +5,12 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import sys
+import threading
+import types
 from pathlib import Path
+from urllib.request import urlopen
 
 FORBIDDEN_DEFAULTS = ("0.0.0.0", "::", "*", "")
 
@@ -58,6 +62,53 @@ def _argparse_host_default(path: Path) -> list[str]:
                 if kw.value.value != "127.0.0.1":
                     values.append(repr(kw.value.value))
     return values
+
+
+def _load_serve(root: Path, bind):
+    pkg = types.ModuleType("whisper")
+    pkg.__path__ = [str(root / "whisper")]
+    pkg.bind = bind
+    sys.modules.setdefault("whisper", pkg)
+    sys.modules["whisper.bind"] = bind
+    spec = importlib.util.spec_from_file_location(
+        "whisper.serve", root / "whisper" / "serve.py"
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load whisper/serve.py")
+    serve = importlib.util.module_from_spec(spec)
+    sys.modules["whisper.serve"] = serve
+    spec.loader.exec_module(serve)
+    return serve
+
+
+def _live_loopback(bind, serve) -> int:
+    try:
+        serve.create_server("0.0.0.0", 0)
+    except bind.BindError:
+        pass
+    else:
+        print("ERROR: create_server accepted 0.0.0.0", file=sys.stderr)
+        return 1
+
+    server = serve.create_server("127.0.0.1", 0)
+    host, port = server.server_address[:2]
+    if host != "127.0.0.1":
+        print(f"ERROR: server bound {host!r}, not 127.0.0.1", file=sys.stderr)
+        return 1
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with urlopen(f"http://127.0.0.1:{port}/health", timeout=2) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    if payload.get("host") != "127.0.0.1" or payload.get("weights") is not False:
+        print(f"ERROR: unexpected health payload {payload!r}", file=sys.stderr)
+        return 1
+    print(f"OK: live health on 127.0.0.1:{port}")
+    return 0
 
 
 def main() -> int:
@@ -114,6 +165,11 @@ def main() -> int:
         if "0.0.0.0" in text:
             print("ERROR: .cursor/start.sh mentions 0.0.0.0", file=sys.stderr)
             return 1
+
+    serve = _load_serve(root, bind)
+    live = _live_loopback(bind, serve)
+    if live != 0:
+        return live
 
     print("OK: bind policy is 127.0.0.1 only")
     return 0

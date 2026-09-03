@@ -8,8 +8,14 @@ os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("WHISPER_NO_DOWNLOAD", "1")
 
-_HUB_MARKERS = ("huggingface.co", "hf.co")
+_BLOCKED_DOWNLOAD_MARKERS = (
+    "huggingface.co",
+    "hf.co",
+    "azureedge.net",
+    "openaipublic",
+)
 
 
 def pytest_configure(config):
@@ -24,8 +30,8 @@ def _block_hub_urlopen(monkeypatch):
 
     def guarded(url, *args, **kwargs):
         target = url if isinstance(url, str) else getattr(url, "full_url", str(url))
-        if any(marker in target for marker in _HUB_MARKERS):
-            raise RuntimeError(f"Hub downloads are disabled in tests: {target}")
+        if any(marker in target for marker in _BLOCKED_DOWNLOAD_MARKERS):
+            raise RuntimeError(f"Model downloads are disabled in tests: {target}")
         return real_urlopen(url, *args, **kwargs)
 
     monkeypatch.setattr(urllib.request, "urlopen", guarded)
