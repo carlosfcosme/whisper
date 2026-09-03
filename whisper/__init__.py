@@ -11,7 +11,15 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
-from .offline import bind_host, default_device, guard_download_url, require_local_path
+from .offline import (
+    assert_loopback,
+    bind_host,
+    bind_localhost,
+    default_device,
+    guard_download_url,
+    listen_localhost,
+    require_local_path,
+)
 from .transcribe import transcribe
 from .version import __version__
 

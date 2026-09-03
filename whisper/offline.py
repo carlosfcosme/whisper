@@ -26,6 +26,10 @@ class DownloadHelperCalled(AssertionError):
     """Raised when a network download helper is invoked while offline / in tests."""
 
 
+class BindNotLoopback(ValueError):
+    """Raised when a bind/listen host is not 127.0.0.1 (or loopback)."""
+
+
 # In-repo fixtures. Resolved from the git/checkout root — never Hub URLs.
 OFFLINE_FIXTURES = (
     "tests/jfk.flac",
@@ -60,17 +64,27 @@ def banned_download(*_args, **_kwargs):
 
 
 def default_device() -> str:
-    """CPU is the default. Set WHISPER_DEVICE (e.g. cuda) to override."""
+    """CPU-only inference path. CUDA availability never selects the device.
+
+    Set WHISPER_DEVICE to override. CUDA is never required.
+    """
     return os.environ.get("WHISPER_DEVICE", "cpu") or "cpu"
+
+
+def assert_loopback(host: str) -> str:
+    """Return a loopback address or raise BindNotLoopback."""
+    raw = (host or "").strip()
+    if raw in {LOCALHOST, "localhost"}:
+        return LOCALHOST
+    if raw == "::1":
+        return "::1"
+    raise BindNotLoopback(f"bind/listen must be 127.0.0.1 (loopback), got {host!r}")
 
 
 def bind_host() -> str:
     """Return the loopback address helpers must bind. Never 0.0.0.0."""
     host = os.environ.get("WHISPER_BIND", LOCALHOST).strip() or LOCALHOST
-    allowed = {"127.0.0.1", "localhost", "::1"}
-    if host not in allowed:
-        raise ValueError(f"WHISPER_BIND must be loopback ({LOCALHOST}), got {host!r}")
-    return LOCALHOST if host == "localhost" else host
+    return assert_loopback(host)
 
 
 def bind_localhost(port: int = 0) -> socket.socket:
@@ -80,6 +94,21 @@ def bind_localhost(port: int = 0) -> socket.socket:
     sock = socket.socket(family, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((host, port))
+    bound = sock.getsockname()[0]
+    if bound not in {LOCALHOST, "::1"}:
+        sock.close()
+        raise BindNotLoopback(f"socket bound {bound!r}, not 127.0.0.1")
+    return sock
+
+
+def listen_localhost(port: int = 0, backlog: int = 1) -> socket.socket:
+    """Bind and listen on 127.0.0.1 only. Caller closes the socket."""
+    sock = bind_localhost(port)
+    sock.listen(backlog)
+    bound = sock.getsockname()[0]
+    if bound not in {LOCALHOST, "::1"}:
+        sock.close()
+        raise BindNotLoopback(f"listen bound {bound!r}, not 127.0.0.1")
     return sock
 
 
