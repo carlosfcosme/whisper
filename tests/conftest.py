@@ -24,6 +24,10 @@ def pytest_configure(config):
         "markers",
         "requires_local_weights: needs a cached Whisper checkpoint on disk",
     )
+    config.addinivalue_line(
+        "markers",
+        "offline_smoke: offline environment smoke (loopback, no fetch, ignore weights)",
+    )
 
 
 @pytest.fixture

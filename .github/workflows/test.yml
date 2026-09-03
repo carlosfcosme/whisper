@@ -106,3 +106,5 @@ jobs:
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       # CPU-only, no Hub, no weight downloads: skip CUDA and local-checkpoint tests.
       - run: pytest --durations=0 -vv -m 'not requires_cuda and not requires_local_weights'
+      - name: Offline environment smoke tests
+        run: pytest --durations=0 -vv -m offline_smoke
