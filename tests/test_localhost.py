@@ -1,3 +1,4 @@
+import ipaddress
 import threading
 from http.client import HTTPConnection
 
@@ -8,18 +9,37 @@ from whisper.localhost import BIND_HOST, serve_bind_host
 from whisper.serve import serve
 
 
+def _is_loopback(host: str) -> bool:
+    if host in {"127.0.0.1", "::1"}:
+        return True
+    return ipaddress.ip_address(host).is_loopback
+
+
 def test_serve_bind_host_defaults_to_loopback():
     assert whisper.BIND_HOST == "127.0.0.1"
     assert BIND_HOST == "127.0.0.1"
     assert serve_bind_host() == "127.0.0.1"
+    assert serve_bind_host(None) == "127.0.0.1"
     assert serve_bind_host("localhost") == "127.0.0.1"
     assert serve_bind_host("127.0.0.1") == "127.0.0.1"
+    assert serve_bind_host("::1") == "::1"
 
 
-def test_serve_bind_host_rejects_non_localhost():
-    for host in ("0.0.0.0", "::", "192.168.1.1", "example.com"):
+def test_serve_bind_host_rejects_non_loopback_and_empty():
+    for host in ("0.0.0.0", "::", "", "   ", "192.168.1.1", "example.com"):
         with pytest.raises(ValueError, match="127.0.0.1"):
             serve_bind_host(host)
+
+
+def test_bind_host_must_be_loopback():
+    for host in (
+        serve_bind_host(),
+        serve_bind_host("127.0.0.1"),
+        serve_bind_host("::1"),
+    ):
+        assert _is_loopback(host)
+    assert not ipaddress.ip_address("0.0.0.0").is_loopback
+    assert not ipaddress.ip_address("::").is_loopback
 
 
 def test_serve_listens_on_127_0_0_1():
@@ -27,6 +47,7 @@ def test_serve_listens_on_127_0_0_1():
     try:
         host, port = httpd.server_address[:2]
         assert host == "127.0.0.1"
+        assert _is_loopback(host)
         assert port > 0
 
         def _run():
@@ -48,6 +69,10 @@ def test_serve_listens_on_127_0_0_1():
         httpd.server_close()
 
 
-def test_serve_rejects_wildcard_host():
+def test_serve_rejects_wildcard_and_empty_host():
     with pytest.raises(ValueError, match="127.0.0.1"):
         serve(host="0.0.0.0", port=0)
+    with pytest.raises(ValueError, match="127.0.0.1"):
+        serve(host="::", port=0)
+    with pytest.raises(ValueError, match="127.0.0.1"):
+        serve(host="", port=0)

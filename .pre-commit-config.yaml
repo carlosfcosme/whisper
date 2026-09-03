@@ -34,3 +34,9 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-no-wildcard-bind
+        name: fail if production code binds to a wildcard host
+        language: system
+        entry: python3 scripts/check_no_wildcard_bind.py
+        pass_filenames: false
+        always_run: true
