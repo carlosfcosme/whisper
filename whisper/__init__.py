@@ -60,8 +60,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -81,6 +79,7 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     # Cache miss: refuse HF Hub always, and refuse all auto-downloads on
     # the Cloud Agent / CI path. A valid cache hit above is not a pull.
     refuse_weight_auto_download(url)
+    os.makedirs(root, exist_ok=True)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
