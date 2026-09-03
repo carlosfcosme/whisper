@@ -15,9 +15,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, List, Optional
 from urllib.parse import urlparse
 
+from .runtime import DEFAULT_DEVICE, is_no_store, is_offline
+
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
-DEFAULT_DEVICE = "cpu"
 
 _HUB_MARKERS = (
     "huggingface.co",
@@ -110,6 +111,7 @@ class LocalWhisperHandler(BaseHTTPRequestHandler):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -127,6 +129,8 @@ class LocalWhisperHandler(BaseHTTPRequestHandler):
                     "device": cfg.device,
                     "model": cfg.model,
                     "hub": False,
+                    "offline": is_offline(),
+                    "no_store": is_no_store(),
                 },
             )
             return

@@ -6,6 +6,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 
+from whisper.runtime import is_no_store, is_offline
 from whisper.serve import (
     DEFAULT_DEVICE,
     DEFAULT_HOST,
@@ -84,11 +85,15 @@ def test_health_binds_127_and_reports_cpu():
     try:
         with urlopen(f"http://127.0.0.1:{port}/health") as response:
             payload = json.loads(response.read().decode("utf-8"))
+            cache_control = response.headers.get("Cache-Control")
         assert payload["status"] == "ok"
         assert payload["host"] == "127.0.0.1"
         assert payload["device"] == "cpu"
         assert payload["hub"] is False
         assert payload["model"] is None
+        assert payload["offline"] is is_offline()
+        assert payload["no_store"] is is_no_store()
+        assert cache_control == "no-store"
     finally:
         server.shutdown()
         server.server_close()
