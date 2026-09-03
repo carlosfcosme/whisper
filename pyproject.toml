@@ -10,6 +10,7 @@ readme.content-type = "text/markdown"
 readme.file = "README.md"
 license = { text = "MIT" }
 authors = [ { name = "OpenAI" } ]
+# PEP 621 install floor (Python 3.8+). Classifiers list tested 3.8–3.13. See REQUIRES_PYTHON.md.
 requires-python = ">=3.8"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
