@@ -9,6 +9,12 @@ import torch
 from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
+from .bind import (
+    LOOPBACK_HOST,
+    BindError,
+    bind_tcp,
+    require_loopback_host,
+)
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
