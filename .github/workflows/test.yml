@@ -36,6 +36,35 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+
+  system-deps-smoke:
+    name: system-deps smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg (OS dep; not pip)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Offline loopback smoke (no torch, no weights, no Hub)
+        env:
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          http_proxy: "http://127.0.0.1:9"
+          https_proxy: "http://127.0.0.1:9"
+          HTTP_PROXY: "http://127.0.0.1:9"
+          HTTPS_PROXY: "http://127.0.0.1:9"
+          no_proxy: "127.0.0.1,localhost"
+          NO_PROXY: "127.0.0.1,localhost"
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          pytest -vv tests/test_system_deps_smoke.py
+          python scripts/system_deps_smoke.py --check --host 127.0.0.1
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
