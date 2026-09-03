@@ -2,6 +2,11 @@
 # Idempotent Cloud Agent setup for openai-whisper.
 # Installs the ffmpeg system dependency and the package (with dev extras)
 # using a CPU build of PyTorch so tests and the `whisper` CLI run without a GPU.
+#
+# Model-weight downloads: this install step may contact the network for
+# Python packages. The precache/verify path is localhost-only — run
+# `.cursor/verify.sh`, which sets WHISPER_LOCALHOST_ONLY=1 and refuses
+# remote/WAN pulls. See .cursor/README.md.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
