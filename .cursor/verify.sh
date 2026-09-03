@@ -7,6 +7,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Localhost-only: point all WAN egress at a dead local port so any attempt to
+# pull from the internet fails fast. This proves the pre-cached model weights
+# and bundled assets are sufficient with no WAN pull (the one-time weight fetch
+# happens in install.sh, not here). Loopback traffic is exempt via no_proxy.
+export http_proxy="http://127.0.0.1:9"
+export https_proxy="http://127.0.0.1:9"
+export HTTP_PROXY="http://127.0.0.1:9"
+export HTTPS_PROXY="http://127.0.0.1:9"
+export no_proxy="localhost,127.0.0.1,::1"
+export NO_PROXY="localhost,127.0.0.1,::1"
+echo "== Localhost-only mode: WAN egress blocked (http(s)_proxy -> 127.0.0.1:9) =="
+
 echo "== Tool + import check =="
 command -v ffmpeg >/dev/null || { echo "FAIL: ffmpeg not found on PATH"; exit 1; }
 command -v whisper >/dev/null || { echo "FAIL: whisper CLI not found on PATH"; exit 1; }
