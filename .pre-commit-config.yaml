@@ -40,3 +40,9 @@ repos:
         entry: python3 scripts/check_install_test_policy.py
         pass_filenames: false
         always_run: true
+      - id: ci-integration
+        name: integration — no committed weights, CPU default, 127.0.0.1
+        language: system
+        entry: python3 scripts/ci_integration.py
+        pass_filenames: false
+        always_run: true

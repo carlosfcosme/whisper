@@ -8,14 +8,13 @@ on:
       - main
 
 jobs:
-  no-weights:
+  integration:
+    name: weights-cpu-localhost
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fail if model weights or large binaries are committed
-        run: python3 scripts/check_no_weights.py
-      - name: Fail if install/test path downloads weights or binds off loopback
-        run: python3 scripts/check_install_test_policy.py
+      - name: Fail on committed weights; require CPU default and 127.0.0.1
+        run: python3 scripts/ci_integration.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +44,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: [pre-commit, no-weights]
+    needs: [pre-commit, integration]
     runs-on: ubuntu-latest
     env:
       WHISPER_OFFLINE: "1"
