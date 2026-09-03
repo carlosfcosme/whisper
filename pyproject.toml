@@ -46,6 +46,12 @@ version = { attr = "whisper.version.__version__" }
 exclude = [ "tests*" ]
 namespaces = false
 
+[tool.pytest.ini_options]
+markers = [
+  "requires_cuda: needs a CUDA GPU",
+  "requires_weights: needs a local Whisper checkpoint",
+]
+
 [tool.black]
 
 [tool.isort]

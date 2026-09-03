@@ -98,7 +98,7 @@ def runtime_checks() -> None:
     else:
         raise SystemExit("bind accepted an all-interfaces host")
 
-    for host in ("::", "*", "", "   ", "8.8.8.8", "10.0.0.1", "192.168.1.10"):
+    for host in tuple(bind.WILDCARD_BIND_HOSTS) + tuple(bind.NON_LOOPBACK_HOSTS):
         try:
             bind.require_loopback_host(host)
         except bind.BindError:

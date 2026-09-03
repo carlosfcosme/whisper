@@ -22,6 +22,25 @@ LOOPBACK_HOST = "127.0.0.1"
 # Built without an all-interface literal so application sources stay
 # free of that token (CI fails if it appears under scanned trees).
 UNSPECIFIED_V4 = ".".join(("0",) * 4)
+# Negative wildcard fixtures: all-interface / unspecified bind hosts.
+WILDCARD_BIND_HOSTS = (
+    UNSPECIFIED_V4,
+    "::",
+    "*",
+    "",
+    "[::]",
+    "0",
+    "::0",
+)
+# Negative network fixtures: LAN, public, and non-canonical loopback.
+NON_LOOPBACK_HOSTS = (
+    "8.8.8.8",
+    "10.0.0.1",
+    "192.168.1.10",
+    "example.com",
+    "::1",
+    "127.0.0.2",
+)
 _BLOCKED = frozenset(
     {
         UNSPECIFIED_V4,

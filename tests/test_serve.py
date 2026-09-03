@@ -24,6 +24,16 @@ def test_create_server_refuses_non_loopback(host):
         create_server(host=host, port=0)
 
 
+def test_create_server_refuses_wildcard_fixture(wildcard_bind_host):
+    with pytest.raises(BindError):
+        create_server(host=wildcard_bind_host, port=0)
+
+
+def test_create_server_refuses_network_host_fixture(non_loopback_host):
+    with pytest.raises(BindError):
+        create_server(host=non_loopback_host, port=0)
+
+
 def test_create_server_binds_loopback_only():
     httpd = create_server(host=LOOPBACK, port=0)
     try:

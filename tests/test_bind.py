@@ -70,6 +70,20 @@ def test_bind_tcp_refuses_all_interfaces():
     assert non_loopback_listens() == []
 
 
+def test_wildcard_fixture_never_binds(wildcard_bind_host):
+    with pytest.raises(BindError, match="127.0.0.1"):
+        require_loopback_host(wildcard_bind_host)
+    with pytest.raises(BindError):
+        bind_tcp(host=wildcard_bind_host, port=0)
+    assert non_loopback_listens() == []
+
+
+def test_network_host_fixture_never_binds(non_loopback_host):
+    with pytest.raises(BindError, match="127.0.0.1"):
+        require_loopback_host(non_loopback_host)
+    assert not is_loopback_host(non_loopback_host)
+
+
 def test_assert_own_listens_loopback_only_flags_unspecified():
     with pytest.raises(BindError, match="non-loopback listen"):
         assert_own_listens_loopback_only([(UNSPECIFIED_V4, 80)])

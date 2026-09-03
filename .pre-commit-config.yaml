@@ -34,3 +34,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: no-download
+        name: fail if weight download can still reach the network
+        entry: python3 scripts/check_no_download.py
+        language: system
+        pass_filenames: false
+        always_run: true
