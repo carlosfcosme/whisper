@@ -63,6 +63,16 @@ Cloud Agents working in this repository must follow these constraints:
 - **No WAN pull.** Do not download weights over the network during a Cloud Agent session. A cache miss on a named model (`tiny`, `turbo`, and the rest) fetches from `openaipublic.azureedge.net`. Load only an already-cached file or an explicit local checkpoint path. The CLI default is `turbo`, which will WAN-pull unless that checkpoint is already cached.
 - **Localhost only.** Bind any notebooks, demos, or helper servers to `127.0.0.1`. Do not listen on `0.0.0.0`. `.cursor/environment.json` publishes no ports.
 
+### Sovereign Cloud Agent path
+
+`.cursor/install.sh` is sovereign after bootstrap:
+
+- **No WAN** on the agent path: if ffmpeg and the Python deps are already present, install skips `apt` and `pip`.
+- **No weight pull:** the script never calls `whisper.load_model` and does not fetch `.pt` files. First-time bootstrap may install packages only.
+- **Localhost bind:** no `ports` / `start`; install and `.cursor/verify.sh` open no sockets.
+
+`.cursor/verify.sh` proves this with an isolated `XDG_CACHE_HOME` and a blackhole HTTP(S) proxy on `127.0.0.1`. CI job `sovereign-cloud-agent` locks the path.
+
 Do not commit secrets, credentials, or API keys.
 
 

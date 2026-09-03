@@ -44,6 +44,12 @@ jobs:
           assert "0.0.0.0" not in Path(".cursor/install.sh").read_text()
           print("127.0.0.1 only: environment publishes no ports; install binds nothing")
           PY
+  sovereign-cloud-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sovereign path (no WAN, no weight pull, localhost)
+        run: python3 tests/test_sovereign_cloud_agent.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
