@@ -14,6 +14,9 @@ from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
 
+# Cloud Agent / CI default: stay on CPU unless the caller passes a device.
+DEFAULT_DEVICE = "cpu"
+
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -128,7 +131,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
