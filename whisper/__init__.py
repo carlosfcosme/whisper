@@ -78,8 +78,9 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
-    # Cache miss: refuse HF Hub always, and refuse all auto-downloads on
-    # the Cloud Agent / CI path. A valid cache hit above is not a pull.
+    # Cache miss: default is offline (no huggingface_hub / urlretrieve /
+    # requests). urlopen runs only after an explicit opt-in. Cache hit above
+    # is not a pull.
     refuse_weight_auto_download(url)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
@@ -131,7 +132,7 @@ def load_model(
         ``default_device()`` (``cpu``, not CUDA).
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper".
-        Auto-download is refused on the Cloud Agent / CI path.
+        Cache-miss auto-download is refused unless WHISPER_ALLOW_WEIGHT_DOWNLOAD=1.
     in_memory: bool
         whether to preload the model weights into host memory
 

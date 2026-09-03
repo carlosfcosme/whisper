@@ -50,6 +50,8 @@ jobs:
       WHISPER_CPU_ONLY: "1"
       WHISPER_NO_WEIGHT_DOWNLOAD: "1"
       WHISPER_LOCALHOST_ONLY: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -92,3 +94,19 @@ jobs:
           python3 -c "import whisper; assert whisper.default_device()=='cpu'; assert whisper.default_bind_host()=='127.0.0.1'"
       # No CUDA required: addopts excludes requires_cuda. Skip test_transcribe (would pull weights).
       - run: pytest --durations=0 -vv -k 'not test_transcribe'
+  offline-no-hub:
+    needs: [pre-commit, no-committed-weights]
+    runs-on: ubuntu-latest
+    env:
+      # Ticket 2: default offline path. No Hub / no network weight pulls.
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip3 install .["dev"] numpy torch==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+      - name: Offline load path (helpers must not be invoked)
+        run: pytest --durations=0 -vv tests/test_offline_load.py

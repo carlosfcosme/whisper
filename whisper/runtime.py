@@ -58,32 +58,32 @@ def is_hf_hub_url(url: str) -> bool:
 
 
 def weight_auto_download_allowed() -> bool:
-    """False when Cloud Agent / CI (or ``WHISPER_NO_WEIGHT_DOWNLOAD``) refuses pulls.
+    """Default is offline: no weight pull unless an explicit opt-in is set.
 
-    ``WHISPER_ALLOW_WEIGHT_DOWNLOAD=1`` is an explicit escape hatch.
+    Opt-in: ``WHISPER_ALLOW_WEIGHT_DOWNLOAD=1``.
+    Forced offline: ``HF_HUB_OFFLINE=1`` or ``TRANSFORMERS_OFFLINE=1``.
     """
-    if _env_truthy(ALLOW_WEIGHT_DOWNLOAD_ENV):
-        return True
+    if _env_truthy("HF_HUB_OFFLINE") or _env_truthy("TRANSFORMERS_OFFLINE"):
+        return False
     if _env_truthy(NO_WEIGHT_DOWNLOAD_ENV) or cloud_agent_or_ci_path():
         return False
-    return True
+    return _env_truthy(ALLOW_WEIGHT_DOWNLOAD_ENV)
 
 
 def refuse_weight_auto_download(url: str) -> None:
-    """Refuse Hugging Face Hub URLs always, and all cache-miss pulls on CI/Cloud Agent."""
+    """Refuse Hugging Face Hub always; refuse all cache-miss pulls unless opted in."""
     if is_hf_hub_url(url):
         host = urlparse(url).hostname or "<unknown>"
         raise WeightDownloadError(
             f"Refusing Hugging Face Hub weight pull from host {host!r}. "
-            "Unit tests and the Cloud Agent / CI path must not contact the Hub. "
+            "The default path is offline and does not call huggingface_hub. "
             "Pass a local checkpoint path to load_model()."
         )
     if weight_auto_download_allowed():
         return
     raise WeightDownloadError(
-        "Auto-download of model weights is disabled on the Cloud Agent / CI "
-        f"path ({NO_WEIGHT_DOWNLOAD_ENV} or CI). Place the file in the download "
-        "root or pass a local checkpoint path to load_model()."
+        "Offline by default: auto-download of model weights is disabled. "
+        f"Set {ALLOW_WEIGHT_DOWNLOAD_ENV}=1 to opt in, or pass a local path."
     )
 
 

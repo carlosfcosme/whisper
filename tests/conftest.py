@@ -4,11 +4,12 @@ import random as rand
 import numpy
 import pytest
 
-# Sovereign Cloud Agent / CI path: CPU-only, no Hub download, bind 127.0.0.1.
-# setdefault so a caller can override (e.g. WHISPER_ALLOW_WEIGHT_DOWNLOAD=1).
+# Default offline path for tests (opt-in: WHISPER_ALLOW_WEIGHT_DOWNLOAD=1).
 os.environ.setdefault("WHISPER_CPU_ONLY", "1")
 os.environ.setdefault("WHISPER_NO_WEIGHT_DOWNLOAD", "1")
 os.environ.setdefault("WHISPER_LOCALHOST_ONLY", "1")
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 
 def pytest_configure(config):
