@@ -7,6 +7,7 @@ Never fetches Hub/Azure weights.
 import importlib.util
 import json
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -186,6 +187,33 @@ def test_cli_serve_binds_loopback_only(tmp_path):
 def test_create_server_refuses_non_loopback():
     with pytest.raises(BindError):
         create_server(host=ALL_INTERFACES, port=0)
+
+
+def test_server_never_binds_all_interfaces(monkeypatch):
+    """Guard: the serve socket must never bind 0.0.0.0."""
+    bound_hosts = []
+    real_bind = socket.socket.bind
+
+    def guarded_bind(self, address):
+        host = address[0]
+        bound_hosts.append(host)
+        assert host != ALL_INTERFACES, "server bound 0.0.0.0"
+        return real_bind(self, address)
+
+    monkeypatch.setattr(socket.socket, "bind", guarded_bind)
+
+    with pytest.raises(BindError):
+        create_server(host=ALL_INTERFACES, port=0)
+    assert ALL_INTERFACES not in bound_hosts
+
+    httpd = create_server(host=LOOPBACK_BIND, port=0)
+    try:
+        assert httpd.server_address[0] == LOOPBACK_BIND
+        assert ALL_INTERFACES not in bound_hosts
+        assert all(host != "0.0.0.0" for host in bound_hosts)
+        assert LOOPBACK_BIND in bound_hosts
+    finally:
+        httpd.server_close()
 
 
 def test_serve_main_rejects_zero_addr():
