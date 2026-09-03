@@ -24,4 +24,4 @@ pip install --break-system-packages \
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
-python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__, '| device', whisper.DEFAULT_DEVICE)"

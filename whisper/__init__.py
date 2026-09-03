@@ -11,8 +11,12 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .offline import WeightDownloadError, refuse_remote_download
 from .transcribe import transcribe
 from .version import __version__
+
+# Inference defaults to CPU. Callers may still pass device="cuda" explicitly.
+DEFAULT_DEVICE = "cpu"
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -52,8 +56,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -70,6 +72,10 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
+    # Refuse Hub/CDN pulls before creating cache dirs or opening a socket.
+    refuse_remote_download(url, download_target)
+
+    os.makedirs(root, exist_ok=True)
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
@@ -115,7 +121,7 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into; defaults to CPU
     download_root: str
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
@@ -128,7 +134,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
