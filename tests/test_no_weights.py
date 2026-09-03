@@ -85,6 +85,10 @@ def test_ci_workflow_runs_the_weight_guard():
     assert "no-committed-weights" in workflow
     assert "scripts/check_no_weights.py" in workflow
     assert "HF_HUB_OFFLINE" in workflow
+    assert "WHISPER_OFFLINE" in workflow
+    assert "WHISPER_NO_STORE" in workflow
+    assert "CUDA_VISIBLE_DEVICES" in workflow
+    assert "scripts/assert_no_weight_download.py" in workflow
 
 
 def test_script_is_executable():

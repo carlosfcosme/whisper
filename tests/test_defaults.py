@@ -30,6 +30,8 @@ def _write_toy_checkpoint(path: Path) -> None:
 
 def test_default_device_is_cpu():
     assert whisper.DEFAULT_DEVICE == "cpu"
+    assert whisper.DEFAULT_OFFLINE is True
+    assert whisper.DEFAULT_NO_STORE is True
 
 
 def test_default_device_ignores_cuda_availability(monkeypatch):

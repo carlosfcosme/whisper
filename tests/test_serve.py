@@ -46,9 +46,15 @@ def test_serve_listens_on_127_0_0_1():
             "http://127.0.0.1:{}/health".format(port), timeout=2
         ) as resp:
             body = json.loads(resp.read().decode("utf-8"))
+            cache_control = resp.headers.get("Cache-Control")
+        assert cache_control == "no-store"
         assert body["status"] == "ok"
         assert body["bind"] == "127.0.0.1"
+        assert body["device"] == "cpu"
+        assert body["hub"] is False
         assert body["weights"] is False
+        assert body["offline"] is True
+        assert body["store"] is False
     finally:
         httpd.shutdown()
         httpd.server_close()

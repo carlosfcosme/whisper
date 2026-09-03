@@ -11,10 +11,14 @@ from tqdm import tqdm
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import ModelDimensions, Whisper
+from .runtime import (
+    DEFAULT_DEVICE,
+    DEFAULT_NO_STORE,
+    DEFAULT_OFFLINE,
+    refuse_remote_download,
+)
 from .transcribe import transcribe
 from .version import __version__
-
-DEFAULT_DEVICE = "cpu"
 
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
@@ -54,8 +58,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -71,6 +73,10 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    # Cache miss: refuse Hub / offline / no-store pulls before mkdir or urlopen.
+    refuse_remote_download(url, download_target)
+    os.makedirs(root, exist_ok=True)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(

@@ -10,8 +10,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import BaseServer
 from typing import List, Optional, Tuple
 
-BIND_HOST = "127.0.0.1"
-DEFAULT_PORT = 8765
+from .runtime import (
+    BIND_HOST,
+    BIND_PORT,
+    DEFAULT_DEVICE,
+    DEFAULT_NO_STORE,
+    DEFAULT_OFFLINE,
+)
+
+DEFAULT_PORT = BIND_PORT
 ALLOWED_BIND_HOSTS = frozenset({"127.0.0.1", "::1"})
 
 
@@ -70,11 +77,16 @@ class _HealthHandler(BaseHTTPRequestHandler):
             {
                 "status": "ok",
                 "bind": self.server.server_address[0],
+                "device": DEFAULT_DEVICE,
+                "hub": False,
                 "weights": False,
+                "offline": DEFAULT_OFFLINE,
+                "store": not DEFAULT_NO_STORE,
             }
         ).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)

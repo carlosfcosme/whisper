@@ -52,6 +52,9 @@ jobs:
     needs: [pre-commit, cache-weights, no-committed-weights]
     runs-on: ubuntu-latest
     env:
+      CUDA_VISIBLE_DEVICES: ""
+      WHISPER_OFFLINE: "1"
+      WHISPER_NO_STORE: "1"
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
@@ -99,3 +102,5 @@ jobs:
         run: bash scripts/check_cache_weights.sh
       - name: Fail if pytest left committed weights
         run: python3 scripts/check_no_weights.py
+      - name: Fail if tests downloaded weights or hit the Hub cache
+        run: python3 scripts/assert_no_weight_download.py
