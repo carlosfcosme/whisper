@@ -8,6 +8,14 @@ on:
       - main
 
 jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if cache or weight files are tracked
+        run: bash scripts/check_no_tracked_weights.sh
+      - name: Fail if serve binds 0.0.0.0
+        run: python3 scripts/check_bind_localhost.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +45,13 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, policy]
     runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     strategy:
       fail-fast: false
       matrix:
