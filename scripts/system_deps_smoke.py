@@ -81,13 +81,25 @@ def decode_fixture(path=FIXTURE, sr=SAMPLE_RATE) -> bytes:
     return proc.stdout
 
 
+_SMOKE_STATE = {"ffmpeg": False, "pcm_bytes": 0}
+
+
+def prepare_system_deps() -> bytes:
+    """Validate ffmpeg against the local fixture before serving health."""
+    pcm = decode_fixture()
+    _SMOKE_STATE["ffmpeg"] = True
+    _SMOKE_STATE["pcm_bytes"] = len(pcm)
+    return pcm
+
+
 class _HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         payload = json.dumps(
             {
-                "ok": True,
+                "ok": bool(_SMOKE_STATE["ffmpeg"]),
                 "bind": BIND_HOST,
-                "ffmpeg": True,
+                "ffmpeg": bool(_SMOKE_STATE["ffmpeg"]),
+                "pcm_bytes": _SMOKE_STATE["pcm_bytes"],
                 "weights": False,
                 "hub": False,
                 "offline": True,
@@ -105,6 +117,8 @@ class _HealthHandler(BaseHTTPRequestHandler):
 
 def make_server(host=BIND_HOST, port=0) -> ThreadingHTTPServer:
     require_bind_127_0_0_1(host)
+    if not _SMOKE_STATE["ffmpeg"]:
+        prepare_system_deps()
     return ThreadingHTTPServer((BIND_HOST, port), _HealthHandler)
 
 
@@ -117,7 +131,7 @@ def _assert_loopback_url(url: str) -> None:
 
 
 def run_check() -> int:
-    pcm = decode_fixture()
+    pcm = prepare_system_deps()
     server = make_server(BIND_HOST, 0)
     host, port = server.server_address
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -170,6 +184,7 @@ def main(argv=None) -> None:
         require_bind_127_0_0_1(args.host)
         if args.check or not args.serve:
             raise SystemExit(run_check())
+        prepare_system_deps()
         server = make_server(args.host, args.port)
     except BindError as exc:
         sys.stderr.write("FAIL: {0}\n".format(exc))

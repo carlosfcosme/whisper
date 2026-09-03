@@ -95,6 +95,7 @@ def test_make_server_binds_loopback_only(offline_env):
         assert body["ok"] is True
         assert body["bind"] == BIND
         assert body["ffmpeg"] is True
+        assert body["pcm_bytes"] > 0
         assert body["weights"] is False
         assert body["hub"] is False
         assert body["offline"] is True
@@ -119,6 +120,21 @@ def test_cli_check_is_offline_and_loopback(offline_env):
     assert "SMOKE OK" in proc.stdout
     assert "127.0.0.1" in proc.stdout
     _no_weights(offline_env)
+
+
+def test_serve_fails_without_ffmpeg(tmp_path):
+    env = os.environ.copy()
+    env["PATH"] = str(tmp_path)
+    proc = subprocess.run(
+        [sys.executable, str(SMOKE), "--serve", "--host", BIND, "--port", "0"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=10,
+        env=env,
+    )
+    assert proc.returncode == 1
+    assert "ffmpeg" in proc.stderr.lower()
 
 
 def test_cli_rejects_wildcard_host(offline_env):
@@ -163,7 +179,10 @@ def test_ci_job_runs_offline_smoke():
     assert "tests/test_system_deps_smoke.py" in text
     assert "HF_HUB_OFFLINE" in text
     assert "system_deps_smoke.py --check" in text
-    assert (
-        "test_transcribe"
-        not in text.split("system-deps-smoke:")[1].split("whisper-test:")[0]
-    )
+    assert "pip install pytest numpy" in text
+    install_at = text.find("Install pytest and numpy")
+    offline_at = text.find("Offline loopback smoke")
+    assert 0 <= install_at < offline_at
+    block = text.split("system-deps-smoke:")[1].split("whisper-test:")[0]
+    assert "test_transcribe" not in block
+    assert "load_model" not in block
