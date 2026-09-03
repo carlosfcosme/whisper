@@ -41,8 +41,8 @@ def check_start_scripts() -> None:
 def check_tests_no_hub_client() -> None:
     tests = ROOT / "tests"
     for path in tests.rglob("*.py"):
-        if path.name == "test_cpu_default.py":
-            # Mentions Hub URLs only to assert they are refused.
+        if path.name in {"test_cpu_default.py", "conftest.py"}:
+            # Mentions Hub only to refuse pulls / patch the client away.
             continue
         text = path.read_text()
         for needle in HUB_IMPORTS:

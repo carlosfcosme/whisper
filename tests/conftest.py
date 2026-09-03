@@ -45,16 +45,16 @@ def _no_hf_hub_pull(monkeypatch):
     def _blocked(*args, **kwargs):
         raise RuntimeError("Hugging Face Hub pull is not allowed in unit tests")
 
+    import importlib
+
     try:
-        import huggingface_hub
+        hub = importlib.import_module("huggingface_hub")
     except ImportError:
-        huggingface_hub = None
-    if huggingface_hub is not None:
-        monkeypatch.setattr(huggingface_hub, "hf_hub_download", _blocked, raising=False)
-        if hasattr(huggingface_hub, "snapshot_download"):
-            monkeypatch.setattr(
-                huggingface_hub, "snapshot_download", _blocked, raising=False
-            )
+        hub = None
+    if hub is not None:
+        monkeypatch.setattr(hub, "hf_hub_download", _blocked, raising=False)
+        if hasattr(hub, "snapshot_download"):
+            monkeypatch.setattr(hub, "snapshot_download", _blocked, raising=False)
 
     original_urlopen = urllib.request.urlopen
 
