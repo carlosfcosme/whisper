@@ -42,6 +42,11 @@ pre-commit install --install-hooks
 pre-commit run --all-files
 ```
 
+On the Cloud Agent system Python, add `--break-system-packages` to the
+`pip install` if site-packages is not writable. `pre-commit install` is
+refused when `core.hooksPath` is set (this VM); `pre-commit run --all-files`
+still installs hook environments and runs the same checks.
+
 After Cloud Agent install, the same formatters can be invoked without the
 runner (`black`, `isort`, `flake8`). That is not a substitute for the CI job.
 
