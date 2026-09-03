@@ -95,7 +95,7 @@ def test_help_exits_zero_without_weights(tmp_path):
     assert list(cache.rglob("*.pt")) == []
 
 
-def test_transcribe_py_as_script_fails_relative_import():
+def test_cli_file_as_script_fails_relative_import():
     result = subprocess.run(
         [sys.executable, str(ROOT / "whisper" / "transcribe.py"), "--help"],
         cwd=ROOT,
