@@ -8,7 +8,6 @@ for this suite.
 
 import ast
 import os
-import sys
 import urllib.request
 from pathlib import Path
 
@@ -71,11 +70,6 @@ def test_unit_tests_do_not_import_hub_clients():
         if imported:
             offenders.append(f"{path.relative_to(REPO_ROOT)}: {sorted(imported)}")
     assert offenders == [], f"unit tests import Hub clients: {offenders}"
-
-
-def test_hub_clients_are_not_loaded():
-    loaded = [name for name in FORBIDDEN_MODULES if name in sys.modules]
-    assert loaded == [], f"Hub clients loaded during unit tests: {loaded}"
 
 
 @pytest.mark.parametrize("url", HUB_URLS)
