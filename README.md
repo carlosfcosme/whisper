@@ -55,8 +55,8 @@ pip install setuptools-rust
 ```
 
 Cursor Cloud Agent VMs for this checkout are **CPU-only by default** (no CUDA).
-Whisper's implicit `torch.cuda.is_available()` check therefore resolves to
-`cpu`. See [AGENTS.md](AGENTS.md).
+`whisper.default_device()` returns `cpu` on that path, and checkpoint
+auto-download (including Hugging Face Hub) is refused. See [AGENTS.md](AGENTS.md).
 
 
 ## Available models and languages
