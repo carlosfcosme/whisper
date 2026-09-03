@@ -8,6 +8,23 @@ on:
       - main
 
 jobs:
+  no-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights or large binaries are committed
+        run: python3 scripts/check_no_weights.py
+      - name: Guard rejects a planted checkpoint
+        run: |
+          set -euo pipefail
+          echo dummy > leaked.pt
+          git add -f leaked.pt
+          if python3 scripts/check_no_weights.py; then
+            echo "expected check_no_weights.py to fail on leaked.pt" >&2
+            exit 1
+          fi
+          git reset HEAD leaked.pt
+          rm -f leaked.pt
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +54,15 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-weights]
     runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: ""
+      WHISPER_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     strategy:
       fail-fast: false
       matrix:
