@@ -36,9 +36,46 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  cpu-localhost:
+    needs: pre-commit
+    runs-on: ubuntu-latest
+    env:
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_LOCALHOST_ONLY: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU torch and package
+        run: |
+          pip install "numpy" torch==2.5.1+cpu \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple
+          pip install .["dev"]
+      - name: CI guards (no 0.0.0.0, no Hub client, no weights)
+        run: python3 scripts/check_ci_guards.py
+      - name: CPU default, 127.0.0.1 bind, no Hub
+        run: pytest --durations=0 -vv tests/test_cpu_default.py tests/test_localhost_bind.py tests/test_serve.py
+      - name: Refuse wildcard bind on the module entrypoint
+        run: |
+          set +e
+          python3 -m whisper.serve --host 0.0.0.0 --port 0
+          code=$?
+          set -e
+          test "$code" -eq 2
+
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
+    env:
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
+      WHISPER_LOCALHOST_ONLY: "1"
+      HF_HUB_OFFLINE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +113,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      # CPU-only, no GPU, no Hub: skip test_transcribe (load_model would pull weights).
+      # addopts already excludes requires_cuda (see pyproject.toml).
+      - run: pytest --durations=0 -vv -k 'not test_transcribe'
