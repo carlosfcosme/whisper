@@ -33,6 +33,7 @@ def _load_bind_and_serve():
         spec.loader.exec_module(mod)
         return mod
 
+    _load("policy")
     bind = _load("bind")
     serve = _load("serve")
     return bind, serve
@@ -78,6 +79,7 @@ def test_create_server_default_binds_loopback_and_serves_health():
             body = json.loads(resp.read().decode("utf-8"))
         assert body["status"] == "ok"
         assert body["bind"] == "127.0.0.1"
+        assert body["device"] == "cpu"
         assert body["hub"] is False
         assert body["weights"] is False
     finally:

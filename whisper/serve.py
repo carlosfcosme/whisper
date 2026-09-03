@@ -18,6 +18,7 @@ from .bind import (
     create_loopback_httpd,
     require_loopback_host,
 )
+from .policy import DEFAULT_DEVICE
 
 DEFAULT_PORT = 8765
 
@@ -32,6 +33,7 @@ class _HealthHandler(BaseHTTPRequestHandler):
             {
                 "status": "ok",
                 "bind": self.server.server_address[0],
+                "device": DEFAULT_DEVICE,
                 "hub": False,
                 "weights": False,
             }
