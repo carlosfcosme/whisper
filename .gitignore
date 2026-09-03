@@ -9,3 +9,13 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model checkpoints must not be committed; CI fails if these are tracked.
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+*.ckpt
+*.tflite
+*.gguf
+
