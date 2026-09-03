@@ -15,9 +15,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, List, Optional
 from urllib.parse import urlparse
 
+from .loopback import (
+    LOOPBACK_HOST,
+    assert_bound_socket_is_loopback,
+    assert_loopback_bind,
+)
 from .runtime import DEFAULT_DEVICE, is_no_store, is_offline
 
-DEFAULT_HOST = "127.0.0.1"
+DEFAULT_HOST = LOOPBACK_HOST
 DEFAULT_PORT = 8000
 
 _HUB_MARKERS = (
@@ -64,9 +69,7 @@ def is_remote_url(value: str) -> bool:
 
 
 def require_loopback_host(host: str) -> str:
-    if host != DEFAULT_HOST:
-        raise ValueError(f"server must bind to {DEFAULT_HOST}, got {host!r}")
-    return host
+    return assert_loopback_bind(host)
 
 
 def require_local_path(path: str, kind: str) -> str:
@@ -87,11 +90,14 @@ def load_local_model(model_path: str, device: str = DEFAULT_DEVICE):
 
 
 class LocalWhisperServer(ThreadingHTTPServer):
+    allow_reuse_address = True
+
     def __init__(self, config: ServeConfig):
-        host = require_loopback_host(config.host)
+        host = assert_loopback_bind(config.host)
         super().__init__((host, config.port), LocalWhisperHandler)
+        bound = assert_bound_socket_is_loopback(self.socket.getsockname()[0])
         self.config = ServeConfig(
-            host=host,
+            host=bound,
             port=config.port,
             device=config.device or DEFAULT_DEVICE,
             model=config.model,
@@ -99,6 +105,11 @@ class LocalWhisperServer(ThreadingHTTPServer):
         self.model: Any = None
         if self.config.model:
             self.model = load_local_model(self.config.model, device=self.config.device)
+
+    def server_bind(self):
+        assert_loopback_bind(self.server_address[0])
+        super().server_bind()
+        assert_bound_socket_is_loopback(self.socket.getsockname()[0])
 
 
 class LocalWhisperHandler(BaseHTTPRequestHandler):
