@@ -17,8 +17,20 @@ thumbs.db
 *.safetensors
 *.onnx
 *.gguf
+*.ggml
+*.h5
+*.hdf5
+*.tflite
+*.pb
+*.mar
+*.params
+*.weights
 weights/
+
+# Local caches (Whisper, Hugging Face Hub, tooling)
 .cache/
+cache/
+.huggingface/
 
 # Local secrets — never commit credentials or API keys
 .env

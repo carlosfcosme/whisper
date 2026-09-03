@@ -33,3 +33,15 @@ repos:
         language: pygrep
         entry: '0\.0\.0\.0'
         files: '^(whisper/.*|\.cursor/.*)$'
+      - id: check-no-weights
+        name: fail if model weights or caches are committed
+        language: system
+        entry: python3 scripts/check_no_weights.py
+        pass_filenames: false
+        always_run: true
+      - id: check-no-hf-hub
+        name: fail if tests/CI fetch from Hugging Face Hub
+        language: system
+        entry: python3 scripts/check_no_hf_hub.py
+        pass_filenames: false
+        always_run: true

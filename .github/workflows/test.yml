@@ -8,6 +8,14 @@ on:
       - main
 
 jobs:
+  no-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights or caches are committed
+        run: python3 scripts/check_no_weights.py
+      - name: Fail if install/CI/tests fetch from Hugging Face Hub
+        run: python3 scripts/check_no_hf_hub.py
   bind-guard:
     runs-on: ubuntu-latest
     steps:
@@ -18,7 +26,7 @@ jobs:
       - name: Install pytest only (no torch, no model weights)
         run: python -m pip install pytest
       - name: Fail if serve/listen binds all interfaces
-        run: pytest tests/test_bind.py -vv
+        run: pytest tests/test_bind.py tests/test_ci_guards.py -vv
       - name: Application sources must not contain 0.0.0.0
         run: |
           set -euo pipefail
@@ -27,17 +35,7 @@ jobs:
             exit 1
           fi
       - name: Weight and secret paths stay untracked
-        run: |
-          set -euo pipefail
-          tracked="$(git ls-files -- '*.pt' '*.pth' '*.bin' '*.ckpt' '*.safetensors' '*.onnx' '*.gguf' 'weights' 'weights/**' '.cache' '.cache/**' '.env' '.env.*')"
-          if [ -n "$tracked" ]; then
-            echo "These weight/secret paths must stay untracked:" >&2
-            printf '%s\n' "$tracked" >&2
-            exit 1
-          fi
-          for path in tiny.pt weights/tiny.pt .cache/whisper/tiny.pt model.pth .env .env.local; do
-            git check-ignore -q -- "$path"
-          done
+        run: python3 scripts/check_no_weights.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -67,8 +65,15 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-weights, bind-guard]
     runs-on: ubuntu-latest
+    env:
+      WHISPER_OFFLINE: "1"
+      WHISPER_DEVICE: "cpu"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -106,4 +111,15 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Fail if install downloaded model weights
+        run: python3 scripts/assert_no_weight_cache.py
+      - name: Weight-free CPU pytest (no Hub / no Azure pull)
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+          HF_HOME: ${{ runner.temp }}/hf-empty
+        run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda and not requires_weights'
+      - name: Fail if tests downloaded model weights
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/whisper-empty-cache
+          HF_HOME: ${{ runner.temp }}/hf-empty
+        run: python3 scripts/assert_no_weight_cache.py
