@@ -50,6 +50,14 @@ def test_load_model_defaults_to_cpu(tmp_path):
     assert loaded.device.type == "cpu"
 
 
+def test_cpu_default_ignores_cuda_available(tmp_path, monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    ckpt = _toy_checkpoint(tmp_path / "toy.pt")
+    loaded = whisper.load_model(str(ckpt))
+    assert whisper.DEFAULT_DEVICE == "cpu"
+    assert loaded.device.type == "cpu"
+
+
 def test_offline_and_hub_env_is_set():
     assert os.environ.get("WHISPER_OFFLINE") == "1"
     assert os.environ.get("HF_HUB_OFFLINE") == "1"
@@ -107,6 +115,29 @@ def test_whisper_package_does_not_import_huggingface_hub():
 
 def test_bind_host_is_loopback():
     assert BIND_HOST == "127.0.0.1"
+
+
+def test_gitignore_ignores_cache_and_weights():
+    gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "*.pt" in gitignore
+    assert ".cache/" in gitignore
+    for path in ("tiny.pt", ".cache/whisper/tiny.pt", "model.safetensors"):
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", path],
+            cwd=str(REPO_ROOT),
+            check=False,
+        )
+        assert result.returncode == 0, path
+
+
+def test_ci_pytest_skips_weight_downloads():
+    workflow = (REPO_ROOT / ".github" / "workflows" / "test.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "HF_HUB_OFFLINE" in workflow
+    assert "WHISPER_OFFLINE" in workflow
+    assert "not requires_local_weights" in workflow
+    assert "test_transcribe[tiny]" not in workflow
 
 
 def _load_check_no_weights():
