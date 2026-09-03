@@ -10,6 +10,7 @@ import pytest
 from tests.wan_guard import HUB_AND_CDN_MARKERS, is_forbidden_url, is_loopback_host
 
 
+@pytest.mark.probes_network
 @pytest.mark.parametrize(
     "url",
     [
@@ -35,11 +36,13 @@ def test_urlopen_allows_file_scheme(tmp_path):
         assert handle.read() == payload
 
 
+@pytest.mark.probes_network
 def test_create_connection_refuses_wan_literal():
     with pytest.raises(RuntimeError, match="must not contact model hubs or the WAN"):
         socket.create_connection(("1.1.1.1", 443), timeout=0.2)
 
 
+@pytest.mark.probes_network
 def test_create_connection_refuses_hub_hostname():
     with pytest.raises(RuntimeError, match="must not contact model hubs or the WAN"):
         socket.create_connection(("huggingface.co", 443), timeout=0.2)
@@ -61,6 +64,7 @@ def test_hub_markers_cover_known_hosts():
     assert "azureedge.net" in joined
 
 
+@pytest.mark.probes_network
 def test_huggingface_hub_helpers_are_blocked_if_imported(monkeypatch):
     import sys
     import types

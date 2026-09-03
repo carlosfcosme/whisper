@@ -136,6 +136,13 @@ def reasons_default_path_fetches_weights(
             "CI workflow would fetch or precache model weights "
             "(load_model / _download / CDN is not allowed in default CI commands)"
         )
+    wildcard = ".".join(("0",) * 4)
+    if wildcard in install_code:
+        reasons.append("install.sh mentions all-interface bind (must be 127.0.0.1)")
+    if start_code.strip() and wildcard in start_code:
+        reasons.append("start.sh mentions all-interface bind (must be 127.0.0.1)")
+    if wildcard in workflow_code:
+        reasons.append("CI workflow mentions all-interface bind (must be 127.0.0.1)")
 
     return reasons
 

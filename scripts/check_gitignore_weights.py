@@ -19,6 +19,9 @@ REQUIRED_PATTERNS = (
     "*.pth",
     "*.ckpt",
     "*.safetensors",
+    "*.onnx",
+    "*.gguf",
+    "*.bin",
 )
 
 PROBE_PATHS = (
@@ -29,6 +32,18 @@ PROBE_PATHS = (
     "model.pth",
     "model.ckpt",
     "model.safetensors",
+    "model.onnx",
+    "model.gguf",
+    "pytorch_model.bin",
+)
+
+FORBIDDEN_CI_CACHE = (
+    "~/.cache/whisper",
+    ".cache/whisper",
+    "weights/",
+    "*.pt",
+    "*.pth",
+    "*.safetensors",
 )
 
 
@@ -77,9 +92,32 @@ def reasons_tracked_weight_paths() -> List[str]:
             reasons.append(f"tracked weights path: {rel}")
         if any(
             lower.endswith(ext)
-            for ext in (".pt", ".pth", ".ckpt", ".safetensors", ".onnx", ".gguf")
+            for ext in (
+                ".pt",
+                ".pth",
+                ".ckpt",
+                ".safetensors",
+                ".onnx",
+                ".gguf",
+                ".bin",
+            )
         ):
             reasons.append(f"tracked weight file: {rel}")
+    return reasons
+
+
+def reasons_ci_caches_weights(workflow_text: str | None = None) -> List[str]:
+    """Fail if GitHub Actions cache would store model weights."""
+    if workflow_text is None:
+        workflow = REPO_ROOT / ".github" / "workflows" / "test.yml"
+        workflow_text = (
+            workflow.read_text(encoding="utf-8") if workflow.is_file() else ""
+        )
+    reasons: List[str] = []
+    lowered = workflow_text.lower()
+    for token in FORBIDDEN_CI_CACHE:
+        if token.lower() in lowered:
+            reasons.append(f"CI cache/workflow mentions weight path {token}")
     return reasons
 
 
@@ -88,6 +126,7 @@ def all_reasons() -> List[str]:
         reasons_gitignore_missing()
         + reasons_probes_not_ignored()
         + reasons_tracked_weight_paths()
+        + reasons_ci_caches_weights()
     )
 
 

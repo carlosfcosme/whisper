@@ -15,6 +15,7 @@ weights/
 *.safetensors
 *.onnx
 *.gguf
+*.bin
 
 # Secrets (no credentials in the tree)
 .env

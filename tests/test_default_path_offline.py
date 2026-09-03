@@ -134,6 +134,16 @@ def test_check_fails_on_embedded_key():
     assert any("secret" in r.lower() or "key" in r.lower() for r in reasons)
 
 
+def test_check_fails_on_all_interface_bind():
+    wildcard = ".".join(("0",) * 4)
+    reasons = offline_check.reasons_default_path_fetches_weights(
+        workflow_text=CLEAN_WORKFLOW,
+        install_text="nc -l %s 8080\n" % wildcard,
+        environment_text="{}",
+    )
+    assert any("all-interface" in r for r in reasons)
+
+
 def test_check_fails_on_hf_token():
     reasons = offline_check.reasons_default_path_fetches_weights(
         workflow_text=CLEAN_WORKFLOW,
@@ -160,7 +170,11 @@ def test_ci_workflow_has_offline_default_job():
     text = (ROOT / ".github" / "workflows" / "test.yml").read_text()
     code = offline_check.strip_hash_comments(text)
     assert "offline-default:" in text
+    assert "loopback-bind:" in text
+    assert "gitignore-weights:" in text
     assert "scripts/check_default_offline.py" in text
+    assert "scripts/check_bind_localhost.py" in text
+    assert "scripts/check_gitignore_weights.py" in text
     assert "test_transcribe[tiny]" not in code
     assert "test_transcribe[tiny.en]" not in code
 

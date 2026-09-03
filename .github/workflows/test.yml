@@ -52,10 +52,41 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           python scripts/check_default_offline.py
+          python scripts/check_no_hub.py
+          pytest tests/test_default_path_offline.py tests/test_no_hub.py tests/test_no_wan.py tests/test_no_fetch_enforcement.py -vv
+
+  gitignore-weights:
+    name: gitignore model artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Fail if weight/cache artifacts are tracked or not gitignored
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
           python scripts/check_gitignore_weights.py
           python scripts/check_no_weights.py
-          python scripts/check_no_hub.py
-          pytest tests/test_default_path_offline.py tests/test_gitignore_weights.py tests/test_no_committed_weights.py tests/test_no_hub.py tests/test_no_wan.py -vv
+          pytest tests/test_gitignore_weights.py tests/test_no_committed_weights.py -vv
+
+  loopback-bind:
+    name: bind 127.0.0.1 only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Fail if bind is not loopback-only
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python scripts/check_bind_localhost.py
+          pytest tests/test_bind.py tests/test_serve.py tests/test_check_bind_localhost.py -vv
 
   whisper-test:
     needs: pre-commit

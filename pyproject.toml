@@ -33,6 +33,7 @@ dependencies = [
 optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]
 urls = { Homepage = "https://github.com/openai/whisper" }
 scripts.whisper = "whisper.transcribe:cli"
+scripts.whisper-serve = "whisper.serve:main"
 
 [tool.setuptools]
 py-modules = [ "whisper" ]
@@ -57,4 +58,6 @@ multi_line_output = 3
 markers = [
   "requires_cuda: needs a CUDA GPU",
   "requires_weights: needs a local checkpoint; default path does not fetch",
+  "probes_network: may attempt a refused hub/WAN/weight fetch on purpose",
+  "probes_bind: may attempt a refused non-loopback bind on purpose",
 ]

@@ -31,6 +31,7 @@ def test_missing_pattern_is_detected():
     assert any("*.pt" in r for r in reasons)
     assert any("cache/" in r for r in reasons)
     assert any("weights/" in r for r in reasons)
+    assert any("*.bin" in r for r in reasons)
 
 
 def test_probes_are_ignored():
@@ -54,10 +55,30 @@ def test_script_passes_on_this_tree():
 
 
 def test_git_check_ignore_cache_and_pt():
-    for probe in ("cache/tiny.pt", "weights/base.pt", ".cache/whisper/tiny.pt"):
+    for probe in (
+        "cache/tiny.pt",
+        "weights/base.pt",
+        ".cache/whisper/tiny.pt",
+        "pytorch_model.bin",
+        "model.onnx",
+    ):
         result = subprocess.run(
             ["git", "check-ignore", "-q", "--", probe],
             cwd=str(ROOT),
             check=False,
         )
         assert result.returncode == 0, probe
+
+
+def test_ci_cache_must_not_store_weights():
+    assert gitignore_check.reasons_ci_caches_weights() == []
+    poisoned = """
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/whisper
+            weights/
+            *.pt
+"""
+    reasons = gitignore_check.reasons_ci_caches_weights(poisoned)
+    assert reasons, "checker must fail when Actions cache stores weights"
