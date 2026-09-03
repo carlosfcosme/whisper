@@ -39,6 +39,8 @@ def main() -> int:
         errors.append("pytest must skip test_transcribe (no named-model download)")
     if "scripts/assert_no_weight_cache.py" not in text:
         errors.append("whisper-test must run scripts/assert_no_weight_cache.py")
+    if "tests/test_no_weight_fetch.py" not in text:
+        errors.append("whisper-test must run tests/test_no_weight_fetch.py")
     if errors:
         sys.stderr.write("CI must skip the Hugging Face Hub and weight downloads:\n")
         for line in errors:

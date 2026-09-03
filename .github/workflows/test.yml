@@ -117,6 +117,10 @@ jobs:
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - name: Fail if install downloaded model weights
         run: python3 scripts/assert_no_weight_cache.py
+      - name: Regression — tests must not fetch weights
+        run: pytest --durations=0 -vv tests/test_no_weight_fetch.py
+      - name: Fail if no-weight-fetch regression downloaded weights
+        run: python3 scripts/assert_no_weight_cache.py
       - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
       - name: Fail if tests downloaded model weights
         run: python3 scripts/assert_no_weight_cache.py

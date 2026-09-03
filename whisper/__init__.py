@@ -56,8 +56,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -74,8 +72,10 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
+    # Refuse Hub/CDN pulls before creating cache dirs or opening a socket.
     refuse_remote_download(url, download_target)
 
+    os.makedirs(root, exist_ok=True)
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
