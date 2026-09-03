@@ -145,6 +145,22 @@ print(result.text)
 Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools, ports for different platforms, etc.
 
 
+## Testing
+
+The suite under [`tests/`](tests/) is collected by [pytest](https://docs.pytest.org/) (not `unittest`). `pytest` is listed in the `dev` extra in [`pyproject.toml`](pyproject.toml). After installing ffmpeg (see Setup) and the package from this checkout:
+
+```bash
+pip install -e ".[dev]"
+```
+
+The CPU runner used in CI is the `pytest` invocation in [`.github/workflows/test.yml`](.github/workflows/test.yml):
+
+```bash
+pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+```
+
+The `-k` expression runs only the `tiny` and `tiny.en` cases of `test_transcribe` (other sizes download additional weights). The `-m` filter skips tests marked `requires_cuda` (registered in [`tests/conftest.py`](tests/conftest.py)). No API tokens or other secrets are required.
+
 ## License
 
 Whisper's code and model weights are released under the MIT License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.
