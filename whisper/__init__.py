@@ -10,6 +10,16 @@ from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
+from .defaults import (
+    DEFAULT_BIND_HOST,
+    DEFAULT_DEVICE,
+    DEFAULT_NO_STORE,
+    DEFAULT_OFFLINE,
+    is_hf_hub_url,
+    no_store_enabled,
+    offline_enabled,
+    require_loopback_host,
+)
 from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
@@ -52,8 +62,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
-
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -69,6 +77,23 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+            if offline_enabled() or no_store_enabled():
+                raise RuntimeError(
+                    f"offline/no-store: refusing to re-download weights from {url}"
+                )
+
+    if is_hf_hub_url(url) or offline_enabled():
+        raise RuntimeError(
+            f"offline: refusing to download weights from {url} "
+            f"(missing cache file {download_target})"
+        )
+
+    if no_store_enabled():
+        raise RuntimeError(
+            f"no-store: refusing to persist weights from {url} to {download_target}"
+        )
+
+    os.makedirs(root, exist_ok=True)
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
@@ -115,9 +140,11 @@ def load_model(
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
     device : Union[str, torch.device]
-        the PyTorch device to put the model into
+        the PyTorch device to put the model into. Defaults to CPU
+        (``DEFAULT_DEVICE``). CUDA is opt-in via this argument.
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
+        path to download the model files; by default, it uses "~/.cache/whisper".
+        Offline/no-store defaults refuse Hub/CDN fetches and do not create a cache.
     in_memory: bool
         whether to preload the model weights into host memory
 
@@ -128,7 +155,7 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = DEFAULT_DEVICE
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")

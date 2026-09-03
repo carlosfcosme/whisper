@@ -9,3 +9,25 @@ thumbs.db
 .DS_Store
 .idea
 
+# Model weights and caches must not be committed.
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+*.ckpt
+*.gguf
+*.tflite
+*.pb
+*.h5
+*.hdf5
+cache/
+.cache/
+cache/whisper/
+.cache/whisper/
+weights/
+**/weights/
+checkpoints/
+.huggingface/
+hub/
+
