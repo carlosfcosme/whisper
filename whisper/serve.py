@@ -10,7 +10,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import BaseServer
 from typing import List, Optional, Tuple
 
-BIND_HOST = "127.0.0.1"
+from .runtime import BIND_HOST
+
 DEFAULT_PORT = 8765
 ALLOWED_BIND_HOSTS = frozenset({"127.0.0.1", "::1"})
 

@@ -34,3 +34,9 @@ repos:
         entry: python3 scripts/check_no_weights.py
         pass_filenames: false
         always_run: true
+      - id: check-no-hub-fetch
+        name: fail if package code fetches from Hugging Face Hub
+        language: system
+        entry: python3 scripts/check_no_hub_fetch.py
+        pass_filenames: false
+        always_run: true

@@ -13,6 +13,7 @@ def _checkpoint_on_disk(name: str) -> bool:
     return os.path.isfile(os.path.join(root, os.path.basename(url)))
 
 
+@pytest.mark.requires_weights
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
     if not _checkpoint_on_disk(model_name):
