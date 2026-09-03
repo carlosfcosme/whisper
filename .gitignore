@@ -3,6 +3,7 @@ __pycache__/
 *$py.class
 *.egg-info
 .pytest_cache
+.tox/
 .ipynb_checkpoints
 
 thumbs.db

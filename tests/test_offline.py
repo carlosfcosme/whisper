@@ -19,6 +19,7 @@ _IGNORED_PATHS = (
     ".cache/huggingface/hub/models--openai--whisper/refs/main",
     ".huggingface/hub/models--foo/snapshots/x/config.json",
     "hub/trusted_list",
+    ".tox/offline/log/offline-0.log",
 )
 
 
@@ -34,6 +35,7 @@ def test_gitignore_covers_weight_and_cache_paths():
 def test_offline_env_flags_are_set():
     assert os.environ.get("WHISPER_OFFLINE") == "1"
     assert os.environ.get("HF_HUB_OFFLINE") == "1"
+    assert os.environ.get("WHISPER_BIND_HOST") == "127.0.0.1"
 
 
 def test_download_refuses_missing_checkpoint_without_urlopen(tmp_path, monkeypatch):
