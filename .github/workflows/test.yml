@@ -37,22 +37,31 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
 
-  bind-guard:
+  sovereign-guard:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fail if 0.0.0.0 or empty-host bind appears under whisper/ or .cursor/
+      - name: Fail if all-interface or empty-host bind appears under whisper/ or .cursor/
         run: bash scripts/check_no_all_interfaces.sh
       - name: Fail if bind policy accepts a non-loopback host
         run: python3 scripts/check_loopback_bind.py
+      - name: Fail if default device is not CPU or Hub pulls are allowed
+        run: python3 scripts/check_cpu_offline.py
+      - name: Fail if a Hugging Face Hub client is referenced
+        run: python3 scripts/check_no_hub.py
+      - name: Fail if model weights are committed
+        run: python3 scripts/check_no_weights.py
 
   whisper-test:
-    needs: [pre-commit, bind-guard]
+    needs: [pre-commit, sovereign-guard]
     runs-on: ubuntu-latest
     env:
+      CUDA_VISIBLE_DEVICES: ""
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
+      WHISPER_CPU_ONLY: "1"
+      WHISPER_NO_WEIGHT_DOWNLOAD: "1"
     strategy:
       fail-fast: false
       matrix:

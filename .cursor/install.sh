@@ -6,6 +6,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+export WHISPER_CPU_ONLY="${WHISPER_CPU_ONLY:-1}"
+export WHISPER_NO_WEIGHT_DOWNLOAD="${WHISPER_NO_WEIGHT_DOWNLOAD:-1}"
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-}"
+
 # ffmpeg is required at runtime for audio decoding.
 if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get update -qq
@@ -24,4 +29,4 @@ pip install --break-system-packages \
 pip install --break-system-packages -e ".[dev]"
 
 echo "whisper environment ready:"
-python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__)"
+python3 -c "import whisper, torch; print('  whisper', whisper.__version__, '| torch', torch.__version__, '| device', whisper.default_device(), '| bind', whisper.require_loopback_host())"

@@ -88,6 +88,11 @@ def test_serve_cli_rejects_non_loopback(host):
     assert serve_main(["--host", host, "--port", "9"]) == 2
 
 
+def test_serve_cli_rejects_live_flag():
+    assert serve_main(["--live"]) == 2
+    assert serve_main(["--live=true"]) == 2
+
+
 def test_application_sources_do_not_contain_all_interfaces_literal():
     token = ".".join(("0",) * 4)
     for rel in ("whisper", ".cursor"):

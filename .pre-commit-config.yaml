@@ -40,3 +40,21 @@ repos:
         entry: python3 scripts/check_loopback_bind.py
         pass_filenames: false
         always_run: true
+      - id: check-cpu-offline
+        name: fail if default device is not CPU or Hub pulls are allowed
+        language: system
+        entry: python3 scripts/check_cpu_offline.py
+        pass_filenames: false
+        always_run: true
+      - id: check-no-hub
+        name: fail if a Hugging Face Hub client is referenced
+        language: system
+        entry: python3 scripts/check_no_hub.py
+        pass_filenames: false
+        always_run: true
+      - id: check-no-weights
+        name: fail if model weights are committed
+        language: system
+        entry: python3 scripts/check_no_weights.py
+        pass_filenames: false
+        always_run: true

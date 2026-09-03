@@ -65,6 +65,10 @@ def serve_forever(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if "--live" in argv or any(arg.startswith("--live=") for arg in argv):
+        print("error: --live is refused", file=sys.stderr)
+        return 2
     parser = argparse.ArgumentParser(
         prog="whisper serve",
         description=(
