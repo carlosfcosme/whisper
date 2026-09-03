@@ -57,6 +57,10 @@ def no_store_enabled() -> bool:
     return DEFAULT_NO_STORE
 
 
+class WeightFetchError(RuntimeError):
+    """Raised when a remote model-weight download is attempted."""
+
+
 def is_hub_url(url: str) -> bool:
     lowered = (url or "").lower()
     return any(marker in lowered for marker in HUB_MARKERS)
@@ -65,13 +69,15 @@ def is_hub_url(url: str) -> bool:
 def refuse_remote_download(url: str, dest: str) -> None:
     """Raise if a Hub, offline, or no-store remote weight pull is attempted."""
     if is_hub_url(url):
-        raise RuntimeError(
+        raise WeightFetchError(
             "no Hub: refusing Hugging Face Hub download ({}); "
             "use a local checkpoint".format(url)
         )
     if offline_enabled():
-        raise RuntimeError(
+        raise WeightFetchError(
             "offline: no weight pulls; missing local checkpoint {}".format(dest)
         )
     if no_store_enabled():
-        raise RuntimeError("no-store: refusing to persist weights at {}".format(dest))
+        raise WeightFetchError(
+            "no-store: refusing to persist weights at {}".format(dest)
+        )

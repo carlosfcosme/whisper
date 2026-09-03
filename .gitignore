@@ -16,6 +16,8 @@ thumbs.db
 # directory is also ignored so checkpoints stay out of git.
 .cache/
 cache/
+cache/whisper/
+**/.cache/whisper/
 weights/
 *.pt
 *.pth
