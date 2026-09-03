@@ -3,7 +3,6 @@
 import os
 import socket
 import subprocess
-import sys
 import venv
 from pathlib import Path
 
@@ -129,12 +128,13 @@ def test_create_connection_loopback_still_works():
         server.close()
 
 
-def test_probe_script_is_not_run_by_host_python_as_a_weight_pull():
+def test_probe_script_is_not_run_by_host_python_as_a_weight_pull(tmp_path):
     """The probe refuses named-model load; host python must do the same."""
     import whisper
     from whisper.runtime import WeightDownloadError
 
+    cache = tmp_path / "host-cache"
+    cache.mkdir()
     with pytest.raises(WeightDownloadError):
-        whisper.load_model(
-            "tiny", download_root=str(Path(sys.prefix) / "no-such-cache")
-        )
+        whisper.load_model("tiny", download_root=str(cache))
+    assert list(cache.iterdir()) == []
