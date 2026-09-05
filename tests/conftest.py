@@ -3,8 +3,12 @@ import random as rand
 import urllib.request
 from urllib.parse import urlparse
 
-import numpy
 import pytest
+
+try:
+    import numpy
+except ImportError:  # offline-bind-guards CI installs pytest only
+    numpy = None
 
 OFFLINE_ENV_DEFAULTS = {
     "HF_HUB_OFFLINE": "1",
@@ -26,7 +30,8 @@ def pytest_configure(config):
 @pytest.fixture
 def random():
     rand.seed(42)
-    numpy.random.seed(42)
+    if numpy is not None:
+        numpy.random.seed(42)
 
 
 @pytest.fixture(autouse=True)
