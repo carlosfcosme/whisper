@@ -9,3 +9,22 @@ thumbs.db
 .DS_Store
 .idea
 
+# Weight artifacts and local caches must stay untracked.
+.cache/
+cache/
+weights/
+**/.cache/whisper/
+**/.cache/huggingface/
+**/.cache/torch/
+**/whisper_cache/
+.huggingface/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.ggml
+*.gguf
+*.bin
+*.weights
+
