@@ -6,7 +6,7 @@ import json
 import sys
 from typing import Dict
 
-from .bind import require_loopback_host
+from .bind import install_loopback_bind_guard, require_loopback_host
 from .defaults import (
     DEFAULT_BIND_HOST,
     DEFAULT_DEVICE,
@@ -25,6 +25,7 @@ def offline_bootstrap() -> Dict[str, object]:
         raise RuntimeError("bootstrap requires offline defaults")
     if not DEFAULT_NO_STORE or not no_store_enabled():
         raise RuntimeError("bootstrap requires no-store defaults")
+    install_loopback_bind_guard()
     bind = require_loopback_host(DEFAULT_BIND_HOST)
     if bind != "127.0.0.1":
         raise RuntimeError(f"bootstrap requires loopback bind, got {bind!r}")

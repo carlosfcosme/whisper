@@ -8,7 +8,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 
-from .bind import require_loopback_host
+from .bind import install_loopback_bind_guard, require_loopback_host
 from .defaults import (
     DEFAULT_BIND_HOST,
     DEFAULT_DEVICE,
@@ -40,6 +40,7 @@ class _HealthHandler(BaseHTTPRequestHandler):
 
 
 def make_server(host: str = DEFAULT_BIND_HOST, port: int = 0) -> ThreadingHTTPServer:
+    install_loopback_bind_guard()
     bound_host = require_loopback_host(host)
     return ThreadingHTTPServer((bound_host, port), _HealthHandler)
 

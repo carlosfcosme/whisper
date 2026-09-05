@@ -94,6 +94,13 @@ jobs:
           WHISPER_NO_STORE: "1"
           XDG_CACHE_HOME: ${{ github.workspace }}/.cache/whisper-ci
         run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+      - name: Bind-127 guard (fail on 0.0.0.0)
+        env:
+          CUDA_VISIBLE_DEVICES: ""
+          HF_HUB_OFFLINE: "1"
+          WHISPER_OFFLINE: "1"
+          WHISPER_NO_STORE: "1"
+        run: pytest tests/test_bind_guard.py -vv
       - name: Verify ignored artifacts and no weight cache
         run: |
           python3 scripts/check_ignored_artifacts.py
