@@ -8,4 +8,10 @@ __pycache__/
 thumbs.db
 .DS_Store
 .idea
+.cache/
+cache/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
 
