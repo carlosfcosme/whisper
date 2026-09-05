@@ -8,6 +8,48 @@ on:
       - main
 
 jobs:
+  offline-proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: git ls-files must not list weights or caches
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files -- \
+            '.cache' '.cache/**' \
+            'cache' 'cache/**' \
+            'weights' 'weights/**' \
+            '.huggingface' '.huggingface/**' \
+            '*.pt' '*.pth' '*.onnx' '*.safetensors' \
+            '*.ckpt' '*.ggml' '*.gguf' '*.bin' '*.weights')"
+          if [ -n "$tracked" ]; then
+            echo "weight/cache paths must stay untracked:" >&2
+            printf '%s\n' "$tracked" >&2
+            exit 1
+          fi
+      - name: gitignore must cover weight/cache sample paths
+        run: |
+          set -euo pipefail
+          for path in \
+            .cache/whisper/tiny.pt \
+            cache/whisper/tiny.pt \
+            weights/tiny.pt \
+            tiny.pt \
+            model.pth \
+            model.safetensors \
+            model.bin
+          do
+            git check-ignore -q -- "$path"
+          done
+      - name: Python git ls-files guard
+        run: python3 scripts/check_tracked_weights.py
+      - name: Offline proofs (ignore, no download, bind 127.0.0.1)
+        run: |
+          python -m pip install pytest
+          pytest tests/test_gitignore_weights.py tests/test_no_download.py tests/test_bind_guard.py -vv
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +79,7 @@ jobs:
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, offline-proofs]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -76,4 +118,15 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Pytest without model download
+        run: |
+          set -euo pipefail
+          cache="${RUNNER_TEMP}/xdg-cache"
+          mkdir -p "$cache"
+          export XDG_CACHE_HOME="$cache"
+          pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda and not requires_local_weights'
+          if find "$cache" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.safetensors' \) | grep -q .; then
+            echo "pytest downloaded weights into XDG_CACHE_HOME" >&2
+            find "$cache" -type f >&2
+            exit 1
+          fi
