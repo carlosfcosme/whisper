@@ -54,17 +54,27 @@ def require_loopback_host(host: Optional[str] = None) -> str:
     return LOOPBACK_HOST
 
 
+def assert_bound_loopback(httpd: ThreadingHTTPServer) -> None:
+    """Fail if the listening socket is all-interfaces or not 127.0.0.1."""
+    bound = httpd.server_address[0]
+    sock_host = httpd.socket.getsockname()[0]
+    if bound == ALL_INTERFACES or sock_host == ALL_INTERFACES:
+        httpd.server_close()
+        raise BindError(
+            "refusing all-interfaces bind {!r}; use {}".format(sock_host, LOOPBACK_HOST)
+        )
+    if bound != LOOPBACK_HOST or sock_host != LOOPBACK_HOST:
+        httpd.server_close()
+        raise BindError(
+            "refusing non-loopback bind {!r}; use {}".format(sock_host, LOOPBACK_HOST)
+        )
+
+
 def create_loopback_httpd(
     handler: Type, host: Optional[str] = None, port: int = 0
 ) -> ThreadingHTTPServer:
     """Bind *handler* to 127.0.0.1. *host* must pass the policy first."""
     require_loopback_host(host)
     httpd = ThreadingHTTPServer((LOOPBACK_HOST, port), handler)
-    bound = httpd.server_address[0]
-    sock_host = httpd.socket.getsockname()[0]
-    if bound != LOOPBACK_HOST or sock_host != LOOPBACK_HOST:
-        httpd.server_close()
-        raise BindError(
-            "refusing non-loopback bind {!r}; use {}".format(bound, LOOPBACK_HOST)
-        )
+    assert_bound_loopback(httpd)
     return httpd
