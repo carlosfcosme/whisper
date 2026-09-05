@@ -36,8 +36,16 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if weights are committed
+        run: python3 scripts/check_no_weights.py
+      - name: Verify cache/weight artifacts are gitignored
+        run: python3 scripts/check_ignored_artifacts.py
   whisper-test:
-    needs: pre-commit
+    needs: [pre-commit, no-committed-weights]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -76,4 +84,41 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - name: Tests without Hub or weight downloads
+        env:
+          CUDA_VISIBLE_DEVICES: ""
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_DATASETS_OFFLINE: "1"
+          WHISPER_OFFLINE: "1"
+          WHISPER_NO_STORE: "1"
+          XDG_CACHE_HOME: ${{ github.workspace }}/.cache/whisper-ci
+        run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+      - name: Bind-127 guard (fail on 0.0.0.0)
+        env:
+          CUDA_VISIBLE_DEVICES: ""
+          HF_HUB_OFFLINE: "1"
+          WHISPER_OFFLINE: "1"
+          WHISPER_NO_STORE: "1"
+        run: pytest tests/test_bind_guard.py -vv
+      - name: Verify ignored artifacts and no weight cache
+        run: |
+          python3 scripts/check_ignored_artifacts.py
+          python3 - <<'PY'
+          import os, sys
+          from pathlib import Path
+          cache = Path(os.environ.get("XDG_CACHE_HOME", ".cache/whisper-ci"))
+          leftover = []
+          if cache.exists():
+              leftover = [
+                  p
+                  for p in cache.rglob("*")
+                  if p.suffix.lower() in {".pt", ".safetensors", ".bin", ".ckpt"}
+              ]
+          if leftover:
+              print("weight artifacts were written:", *leftover, sep="\n  ", file=sys.stderr)
+              sys.exit(1)
+          print("no weight artifacts in XDG_CACHE_HOME")
+          PY
+        env:
+          XDG_CACHE_HOME: ${{ github.workspace }}/.cache/whisper-ci
