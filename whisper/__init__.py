@@ -51,6 +51,16 @@ _ALIGNMENT_HEADS = {
 }
 
 
+def _no_download_enabled() -> bool:
+    """True when runtime must use a local checkpoint and must not fetch weights."""
+    return os.environ.get("WHISPER_NO_DOWNLOAD", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
@@ -69,6 +79,13 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+
+    if _no_download_enabled():
+        raise RuntimeError(
+            "Model is not cached at {} and WHISPER_NO_DOWNLOAD is set".format(
+                download_target
+            )
+        )
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
