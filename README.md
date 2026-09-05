@@ -54,9 +54,6 @@ You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken
 pip install setuptools-rust
 ```
 
-Pip extras (currently only `dev`) are listed in [EXTRAS.md](EXTRAS.md). The
-Cloud Agent extra environment installs `".[dev]"` implicitly.
-
 
 ## Available models and languages
 
