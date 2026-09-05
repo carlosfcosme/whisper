@@ -8,6 +8,18 @@ on:
       - main
 
 jobs:
+  cache-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache and weight paths stay untracked
+        run: bash scripts/check_cache_weights.sh
+  no-committed-weights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if model weights or large binaries are committed
+        run: python3 scripts/check_no_weights.py
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -36,9 +48,32 @@ jobs:
           pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
-  whisper-test:
-    needs: pre-commit
+  no-hub:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if CI can contact the Hub or pull weights
+        run: python3 scripts/check_no_hub.py
+  bind-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if all-interface or empty-host bind appears
+        run: bash scripts/check_no_all_interfaces.sh
+      - name: Fail if bind policy accepts a non-loopback host
+        run: python3 scripts/check_loopback_bind.py
+  whisper-test:
+    needs: [pre-commit, cache-weights, no-committed-weights, no-hub, bind-guard]
+    runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: ""
+      WHISPER_OFFLINE: "1"
+      WHISPER_NO_STORE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      XDG_CACHE_HOME: ${{ github.workspace }}/.cache
     strategy:
       fail-fast: false
       matrix:
@@ -76,4 +111,10 @@ jobs:
       - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
+      - run: pytest --durations=0 -vv -k 'not test_transcribe' -m 'not requires_cuda'
+      - name: Downloaded caches stay untracked
+        run: bash scripts/check_cache_weights.sh
+      - name: Fail if pytest left committed weights
+        run: python3 scripts/check_no_weights.py
+      - name: Fail if tests downloaded weights or hit the Hub cache
+        run: python3 scripts/assert_no_weight_download.py
